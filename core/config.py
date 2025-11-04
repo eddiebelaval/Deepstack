@@ -194,6 +194,9 @@ class Config(BaseModel):
     alpaca_secret_key: Optional[str] = None
     alpaca_base_url: Optional[str] = None
 
+    # Alpha Vantage Configuration (from environment)
+    alpha_vantage_api_key: Optional[str] = None
+
     # Anthropic API Key (from environment)
     anthropic_api_key: Optional[str] = None
 
@@ -254,6 +257,7 @@ class Config(BaseModel):
             "alpaca_base_url": os.getenv(
                 "ALPACA_BASE_URL", "https://paper-api.alpaca.markets"
             ),
+            "alpha_vantage_api_key": os.getenv("ALPHA_VANTAGE_API_KEY"),
             "anthropic_api_key": os.getenv("ANTHROPIC_API_KEY"),
         }
 
@@ -286,6 +290,7 @@ class Config(BaseModel):
                 "alpaca_api_key",
                 "alpaca_secret_key",
                 "alpaca_base_url",
+                "alpha_vantage_api_key",
                 "anthropic_api_key",
             }
         )
