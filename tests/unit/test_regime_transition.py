@@ -6,7 +6,6 @@ Tests transition logic, whipsaw prevention, and conviction requirements.
 
 from datetime import datetime, timedelta
 
-
 from core.regime.regime_detector import MarketRegime, RegimeDetection, RegimeFactors
 from core.regime.regime_transition import (
     RegimeState,
