@@ -327,7 +327,10 @@ For each task:
 ### **Week 7: Regime + Pairs**
 
 #### **Task 7.1: Regime Detector**
-**Status:** [ ] Not started
+**Worker Agent:** `backend-architect`
+**Watcher Agent:** `code-reviewer` (launched after completion)
+**Quality Gate:** 92%+ coverage, 81 tests, 100% historical accuracy
+**Status:** [x] Complete ✅ (Nov 5, 2025)
 
 #### **Task 7.2: Pairs Trading**
 **Status:** [ ] Not started
