@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List
 
+from ..config import get_config  # noqa: F401 - Required for test mocking
 from .base_agent import AgentResponse, BaseAgent, Tool
 
 logger = logging.getLogger(__name__)
