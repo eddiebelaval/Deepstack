@@ -1,0 +1,141 @@
+# Master Trader Philosophies for DeepStack AI Agents
+
+traders:
+  keith_gill:
+    name: "Keith Gill (DFV)"
+    philosophy: "Deep fundamental analysis with asymmetric risk/reward"
+    key_principles:
+      - "Find companies trading below intrinsic value"
+      - "Look for asymmetric payoffs: risk $1 to make $10+"
+      - "Hold with conviction through volatility"
+      - "Document your thesis thoroughly"
+      - "Never invest more than you can afford to lose"
+    screening_criteria:
+      - "P/B < 1.0 (preferably < 0.7)"
+      - "Strong balance sheet with low debt"
+      - "Competitive moat or unique positioning"
+      - "Management with skin in the game"
+      - "Catalyst potential (transformation, activism, etc.)"
+
+  ryan_cohen:
+    name: "Ryan Cohen"
+    philosophy: "Value with transformation potential"
+    key_principles:
+      - "Invest in companies with turnaround potential"
+      - "Focus on capital allocation and operational efficiency"
+      - "Long-term vision over short-term noise"
+      - "Look for management changes or activist involvement"
+      - "Technology transformation opportunities"
+    screening_criteria:
+      - "Undervalued relative to peers"
+      - "Digital transformation potential"
+      - "Strong brand or market position"
+      - "Recent management changes"
+      - "Operational improvement opportunities"
+
+  carl_icahn:
+    name: "Carl Icahn"
+    philosophy: "Catalyst-driven investing with concentration"
+    key_principles:
+      - "Find companies with specific catalysts"
+      - "Concentrate positions in highest conviction ideas"
+      - "Activist approach to unlock value"
+      - "Focus on event-driven opportunities"
+      - "Short-term catalysts with clear timelines"
+    screening_criteria:
+      - "P/B < 0.7 (deep value territory)"
+      - "Clear catalyst within 12-18 months"
+      - "Activist potential or management change"
+      - "Asset sales or spin-offs"
+      - "Merger/acquisition potential"
+
+  ray_dalio:
+    name: "Ray Dalio"
+    philosophy: "Systematic rules-based approach"
+    key_principles:
+      - "Create systematic rules and follow them"
+      - "Diversify across uncorrelated strategies"
+      - "Risk parity approach to allocation"
+      - "Radical transparency in decision making"
+      - "Learn from mistakes and adapt"
+    screening_criteria:
+      - "Quantitative metrics over qualitative"
+      - "Risk-adjusted returns focus"
+      - "Correlation analysis with portfolio"
+      - "Systematic rebalancing rules"
+      - "Performance attribution analysis"
+
+  warren_buffett:
+    name: "Warren Buffett"
+    philosophy: "Quality companies at fair prices"
+    key_principles:
+      - "Buy wonderful companies at fair prices"
+      - "Focus on economic moats and competitive advantages"
+      - "Long-term holding periods"
+      - "Management quality and integrity"
+      - "Avoid businesses you don't understand"
+    screening_criteria:
+      - "ROE > 15% consistently"
+      - "Low debt and strong balance sheet"
+      - "Predictable earnings growth"
+      - "Competitive moat (brand, network effects, etc.)"
+      - "Management with proven track record"
+
+  charlie_munger:
+    name: "Charlie Munger"
+    philosophy: "Inversion thinking and mental models"
+    key_principles:
+      - "Invert: What could go wrong?"
+      - "Use mental models from multiple disciplines"
+      - "Avoid stupidity rather than seeking brilliance"
+      - "Focus on what you know vs. what you don't"
+      - "Learn from other people's mistakes"
+    screening_criteria:
+      - "What could cause this investment to fail?"
+      - "What are the key risks and how are they managed?"
+      - "What don't I understand about this business?"
+      - "What would smart people disagree with me about?"
+      - "What are the second and third order effects?"
+
+# Core Mental Models
+mental_models:
+  inversion:
+    description: "Think about what could go wrong first"
+    application: "Before buying, list all the ways you could lose money"
+    
+  asymmetric_risk_reward:
+    description: "Risk $1 to make $10+"
+    application: "Look for situations where downside is limited but upside is massive"
+    
+  moat_analysis:
+    description: "Competitive advantages that protect profits"
+    application: "Brand, network effects, switching costs, cost advantages"
+    
+  catalyst_timing:
+    description: "Specific events that could unlock value"
+    application: "Earnings, product launches, management changes, activism"
+    
+  margin_of_safety:
+    description: "Buy at a significant discount to intrinsic value"
+    application: "P/B < 1.0, P/E < 10, trading below book value"
+
+# Risk Management Principles
+risk_management:
+  position_sizing:
+    - "Never risk more than 2% on any single trade"
+    - "Use Kelly Criterion but never full Kelly"
+    - "Maximum 5% per position, 25% per idea"
+    - "Portfolio heat never exceeds 15%"
+    
+  stop_losses:
+    - "Set stops before entry, never after"
+    - "Never move stop loss down (only up)"
+    - "Thesis break = immediate exit"
+    - "Honor your stops always"
+    
+  emotional_discipline:
+    - "No revenge trading after losses"
+    - "No FOMO entries on pumps"
+    - "No panic selling on volatility"
+    - "Stick to your system"
+    - "Document every decision"

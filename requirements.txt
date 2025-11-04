@@ -1,0 +1,26 @@
+# Core dependencies
+anthropic>=0.34.0
+ib_insync>=0.9.86
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pandas>=2.1.0
+numpy>=1.24.0
+pyyaml>=6.0.1
+# sqlite3 is built into Python
+websockets>=12.0
+
+# Data analysis
+ta-lib>=0.4.28
+yfinance>=0.2.28
+requests>=2.31.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.12.0
+
+# Development
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.7.0

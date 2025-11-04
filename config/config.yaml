@@ -1,0 +1,63 @@
+# DeepStack Trading System Configuration
+
+# Trading Mode
+trading:
+  mode: "paper"  # paper, live
+  max_position_size: 0.05  # 5% max per position
+  max_portfolio_heat: 0.15  # 15% total risk
+  daily_loss_limit: 0.02  # 2% daily loss limit
+  weekly_loss_limit: 0.05  # 5% weekly loss limit
+  max_drawdown: 0.15  # 15% max drawdown
+
+# Risk Management
+risk:
+  kelly_fraction: 0.25  # Use 0.25x Kelly (never full Kelly)
+  max_leverage: 1.5  # 1.5:1 maximum leverage
+  margin_buffer: 0.30  # 30% above maintenance margin
+  stop_loss_types:
+    - "technical"  # Below support
+    - "percentage"  # 7-8% for stocks
+    - "thesis"  # Fundamental break
+
+# Strategies
+strategies:
+  deep_value:
+    enabled: true
+    allocation: 0.40
+    criteria:
+      p_b_max: 1.0
+      p_e_max: 10
+      ev_ebitda_max: 7
+      fcf_yield_min: 0.07
+      debt_equity_max: 1.0
+      current_ratio_min: 1.5
+      roe_min: 0.15
+      
+  squeeze_hunter:
+    enabled: true
+    allocation: 0.30
+    criteria:
+      short_interest_min: 0.20
+      days_to_cover_min: 5
+      borrow_cost_min: 0.05
+      float_available_max: 0.20
+      
+  pairs_trading:
+    enabled: false
+    allocation: 0.20
+    criteria:
+      correlation_min: 0.80
+      z_score_entry: 2.0
+      z_score_stop: 3.5
+
+# API Configuration
+api:
+  host: "127.0.0.1"
+  port: 8000
+  cors_origins: ["*"]
+  
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
+  file: "logs/deepstack.log"

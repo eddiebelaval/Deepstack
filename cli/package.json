@@ -1,0 +1,41 @@
+{
+  "name": "deepstack-cli",
+  "version": "1.0.0",
+  "description": "DeepStack Trading System - PipBoy CLI Interface",
+  "type": "module",
+  "bin": {
+    "deepstack": "./dist/app.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/app.tsx",
+    "build": "tsc && chmod +x dist/app.js",
+    "start": "node dist/app.js",
+    "link": "npm run build && npm link"
+  },
+  "keywords": ["trading", "cli", "ai", "pipboy", "terminal"],
+  "author": "Eddie Belaval",
+  "license": "MIT",
+  "dependencies": {
+    "ink": "^3.2.0",
+    "ink-text-input": "^4.0.1",
+    "ink-select-input": "^4.0.1",
+    "ink-box": "^2.0.0",
+    "ink-spinner": "^4.0.1",
+    "react": "^18.2.0",
+    "commander": "^11.1.0",
+    "chalk": "^5.3.0",
+    "boxen": "^7.1.1",
+    "axios": "^1.6.0",
+    "ws": "^8.14.0",
+    "date-fns": "^3.0.6",
+    "node-notifier": "^10.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/react": "^18.2.46",
+    "@types/ws": "^8.5.10",
+    "@types/node-notifier": "^8.0.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

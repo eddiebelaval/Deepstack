@@ -1,0 +1,35 @@
+# Hard Risk Limits - These are NEVER exceeded
+
+position_limits:
+  max_position_pct: 0.05        # 5% max per position (HARD STOP)
+  max_concentration: 0.25       # 25% max in single idea
+  max_portfolio_heat: 0.15      # 15% total risk across all positions
+
+loss_limits:
+  daily_stop: 0.02              # 2% daily loss limit
+  weekly_stop: 0.05             # 5% weekly loss limit
+  max_drawdown: 0.15            # 15% max drawdown from peak
+
+leverage_limits:
+  max_leverage: 1.5             # 1.5:1 maximum leverage
+  margin_buffer: 0.30           # 30% above maintenance margin
+
+# Kelly Criterion Settings
+kelly_settings:
+  max_kelly_fraction: 0.30       # Never use more than 30% of Kelly
+  default_fraction: 0.25        # Default 25% of Kelly
+  min_fraction: 0.10            # Minimum 10% of Kelly for learning
+
+# Stop Loss Rules
+stop_loss:
+  never_move_down: true         # Never move stop loss down
+  thesis_break_exit: true       # Exit immediately if thesis breaks
+  trailing_stops: true          # Use trailing stops on winners
+  max_stop_pct: 0.25            # Maximum 25% stop loss
+
+# Emotional Override System
+emotional_override:
+  cooling_period_minutes: 5     # 5-minute mandatory wait
+  require_justification: true    # Must provide written reason
+  log_all_overrides: true       # Log every override attempt
+  pattern_detection: true        # Detect revenge trading, FOMO, panic
