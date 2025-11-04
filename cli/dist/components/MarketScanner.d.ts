@@ -9,4 +9,4 @@ interface MarketScannerProps {
     apiClient: APIClient;
 }
 export declare const MarketScanner: React.FC<MarketScannerProps>;
-export {};
+export default MarketScanner;

@@ -9,4 +9,4 @@ interface DashboardProps {
     apiClient: APIClient;
 }
 export declare const Dashboard: React.FC<DashboardProps>;
-export {};
+export default Dashboard;

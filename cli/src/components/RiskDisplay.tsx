@@ -6,7 +6,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Spinner from 'ink-spinner';
 
 import { APIClient } from '../api/client';
 
@@ -85,10 +84,7 @@ export const RiskDisplay: React.FC<RiskDisplayProps> = ({ apiClient }) => {
   if (loading) {
     return (
       <Box justifyContent="center" alignItems="center" height={10}>
-        <Text color="cyan">
-          <Spinner type="dots" />
-          {' Loading Risk Analysis...'}
-        </Text>
+        <Text color="cyan">Loading Risk Analysis...</Text>
       </Box>
     );
   }
@@ -278,3 +274,5 @@ export const RiskDisplay: React.FC<RiskDisplayProps> = ({ apiClient }) => {
     </Box>
   );
 };
+
+export default RiskDisplay;

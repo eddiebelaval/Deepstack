@@ -27,6 +27,33 @@ export class APIClient {
             throw error;
         });
     }
+    async startAutomation(cadence_s, symbols) {
+        try {
+            const response = await this.client.post('/automation/start', { cadence_s, symbols });
+            return response.data;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async stopAutomation() {
+        try {
+            const response = await this.client.post('/automation/stop');
+            return response.data;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async automationStatus() {
+        try {
+            const response = await this.client.get('/automation/status');
+            return response.data;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async healthCheck() {
         try {
             const response = await this.client.get('/health');

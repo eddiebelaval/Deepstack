@@ -43,6 +43,9 @@ export declare class APIClient {
     private client;
     private baseURL;
     constructor(baseURL?: string);
+    startAutomation(cadence_s?: number, symbols?: string[]): Promise<any>;
+    stopAutomation(): Promise<any>;
+    automationStatus(): Promise<any>;
     healthCheck(): Promise<boolean>;
     getQuote(symbol: string): Promise<QuoteData>;
     getPositions(): Promise<PositionData[]>;

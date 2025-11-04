@@ -7,7 +7,6 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
  */
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Spinner from 'ink-spinner';
 import { format } from 'date-fns';
 export const PositionMonitor = ({ apiClient }) => {
     const [positions, setPositions] = useState([]);
@@ -101,7 +100,7 @@ export const PositionMonitor = ({ apiClient }) => {
         }
     }, [positions, sortBy]);
     if (loading) {
-        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 15, children: _jsxs(Text, { color: "cyan", children: [_jsx(Spinner, { type: "dots" }), ' Loading Positions...'] }) }));
+        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 15, children: _jsx(Text, { color: "cyan", children: "Loading Positions..." }) }));
     }
     if (error) {
         return (_jsxs(Box, { flexDirection: "column", paddingX: 2, children: [_jsx(Text, { color: "red", bold: true, children: "\u26A0\uFE0F  Position Monitor Error" }), _jsx(Text, { color: "gray", children: error }), _jsx(Text, { color: "cyan", dimColor: true, children: "Press 'r' to retry | Press 'd' for dashboard" })] }));
@@ -141,3 +140,4 @@ export const PositionMonitor = ({ apiClient }) => {
     };
     return (_jsxs(Box, { flexDirection: "column", children: [renderHeader(), renderPortfolioSummary(), renderPositionsTable(), renderPositionDetails(), renderQuickStats()] }));
 };
+export default PositionMonitor;

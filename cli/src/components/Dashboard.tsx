@@ -6,7 +6,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Spinner from 'ink-spinner';
 import { format } from 'date-fns';
 
 import { APIClient, PositionData, AccountSummary } from '../api/client';
@@ -59,10 +58,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ apiClient }) => {
   if (loading) {
     return (
       <Box justifyContent="center" alignItems="center" height={10}>
-        <Text color="cyan">
-          <Spinner type="dots" />
-          {' Loading DeepStack Dashboard...'}
-        </Text>
+        <Text color="cyan">Loading DeepStack Dashboard...</Text>
       </Box>
     );
   }
@@ -260,3 +256,5 @@ export const Dashboard: React.FC<DashboardProps> = ({ apiClient }) => {
     </Box>
   );
 };
+
+export default Dashboard;

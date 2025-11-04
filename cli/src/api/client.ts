@@ -75,6 +75,32 @@ export class APIClient {
       }
     );
   }
+  async startAutomation(cadence_s?: number, symbols?: string[]): Promise<any> {
+    try {
+      const response = await this.client.post('/automation/start', { cadence_s, symbols });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async stopAutomation(): Promise<any> {
+    try {
+      const response = await this.client.post('/automation/stop');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async automationStatus(): Promise<any> {
+    try {
+      const response = await this.client.get('/automation/status');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async healthCheck(): Promise<boolean> {
     try {

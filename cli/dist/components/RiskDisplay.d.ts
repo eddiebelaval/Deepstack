@@ -9,4 +9,4 @@ interface RiskDisplayProps {
     apiClient: APIClient;
 }
 export declare const RiskDisplay: React.FC<RiskDisplayProps>;
-export {};
+export default RiskDisplay;

@@ -6,7 +6,6 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
  */
 import { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Spinner from 'ink-spinner';
 export const RiskDisplay = ({ apiClient }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -68,7 +67,7 @@ export const RiskDisplay = ({ apiClient }) => {
         }
     });
     if (loading) {
-        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 10, children: _jsxs(Text, { color: "cyan", children: [_jsx(Spinner, { type: "dots" }), ' Loading Risk Analysis...'] }) }));
+        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 10, children: _jsx(Text, { color: "cyan", children: "Loading Risk Analysis..." }) }));
     }
     if (error) {
         return (_jsxs(Box, { flexDirection: "column", paddingX: 2, children: [_jsx(Text, { color: "red", bold: true, children: "\u26A0\uFE0F  Risk Analysis Error" }), _jsx(Text, { color: "gray", children: error }), _jsx(Text, { color: "cyan", dimColor: true, children: "Press 'r' to retry" })] }));
@@ -95,3 +94,4 @@ export const RiskDisplay = ({ apiClient }) => {
     const renderRiskManagementTips = () => (_jsxs(Box, { flexDirection: "column", marginTop: 2, children: [_jsx(Text, { color: "yellow", bold: true, children: "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 RISK MANAGEMENT TIPS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550" }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Monitor portfolio heat daily (target: <15%)" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Use Kelly Criterion for position sizing" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Set stops before entering positions" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Never move stop losses down" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Take profits when targets hit" })] })] }));
     return (_jsxs(Box, { flexDirection: "column", children: [renderRiskOverview(), renderPerformanceMetrics(), renderLossLimits(), renderRiskAlerts(), renderRiskManagementTips(), _jsx(Box, { marginTop: 2, children: _jsx(Text, { color: "cyan", dimColor: true, children: "Press 'r' to refresh | Press 'd' for Dashboard | Press 'p' for Positions" }) })] }));
 };
+export default RiskDisplay;

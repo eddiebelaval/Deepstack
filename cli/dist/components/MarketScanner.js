@@ -6,7 +6,6 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
  */
 import { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Spinner from 'ink-spinner';
 export const MarketScanner = ({ apiClient }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -114,7 +113,7 @@ export const MarketScanner = ({ apiClient }) => {
         }
     });
     if (loading) {
-        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 10, children: _jsxs(Text, { color: "cyan", children: [_jsx(Spinner, { type: "dots" }), ' Scanning Markets...'] }) }));
+        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 10, children: _jsx(Text, { color: "cyan", children: "Scanning Markets..." }) }));
     }
     if (error) {
         return (_jsxs(Box, { flexDirection: "column", paddingX: 2, children: [_jsx(Text, { color: "red", bold: true, children: "\u26A0\uFE0F  Market Scanner Error" }), _jsx(Text, { color: "gray", children: error }), _jsx(Text, { color: "cyan", dimColor: true, children: "Press 'r' to retry" })] }));
@@ -140,3 +139,4 @@ export const MarketScanner = ({ apiClient }) => {
     const renderQuickActions = () => (_jsxs(Box, { flexDirection: "column", marginTop: 2, children: [_jsx(Text, { color: "yellow", bold: true, children: "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 QUICK ACTIONS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550" }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Analyze Stock: " }), _jsx(Text, { color: "green", bold: true, children: "deepstack analyze AAPL" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Place Order: " }), _jsx(Text, { color: "green", bold: true, children: "deepstack buy AAPL 100" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "View Positions: " }), _jsx(Text, { color: "green", bold: true, children: "Press 'p'" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Risk Analysis: " }), _jsx(Text, { color: "green", bold: true, children: "Press 'r'" })] })] }));
     return (_jsxs(Box, { flexDirection: "column", children: [renderStrategySelector(), showDetails === null ? (_jsxs(_Fragment, { children: [renderScannerStats(), renderResultsTable()] })) : (renderDetailedView()), renderQuickActions(), _jsx(Box, { marginTop: 2, children: _jsx(Text, { color: "cyan", dimColor: true, children: "Press 'r' to refresh | [1-3] Change Strategy | [\u2191\u2193] Navigate | [Enter] Details | [Esc] Back" }) })] }));
 };
+export default MarketScanner;

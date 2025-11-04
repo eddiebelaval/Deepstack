@@ -10,4 +10,4 @@ interface PositionMonitorProps {
     apiClient: APIClient;
 }
 export declare const PositionMonitor: React.FC<PositionMonitorProps>;
-export {};
+export default PositionMonitor;

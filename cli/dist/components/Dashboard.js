@@ -6,7 +6,6 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
  */
 import { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Spinner from 'ink-spinner';
 export const Dashboard = ({ apiClient }) => {
     const [positions, setPositions] = useState([]);
     const [accountSummary, setAccountSummary] = useState(null);
@@ -44,7 +43,7 @@ export const Dashboard = ({ apiClient }) => {
         }
     });
     if (loading) {
-        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 10, children: _jsxs(Text, { color: "cyan", children: [_jsx(Spinner, { type: "dots" }), ' Loading DeepStack Dashboard...'] }) }));
+        return (_jsx(Box, { justifyContent: "center", alignItems: "center", height: 10, children: _jsx(Text, { color: "cyan", children: "Loading DeepStack Dashboard..." }) }));
     }
     if (error) {
         return (_jsxs(Box, { flexDirection: "column", paddingX: 2, children: [_jsx(Text, { color: "red", bold: true, children: "\u26A0\uFE0F  Connection Error" }), _jsx(Text, { color: "gray", children: error }), _jsx(Text, { color: "cyan", dimColor: true, children: "Press 'r' to retry" })] }));
@@ -76,3 +75,4 @@ export const Dashboard = ({ apiClient }) => {
     const renderQuickActions = () => (_jsxs(Box, { flexDirection: "column", marginTop: 2, children: [_jsx(Text, { color: "yellow", bold: true, children: "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 QUICK ACTIONS \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550" }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Buy/Sell: " }), _jsx(Text, { color: "green", bold: true, children: "deepstack buy AAPL 100" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Get Quote: " }), _jsx(Text, { color: "green", bold: true, children: "deepstack quote TSLA" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "View Positions: " }), _jsx(Text, { color: "green", bold: true, children: "Press 'p'" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "cyan", children: "\u2022 " }), _jsx(Text, { children: "Risk Analysis: " }), _jsx(Text, { color: "green", bold: true, children: "Press 'r'" })] })] }));
     return (_jsxs(Box, { flexDirection: "column", children: [renderPortfolioSummary(), _jsxs(Box, { children: [_jsxs(Box, { flexDirection: "column", width: "60%", children: [renderPositionsTable(), renderQuickActions()] }), _jsx(Box, { flexDirection: "column", width: "40%", children: renderActivityFeed() })] })] }));
 };
+export default Dashboard;

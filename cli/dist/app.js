@@ -10,13 +10,13 @@ import React, { useState, useEffect } from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
 import { Command } from 'commander';
 import { format } from 'date-fns';
-import { Dashboard } from './components/Dashboard.js';
-import { PositionMonitor } from './components/PositionMonitor.js';
-import { RiskDisplay } from './components/RiskDisplay.js';
-import { MarketScanner } from './components/MarketScanner.js';
+import Dashboard from './components/Dashboard.js';
+import PositionMonitor from './components/PositionMonitor.js';
+import RiskDisplay from './components/RiskDisplay.js';
+import MarketScanner from './components/MarketScanner.js';
 import { APIClient } from './api/client.js';
-// ASCII Art Header - PipBoy Style
-const HEADER_ART = `
+// ASCII Art Header - PipBoy Style (large + compact variants)
+const HEADER_ART_LARGE = `
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
 ║                ██████╗ ███████╗███████╗██████╗ ███████╗████████╗ █████╗       ║
@@ -30,6 +30,8 @@ const HEADER_ART = `
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
+const HEADER_ART_COMPACT = `
+  ██████╗ ███████╗███████╗██████╗ ███████╗  DEEPSTACK\n  ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝  Autonomous Trading Agent\n  ██║  ██║█████╗  █████╗  ██████╔╝███████╗  Powered by Claude\n`;
 const App = ({ command, args }) => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [isConnected, setIsConnected] = useState(false);
@@ -88,13 +90,15 @@ const App = ({ command, args }) => {
         if (input === 'q')
             exit();
     });
-    // Update timestamp
+    // Update timestamp less frequently to avoid scrolling; align with status polling
     useEffect(() => {
-        const interval = setInterval(() => {
-            setLastUpdate(new Date());
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
+        if (!command) {
+            const interval = setInterval(() => {
+                setLastUpdate(new Date());
+            }, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [command]);
     // Handle direct commands
     useEffect(() => {
         if (command) {
@@ -147,7 +151,12 @@ const App = ({ command, args }) => {
             exit();
         }
     };
-    const renderHeader = () => (_jsxs(Box, { flexDirection: "column", marginBottom: 1, children: [_jsx(Text, { color: "green", bold: true, children: HEADER_ART }), _jsxs(Box, { justifyContent: "space-between", children: [_jsxs(Text, { color: isConnected ? "green" : "red", children: ["\u25CF ", isConnected ? "CONNECTED" : "DISCONNECTED"] }), _jsx(Text, { color: marketOpen ? "green" : "yellow", children: marketOpen ? "🟢 MARKET OPEN" : "🟡 MARKET CLOSED" }), _jsx(Text, { color: "cyan", children: format(lastUpdate, 'HH:mm:ss') })] }), _jsx(Box, { justifyContent: "center", marginY: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: "[D]ashboard | [P]ositions | [R]isk | [S]canner | [Q]uit" }) })] }));
+    const renderHeader = () => {
+        const isTTY = !!(process.stdout && process.stdout.isTTY);
+        const width = isTTY ? process.stdout.columns : 120;
+        const useCompact = width < 110;
+        return (_jsxs(Box, { flexDirection: "column", marginBottom: 1, children: [_jsx(Text, { color: "green", bold: true, children: useCompact ? HEADER_ART_COMPACT : HEADER_ART_LARGE }), _jsxs(Box, { justifyContent: "space-between", children: [_jsxs(Text, { color: isConnected ? "green" : "red", children: ["\u25CF ", isConnected ? "CONNECTED" : "DISCONNECTED"] }), _jsx(Text, { color: marketOpen ? "green" : "yellow", children: marketOpen ? "🟢 MARKET OPEN" : "🟡 MARKET CLOSED" }), _jsx(Text, { color: "cyan", children: format(lastUpdate, 'HH:mm:ss') })] }), _jsx(Box, { justifyContent: "center", marginY: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: "[D]ashboard | [P]ositions | [R]isk | [S]canner | [Q]uit" }) })] }));
+    };
     const renderView = () => {
         switch (currentView) {
             case 'dashboard':
@@ -177,9 +186,59 @@ program
 // Interactive dashboard (default)
 program
     .action(() => {
+    const canUseRawMode = !!(process.stdin && process.stdin.isTTY && typeof process.stdin.setRawMode === 'function');
+    if (!canUseRawMode) {
+        console.log('Interactive dashboard requires a TTY.');
+        console.log("Use 'deepstack status' or run in a real terminal.");
+        process.exit(0);
+    }
     render(_jsx(App, {}));
 });
 // Direct commands - handle without Ink rendering
+program
+    .command('start')
+    .description('Start automated trading (paper mode)')
+    .option('--cadence <seconds>', 'Cycle cadence in seconds', '30')
+    .action(async (opts) => {
+    try {
+        const apiClient = new APIClient();
+        const cadence_s = parseInt(opts.cadence, 10) || 30;
+        const res = await apiClient.startAutomation(cadence_s);
+        console.log(`Automation started: cadence=${res.cadence_s}s, symbols=${(res.symbols || []).join(',')}`);
+    }
+    catch (error) {
+        console.error('Error starting automation:', error);
+        process.exit(1);
+    }
+});
+program
+    .command('stop')
+    .description('Stop automated trading')
+    .action(async () => {
+    try {
+        const apiClient = new APIClient();
+        const res = await apiClient.stopAutomation();
+        console.log('Automation stopped.');
+    }
+    catch (error) {
+        console.error('Error stopping automation:', error);
+        process.exit(1);
+    }
+});
+program
+    .command('status')
+    .description('Show automation status')
+    .action(async () => {
+    try {
+        const apiClient = new APIClient();
+        const res = await apiClient.automationStatus();
+        console.log(`Running: ${res.running} | Cadence: ${res.cadence_s}s | Last: ${res.last_action || 'n/a'}`);
+    }
+    catch (error) {
+        console.error('Error getting status:', error);
+        process.exit(1);
+    }
+});
 program
     .command('quote <symbol>')
     .description('Get current quote for symbol')

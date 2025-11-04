@@ -127,10 +127,7 @@ export const PositionMonitor: React.FC<PositionMonitorProps> = ({ apiClient }) =
   if (loading) {
     return (
       <Box justifyContent="center" alignItems="center" height={15}>
-        <Text color="cyan">
-          <Spinner type="dots" />
-          {' Loading Positions...'}
-        </Text>
+        <Text color="cyan">Loading Positions...</Text>
       </Box>
     );
   }
@@ -390,3 +387,5 @@ export const PositionMonitor: React.FC<PositionMonitorProps> = ({ apiClient }) =
     </Box>
   );
 };
+
+export default PositionMonitor;

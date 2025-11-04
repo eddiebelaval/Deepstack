@@ -6,7 +6,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Spinner from 'ink-spinner';
 
 import { APIClient } from '../api/client';
 
@@ -140,10 +139,7 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ apiClient }) => {
   if (loading) {
     return (
       <Box justifyContent="center" alignItems="center" height={10}>
-        <Text color="cyan">
-          <Spinner type="dots" />
-          {' Scanning Markets...'}
-        </Text>
+        <Text color="cyan">Scanning Markets...</Text>
       </Box>
     );
   }
@@ -380,3 +376,5 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ apiClient }) => {
     </Box>
   );
 };
+
+export default MarketScanner;
