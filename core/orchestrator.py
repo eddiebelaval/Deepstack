@@ -76,7 +76,8 @@ class TradingOrchestrator:
         self._running = True
         self._task = asyncio.create_task(self._run_loop())
         logger.info(
-            f"TradingOrchestrator started (cadence={self._cadence_s}s, symbols={self._symbols})"
+            f"TradingOrchestrator started (cadence={self._cadence_s}s, "
+            f"symbols={self._symbols})"
         )
 
     async def stop(self):
@@ -90,14 +91,14 @@ class TradingOrchestrator:
         logger.info("TradingOrchestrator stopped")
 
     async def _run_loop(self):
-        try:
-            while self._running:
+        while self._running:
+            try:
                 await self._run_once()
-                await asyncio.sleep(self._cadence_s)
-        except asyncio.CancelledError:
-            return
-        except Exception as e:
-            logger.error(f"Orchestrator loop error: {e}")
+            except asyncio.CancelledError:
+                return
+            except Exception as e:
+                logger.error(f"Orchestrator cycle error: {e}", exc_info=True)
+            await asyncio.sleep(self._cadence_s)
 
     async def _run_once(self):
         self._last_run_ts = datetime.now()
@@ -105,8 +106,11 @@ class TradingOrchestrator:
 
         for symbol in self._symbols:
             try:
-                # Analyze
-                analysis = await self.strategy_agent.analyze_stock(symbol)
+                # Analyze with timeout to prevent hangs
+                analysis = await asyncio.wait_for(
+                    self.strategy_agent.analyze_stock(symbol),
+                    timeout=30.0,
+                )
                 self._last_action = f"analyzed:{symbol}:{analysis.recommendation}"
 
                 if analysis.recommendation not in ("BUY", "STRONG_BUY"):
@@ -122,6 +126,10 @@ class TradingOrchestrator:
                 desired_pct = max(analysis.position_size_pct, 0.005)
                 portfolio_value = self.paper_trader.get_portfolio_value()
                 quantity = max(1, int((portfolio_value * desired_pct) / current_price))
+
+                # Apply maximum position limit (safety cap)
+                MAX_SHARES_PER_ORDER = 10000
+                quantity = min(quantity, MAX_SHARES_PER_ORDER)
 
                 heat_check = await self.risk_manager.check_portfolio_heat(
                     symbol, quantity, "BUY", current_price
@@ -139,5 +147,8 @@ class TradingOrchestrator:
                 else:
                     self._last_action = f"order_failed:{symbol}"
 
+            except asyncio.TimeoutError:
+                logger.error(f"Analysis timeout for {symbol} after 30s")
+                self._last_action = f"timeout:{symbol}"
             except Exception as e:
                 logger.error(f"Cycle error for {symbol}: {e}")
