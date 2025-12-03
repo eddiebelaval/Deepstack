@@ -29,7 +29,9 @@ export const tradingTools = {
 
   get_positions: tool({
     description: 'Get current portfolio positions with P&L and market values',
-    parameters: z.object({}),
+    parameters: z.object({
+      _unused: z.string().optional().describe('No parameters required'),
+    }),
     execute: async () => {
       try {
         const positions = await api.positions();

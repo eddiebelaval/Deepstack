@@ -1,7 +1,7 @@
 import { streamText } from 'ai';
 import { getProviderModel, providerConfig } from '@/lib/llm/providers';
 import { TRADING_SYSTEM_PROMPT } from '@/lib/llm/system-prompt';
-import { tradingTools } from '@/lib/llm/tools';
+// import { tradingTools } from '@/lib/llm/tools';
 import type { LLMProvider } from '@/lib/stores/chat-store';
 
 export const runtime = 'edge';
@@ -19,15 +19,12 @@ export async function POST(req: Request) {
     // Get the model for the selected provider
     const model = getProviderModel(provider as LLMProvider);
 
-    // Check if provider supports tools
-    const supportsTools = providerConfig[provider as LLMProvider].supportsTools;
-
-    // Stream the response
+    // Stream the response (tools temporarily disabled for basic chat)
     const result = await streamText({
       model,
       system: TRADING_SYSTEM_PROMPT,
       messages,
-      tools: supportsTools ? tradingTools : undefined,
+      // tools: tradingTools, // TODO: Fix tool schemas for AI SDK 5.0
     });
 
     return result.toTextStreamResponse();

@@ -174,15 +174,16 @@ export function ConversationView() {
                                 <div className="flex items-start gap-3">
                                     <div className="p-2 rounded-xl bg-primary/20 shrink-0">
                                         <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                                         </svg>
                                     </div>
                                     <div className="space-y-2">
                                         <p className="text-sm font-medium text-foreground">
                                             Welcome to DeepStack
                                         </p>
+                                        <p className="text-muted-foreground">Select a conversation or start a new one to begin chatting with DeepStack&apos;s AI trading assistant.</p>
                                         <p className="text-sm text-muted-foreground leading-relaxed">
-                                            I'm your AI trading assistant. I can analyze charts, review your portfolio,
+                                            I can analyze charts, review your portfolio,
                                             find trading setups, and help you execute trades. What would you like to explore?
                                         </p>
                                     </div>
