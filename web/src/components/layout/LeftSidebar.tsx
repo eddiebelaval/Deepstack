@@ -16,7 +16,6 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Separator } from '@/components/ui/separator';
 
 export function LeftSidebar() {
     const { leftSidebarOpen, toggleLeftSidebar } = useUIStore();

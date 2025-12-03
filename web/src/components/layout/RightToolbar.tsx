@@ -10,12 +10,9 @@ import {
     Briefcase,
     Bell,
     Calendar,
-    Calculator,
     Newspaper,
     BarChart3,
-    TrendingUp,
     Target,
-    Layers,
     LayoutGrid
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';

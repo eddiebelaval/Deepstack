@@ -330,7 +330,8 @@ export function TradingChart({ className }: TradingChartProps) {
     lowerSeries.setData(data.lower.map((d) => ({ time: d.time as UTCTimestamp, value: d.value })));
   }
 
-  // Public method to update chart with new real-time bar
+  // Public method to update chart with new real-time bar (for WebSocket integration)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateRealTimeBar = useCallback((bar: OHLCVBar) => {
     if (!mainSeriesRef.current) return;
 

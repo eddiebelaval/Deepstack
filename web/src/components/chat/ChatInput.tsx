@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2 } from 'lucide-react';
 import { ProviderSelector } from './ProviderSelector';
 import { useChatStore } from '@/lib/stores/chat-store';
+import { CommandPalette } from './CommandPalette';
 
 type ChatInputProps = {
   onSend: (message: string) => void;
@@ -14,8 +15,39 @@ type ChatInputProps = {
 
 export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [input, setInput] = useState('');
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isStreaming, activeProvider, setActiveProvider } = useChatStore();
+
+  const handleCommand = async (command: string) => {
+    // Populate input for visual feedback
+    setInput(command + " ");
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+
+    // Execute command via API
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command }),
+      });
+
+      const data = await response.json();
+      console.log('Command result:', data);
+
+      // TODO: Display result in chat or a toast
+      if (data.status === 'success') {
+        // For now, just append to chat input as a system message confirmation
+        // In a real app, we'd add a message to the chat store
+      }
+    } catch (error) {
+      console.error('Failed to execute command:', error);
+    }
+  };
 
   const handleSubmit = () => {
     if (!input.trim() || disabled || isStreaming) return;
@@ -80,8 +112,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       </div>
 
       <div className="text-xs text-muted-foreground/60 text-center mt-3">
-        Press Enter to send, Shift+Enter for new line
+        Press Enter to send, Shift+Enter for new line • Shift+Tab for Tools
       </div>
+
+      <CommandPalette
+        open={showCommandPalette}
+        onOpenChange={setShowCommandPalette}
+        onCommand={handleCommand}
+      />
     </div>
   );
 }

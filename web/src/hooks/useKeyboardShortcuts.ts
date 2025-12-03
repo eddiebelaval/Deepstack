@@ -122,8 +122,6 @@ export function useKeyboardShortcuts() {
       }
 
       for (const shortcut of shortcuts) {
-        const metaMatch = shortcut.meta ? event.metaKey : !event.metaKey;
-        const ctrlMatch = shortcut.ctrl ? event.ctrlKey : !event.ctrlKey;
         const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
         const altMatch = shortcut.alt ? event.altKey : !event.altKey;
 

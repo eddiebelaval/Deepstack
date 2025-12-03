@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { LLMProvider } from '@/lib/llm/providers';
 
 // Define Message type locally to avoid AI SDK 5.0 import issues
 export type Message = {
@@ -9,7 +10,8 @@ export type Message = {
   toolInvocations?: any[];
 };
 
-export type LLMProvider = 'claude' | 'grok' | 'deepseek' | 'perplexity';
+// Re-export LLMProvider for convenience
+export type { LLMProvider };
 
 export type Conversation = {
   id: string;

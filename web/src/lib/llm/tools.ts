@@ -136,7 +136,7 @@ export const tradingTools = {
           success: true,
           data: result,
         };
-      } catch (error: any) {
+      } catch {
         // Fallback calculation if endpoint not ready
         const riskPerShare = Math.abs(params.entry_price - params.stop_price);
         const riskPct = riskPerShare / params.entry_price;

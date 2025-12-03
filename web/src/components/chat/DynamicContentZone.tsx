@@ -7,7 +7,7 @@ import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 
 export function DynamicContentZone() {
-    const { activeContent, activeSymbol } = useUIStore();
+    const { activeContent } = useUIStore();
 
     // When no active content, render nothing - let MessageList handle the home state
     if (activeContent === 'none') {

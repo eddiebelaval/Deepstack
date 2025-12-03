@@ -1,12 +1,27 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-export type LLMProvider = 'claude' | 'grok' | 'deepseek' | 'perplexity';
+export type LLMProvider = 'claude' | 'claude_opus' | 'claude_haiku' | 'grok' | 'sonar_reasoning' | 'perplexity';
 
 export const providerConfig = {
   claude: {
-    name: 'Claude',
-    description: 'Best for trading analysis and strategy',
+    name: 'Sonnet 4.5',
+    description: 'Best for everyday tasks',
+    icon: 'Brain',
+    color: 'var(--ds-claude)',
+    supportsTools: true,
+  },
+  claude_opus: {
+    name: 'Opus 4.5',
+    description: 'Most capable for complex work',
+    icon: 'Brain',
+    color: 'var(--ds-claude)',
+    supportsTools: true,
+  },
+  claude_haiku: {
+    name: 'Haiku 4.5',
+    description: 'Fastest for quick answers',
     icon: 'Brain',
     color: 'var(--ds-claude)',
     supportsTools: true,
@@ -18,12 +33,12 @@ export const providerConfig = {
     color: 'var(--ds-grok)',
     supportsTools: true,
   },
-  deepseek: {
-    name: 'DeepSeek',
-    description: 'Code and math-heavy analysis',
+  sonar_reasoning: {
+    name: 'DeepSeek R1',
+    description: 'Advanced reasoning via Perplexity',
     icon: 'FlaskConical',
-    color: 'var(--ds-deepseek)',
-    supportsTools: true,
+    color: 'var(--ds-perplexity)',
+    supportsTools: false,
   },
   perplexity: {
     name: 'Perplexity',
@@ -37,7 +52,13 @@ export const providerConfig = {
 export function getProviderModel(provider: LLMProvider) {
   switch (provider) {
     case 'claude':
-      return anthropic('claude-sonnet-4-20250514');
+      return anthropic('claude-sonnet-4-5-20250929');
+
+    case 'claude_opus':
+      return anthropic('claude-opus-4-5-20251101');
+
+    case 'claude_haiku':
+      return anthropic('claude-3-5-haiku-20241022');
 
     case 'grok':
       if (!process.env.XAI_API_KEY) {
@@ -46,25 +67,27 @@ export function getProviderModel(provider: LLMProvider) {
       return createOpenAI({
         baseURL: 'https://api.x.ai/v1',
         apiKey: process.env.XAI_API_KEY,
-      })('grok-beta');
+      })('grok-3');
 
-    case 'deepseek':
-      if (!process.env.DEEPSEEK_API_KEY) {
-        throw new Error('DEEPSEEK_API_KEY not configured');
+    case 'sonar_reasoning':
+      if (!process.env.PERPLEXITY_API_KEY) {
+        throw new Error('PERPLEXITY_API_KEY not configured');
       }
-      return createOpenAI({
-        baseURL: 'https://api.deepseek.com/v1',
-        apiKey: process.env.DEEPSEEK_API_KEY,
-      })('deepseek-chat');
+      return createOpenAICompatible({
+        name: 'perplexity',
+        baseURL: 'https://api.perplexity.ai',
+        apiKey: process.env.PERPLEXITY_API_KEY,
+      }).chatModel('sonar-reasoning-pro');
 
     case 'perplexity':
       if (!process.env.PERPLEXITY_API_KEY) {
         throw new Error('PERPLEXITY_API_KEY not configured');
       }
-      return createOpenAI({
+      return createOpenAICompatible({
+        name: 'perplexity',
         baseURL: 'https://api.perplexity.ai',
         apiKey: process.env.PERPLEXITY_API_KEY,
-      })('llama-3.1-sonar-large-128k-online');
+      }).chatModel('sonar');
 
     default:
       throw new Error(`Unknown provider: ${provider}`);
