@@ -1,16 +1,22 @@
 # 🔥 DeepStack Trading System
 
+**🌐 [deepstack.trade](https://deepstack.trade)**
+
 **Autonomous AI-Powered Trading with Claude Integration**
 
 DeepStack is a sophisticated algorithmic trading system that combines deep value investing principles with modern AI analysis. Built for disciplined, systematic trading with comprehensive risk management.
 
+> **Web App**: A modern conversational trading interface is available at [deepstack.trade](https://deepstack.trade)
+
 ## 🎯 Key Features
 
 - **🤖 AI-Powered Analysis**: Claude AI integration for market analysis and strategy execution
+- **🌐 Web Trading Interface**: Modern conversational UI at [deepstack.trade](https://deepstack.trade)
 - **📊 Multi-Strategy Framework**: Deep value investing + Short squeeze detection
 - **⚖️ Advanced Risk Management**: Kelly Criterion, portfolio heat tracking, stop losses
 - **🎛️ Beautiful CLI Interface**: Retro-futuristic PipBoy-inspired terminal interface
-- **🔗 Broker Integration**: Interactive Brokers + Paper trading support
+- **📈 Live Market Data**: Real-time quotes and charts via Alpaca Markets
+- **🔗 Broker Integration**: Interactive Brokers + Alpaca + Paper trading
 - **📈 Performance Analytics**: Comprehensive reporting and trade journaling
 - **🛡️ Safety First**: Multiple risk layers, circuit breakers, emergency stops
 
