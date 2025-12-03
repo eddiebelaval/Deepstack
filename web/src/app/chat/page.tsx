@@ -1,10 +1,10 @@
 import { DeepStackLayout } from '@/components/layout/DeepStackLayout';
 import { ConversationView } from '@/components/chat/ConversationView';
 
-export default function Home() {
-    return (
-        <DeepStackLayout>
-            <ConversationView />
-        </DeepStackLayout>
-    );
+export default function ChatPage() {
+  return (
+    <DeepStackLayout>
+      <ConversationView />
+    </DeepStackLayout>
+  );
 }
