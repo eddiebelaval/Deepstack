@@ -1,5 +1,6 @@
 # Core dependencies
 anthropic>=0.34.0
+openai>=1.0.0
 ib_insync>=0.9.86
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
@@ -33,3 +34,4 @@ pytest-xdist>=3.5.0
 black>=23.0.0
 flake8>=6.0.0
 mypy>=1.7.0
+rich>=13.0.0

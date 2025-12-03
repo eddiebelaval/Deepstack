@@ -38,6 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Command Router
+from core.api.router import router as command_router
+
+app.include_router(command_router)
+
 # Initialize Alpaca client
 api_key = os.getenv("ALPACA_API_KEY")
 secret_key = os.getenv("ALPACA_SECRET_KEY")

@@ -39,6 +39,9 @@ class TradingOrchestrator:
         self._last_run_ts: Optional[datetime] = None
         self._last_action: Optional[str] = None
         self._symbols: List[str] = []
+        self._consecutive_errors = 0
+        self._max_backoff = 60  # seconds
+        self._base_backoff = 5  # seconds
 
         # Defaults if automation config missing
         try:
@@ -94,10 +97,27 @@ class TradingOrchestrator:
         while self._running:
             try:
                 await self._run_once()
+                # Reset on success
+                if self._consecutive_errors > 0:
+                    logger.info(
+                        f"Orchestrator recovered after {self._consecutive_errors} errors"
+                    )
+                    self._consecutive_errors = 0
             except asyncio.CancelledError:
-                return
+                return  # Clean shutdown
             except Exception as e:
-                logger.error(f"Orchestrator cycle error: {e}", exc_info=True)
+                self._consecutive_errors += 1
+                backoff = min(
+                    self._max_backoff,
+                    self._base_backoff * (2 ** (self._consecutive_errors - 1)),
+                )
+                logger.error(
+                    f"Orchestrator cycle error (attempt {self._consecutive_errors}): {e}. "
+                    f"Backing off for {backoff}s",
+                    exc_info=True,
+                )
+                await asyncio.sleep(backoff)
+                continue  # Keep trying
             await asyncio.sleep(self._cadence_s)
 
     async def _run_once(self):

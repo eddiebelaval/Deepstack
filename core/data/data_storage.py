@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from ..config import Config
+from ..exceptions import DatabaseInitializationError
 
 logger = logging.getLogger(__name__)
 
@@ -98,8 +99,24 @@ class DataStorage:
 
                 conn.commit()
 
+            logger.info(f"Main database initialized at {self.main_db}")
+
+        except sqlite3.DatabaseError as e:
+            logger.critical(f"Database initialization failed: {e}")
+            raise DatabaseInitializationError(
+                message=f"Failed to initialize main database at {self.main_db}",
+                database=str(self.main_db),
+                original_error=str(e),
+            )
         except Exception as e:
-            logger.error(f"Error initializing main database: {e}")
+            logger.critical(
+                f"Unexpected error initializing database: {e}", exc_info=True
+            )
+            raise DatabaseInitializationError(
+                message="Unexpected error during database initialization",
+                database=str(self.main_db),
+                original_error=str(e),
+            )
 
     def _init_paper_trading_database(self):
         """Initialize paper trading database."""
@@ -173,8 +190,27 @@ class DataStorage:
 
                 conn.commit()
 
+            logger.info(
+                f"Paper trading database initialized at {self.paper_trading_db}"
+            )
+
+        except sqlite3.DatabaseError as e:
+            logger.critical(f"Paper trading database initialization failed: {e}")
+            raise DatabaseInitializationError(
+                message=f"Failed to initialize paper trading database at {self.paper_trading_db}",
+                database=str(self.paper_trading_db),
+                original_error=str(e),
+            )
         except Exception as e:
-            logger.error(f"Error initializing paper trading database: {e}")
+            logger.critical(
+                f"Unexpected error initializing paper trading database: {e}",
+                exc_info=True,
+            )
+            raise DatabaseInitializationError(
+                message="Unexpected error during paper trading database initialization",
+                database=str(self.paper_trading_db),
+                original_error=str(e),
+            )
 
     def _init_analytics_database(self):
         """Initialize analytics database."""
@@ -224,8 +260,24 @@ class DataStorage:
 
                 conn.commit()
 
+            logger.info(f"Analytics database initialized at {self.analytics_db}")
+
+        except sqlite3.DatabaseError as e:
+            logger.critical(f"Analytics database initialization failed: {e}")
+            raise DatabaseInitializationError(
+                message=f"Failed to initialize analytics database at {self.analytics_db}",
+                database=str(self.analytics_db),
+                original_error=str(e),
+            )
         except Exception as e:
-            logger.error(f"Error initializing analytics database: {e}")
+            logger.critical(
+                f"Unexpected error initializing analytics database: {e}", exc_info=True
+            )
+            raise DatabaseInitializationError(
+                message="Unexpected error during analytics database initialization",
+                database=str(self.analytics_db),
+                original_error=str(e),
+            )
 
     # Configuration Storage Methods
 

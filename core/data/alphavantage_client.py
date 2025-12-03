@@ -20,11 +20,9 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from core.exceptions import RateLimitError
+
 logger = logging.getLogger(__name__)
-
-
-class RateLimitError(Exception):
-    """Raised when API rate limit is exceeded."""
 
 
 class AlphaVantageClient:

@@ -6,17 +6,34 @@ the trading engine, agents, and market data.
 """
 
 import logging
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
 from .broker.paper_trader import PaperTrader
 from .config import get_config
+from .exceptions import (
+    AuthenticationError,
+    CircuitBreakerTrippedError,
+    DataError,
+    DeepStackError,
+    MarketDataError,
+    MissingAPIKeyError,
+    OrderError,
+    OrderExecutionError,
+    QuoteUnavailableError,
+    RateLimitError,
+    RiskError,
+    ValidationError,
+    create_error_response,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +92,17 @@ class AccountSummaryResponse(BaseModel):
     total_pnl: float
 
 
+class ErrorResponse(BaseModel):
+    """Standardized error response format."""
+
+    success: bool = False
+    error: str
+    error_code: str
+    request_id: str
+    timestamp: datetime
+    details: Optional[Dict[str, Any]] = None
+
+
 class DeepStackAPIServer:
     """
     FastAPI server for DeepStack trading system.
@@ -100,6 +128,7 @@ class DeepStackAPIServer:
         self.websocket_connections: List[WebSocket] = []
 
         self._setup_middleware()
+        self._setup_exception_handlers()
         self._setup_routes()
         self._setup_websocket()
 
@@ -107,6 +136,48 @@ class DeepStackAPIServer:
         self._initialize_components()
 
         logger.info("DeepStack API Server initialized")
+
+    def _setup_exception_handlers(self):
+        """Setup global exception handlers for consistent error responses."""
+
+        @self.app.exception_handler(DeepStackError)
+        async def deepstack_error_handler(request: Request, exc: DeepStackError):
+            """Handle all custom DeepStack errors."""
+            logger.error(f"{exc.error_code}: {exc.message}", extra=exc.to_dict())
+            return JSONResponse(
+                status_code=self._get_status_code(exc),
+                content=create_error_response(exc),
+            )
+
+        @self.app.exception_handler(Exception)
+        async def generic_error_handler(request: Request, exc: Exception):
+            """Handle unexpected errors - hide internal details."""
+            request_id = str(uuid.uuid4())
+            logger.error(f"Unexpected error [{request_id}]: {exc}", exc_info=True)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "error": "An unexpected error occurred. Please try again.",
+                    "error_code": "INTERNAL_ERROR",
+                    "request_id": request_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+
+    def _get_status_code(self, exc: DeepStackError) -> int:
+        """Map exception types to HTTP status codes."""
+        if isinstance(exc, ValidationError):
+            return 400
+        elif isinstance(exc, (AuthenticationError, MissingAPIKeyError)):
+            return 401
+        elif isinstance(exc, (CircuitBreakerTrippedError, RiskError)):
+            return 403
+        elif isinstance(exc, (QuoteUnavailableError, MarketDataError)):
+            return 404
+        elif isinstance(exc, RateLimitError):
+            return 429
+        return 500
 
     def _setup_middleware(self):
         """Setup CORS and other middleware."""
@@ -149,12 +220,18 @@ class DeepStackAPIServer:
                 if quote:
                     return QuoteResponse(**quote)
                 else:
-                    raise HTTPException(
-                        status_code=404, detail=f"Quote not available for {symbol}"
+                    raise QuoteUnavailableError(
+                        message=f"Quote not available for {symbol}", symbol=symbol
                     )
+            except DeepStackError:
+                raise  # Let exception handler handle it
+            except HTTPException:
+                raise  # Let FastAPI handle HTTPException as-is
             except Exception as e:
-                logger.error(f"Error getting quote for {symbol}: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error(f"Error getting quote for {symbol}: {e}", exc_info=True)
+                raise QuoteUnavailableError(
+                    message=f"Unable to fetch quote for {symbol}", symbol=symbol
+                )
 
         @self.app.get("/positions", response_model=List[PositionResponse])
         async def get_positions():
@@ -169,9 +246,11 @@ class DeepStackAPIServer:
                     positions = [PositionResponse(**pos) for pos in paper_positions]
 
                 return positions
+            except DeepStackError:
+                raise  # Let exception handler handle it
             except Exception as e:
-                logger.error(f"Error getting positions: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error(f"Error getting positions: {e}", exc_info=True)
+                raise DataError(message="Unable to retrieve positions")
 
         @self.app.get("/account", response_model=AccountSummaryResponse)
         async def get_account_summary():
@@ -195,17 +274,22 @@ class DeepStackAPIServer:
                     summary.portfolio_value = self.paper_trader.get_portfolio_value()
 
                 return summary
+            except DeepStackError:
+                raise  # Let exception handler handle it
             except Exception as e:
-                logger.error(f"Error getting account summary: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error(f"Error getting account summary: {e}", exc_info=True)
+                raise DataError(message="Unable to retrieve account summary")
 
         @self.app.post("/orders", response_model=OrderResponse)
         async def place_order(order: OrderRequest):
             """Place an order."""
             try:
                 if not self.order_manager:
-                    raise HTTPException(
-                        status_code=500, detail="Order manager not initialized"
+                    raise OrderExecutionError(
+                        message="Order manager not initialized",
+                        symbol=order.symbol,
+                        order_type=order.order_type,
+                        side=order.action,
                     )
 
                 order_id = None
@@ -216,26 +300,27 @@ class DeepStackAPIServer:
                     )
                 elif order.order_type == "LMT":
                     if order.limit_price is None:
-                        raise HTTPException(
-                            status_code=400,
-                            detail="Limit price required for limit orders",
+                        raise ValidationError(
+                            message="Limit price required for limit orders",
+                            field="limit_price",
                         )
                     order_id = await self.order_manager.place_limit_order(
                         order.symbol, order.quantity, order.action, order.limit_price
                     )
                 elif order.order_type == "STP":
                     if order.stop_price is None:
-                        raise HTTPException(
-                            status_code=400,
-                            detail="Stop price required for stop orders",
+                        raise ValidationError(
+                            message="Stop price required for stop orders",
+                            field="stop_price",
                         )
                     order_id = await self.order_manager.place_stop_order(
                         order.symbol, order.quantity, order.action, order.stop_price
                     )
                 else:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Unsupported order type: {order.order_type}",
+                    raise ValidationError(
+                        message=f"Unsupported order type: {order.order_type}",
+                        field="order_type",
+                        value=order.order_type,
                     )
 
                 if order_id:
@@ -251,17 +336,26 @@ class DeepStackAPIServer:
                         message="Order submission failed",
                     )
 
+            except DeepStackError:
+                raise  # Let exception handler handle it
+            except HTTPException:
+                raise  # Let FastAPI handle HTTPException as-is
             except Exception as e:
-                logger.error(f"Error placing order: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error(f"Error placing order: {e}", exc_info=True)
+                raise OrderExecutionError(
+                    message="Unable to process order",
+                    symbol=order.symbol,
+                    order_type=order.order_type,
+                    side=order.action,
+                )
 
         @self.app.delete("/orders/{order_id}")
         async def cancel_order(order_id: str):
             """Cancel an order."""
             try:
                 if not self.order_manager:
-                    raise HTTPException(
-                        status_code=500, detail="Order manager not initialized"
+                    raise OrderExecutionError(
+                        message="Order manager not initialized", order_id=order_id
                     )
 
                 success = await self.order_manager.cancel_order(order_id)
@@ -269,14 +363,19 @@ class DeepStackAPIServer:
                 if success:
                     return {"status": "cancelled", "order_id": order_id}
                 else:
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"Order {order_id} not found or could not be cancelled",
+                    raise OrderError(
+                        message=f"Order {order_id} not found or could not be cancelled"
                     )
 
+            except DeepStackError:
+                raise  # Let exception handler handle it
+            except HTTPException:
+                raise  # Let FastAPI handle HTTPException as-is
             except Exception as e:
-                logger.error(f"Error cancelling order {order_id}: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                logger.error(f"Error cancelling order {order_id}: {e}", exc_info=True)
+                raise OrderExecutionError(
+                    message="Unable to cancel order", order_id=order_id
+                )
 
     def _setup_websocket(self):
         """Setup WebSocket endpoint for real-time updates."""
@@ -321,9 +420,14 @@ class DeepStackAPIServer:
         for websocket in self.websocket_connections:
             try:
                 await websocket.send_json(message)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"WebSocket broadcast failed: {type(e).__name__}: {e}")
                 disconnected.append(websocket)
 
+        if disconnected:
+            logger.info(
+                f"Cleaned up {len(disconnected)} disconnected WebSocket clients"
+            )
         # Clean up disconnected clients
         for websocket in disconnected:
             if websocket in self.websocket_connections:
@@ -426,3 +530,6 @@ def create_app() -> FastAPI:
     """Create and return FastAPI application."""
     server = get_server()
     return server.get_app()
+
+
+app = create_app()

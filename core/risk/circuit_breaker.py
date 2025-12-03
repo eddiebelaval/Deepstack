@@ -50,6 +50,7 @@ class BreakerType(Enum):
     MAX_DRAWDOWN = "max_drawdown"
     CONSECUTIVE_LOSSES = "consecutive_losses"
     VOLATILITY_SPIKE = "volatility_spike"
+    RAPID_DRAWDOWN = "rapid_drawdown"  # Fast crash protection
     MANUAL = "manual"  # Manually triggered halt
 
 
@@ -92,6 +93,8 @@ class CircuitBreaker:
         max_drawdown_limit: float = 0.10,
         consecutive_loss_limit: int = 5,
         volatility_threshold: float = 40.0,
+        rapid_drawdown_limit: float = 0.05,  # 5% drop
+        rapid_drawdown_window_minutes: int = 60,  # in 1 hour
         auto_reset_hours: int = 24,
         enable_alerts: bool = True,
     ):
@@ -147,6 +150,8 @@ class CircuitBreaker:
         self.max_drawdown_limit = max_drawdown_limit
         self.consecutive_loss_limit = consecutive_loss_limit
         self.volatility_threshold = volatility_threshold
+        self.rapid_drawdown_limit = rapid_drawdown_limit
+        self.rapid_drawdown_window_minutes = rapid_drawdown_window_minutes
         self.auto_reset_hours = auto_reset_hours
         self.enable_alerts = enable_alerts
 
@@ -157,6 +162,7 @@ class CircuitBreaker:
         self.consecutive_losses = 0
         self.consecutive_wins = 0
         self.total_trades = 0
+        self.portfolio_history: List[Dict[str, Any]] = []  # Time-series of value
 
         # Breaker states
         self.breaker_states: Dict[str, BreakerState] = {
@@ -164,6 +170,7 @@ class CircuitBreaker:
             BreakerType.MAX_DRAWDOWN.value: BreakerState.ARMED,
             BreakerType.CONSECUTIVE_LOSSES.value: BreakerState.ARMED,
             BreakerType.VOLATILITY_SPIKE.value: BreakerState.ARMED,
+            BreakerType.RAPID_DRAWDOWN.value: BreakerState.ARMED,
             BreakerType.MANUAL.value: BreakerState.ARMED,
         }
 
@@ -282,7 +289,15 @@ class CircuitBreaker:
             if volatility_result["warning"]:
                 warnings.append(volatility_result["warning"])
 
-            # 5. Manual Breaker (if manually tripped)
+            # 5. Rapid Drawdown Breaker
+            rapid_result = self._check_rapid_drawdown_breaker(current_portfolio_value)
+            if rapid_result["tripped"]:
+                breakers_tripped.append(BreakerType.RAPID_DRAWDOWN.value)
+                reasons.append(rapid_result["reason"])
+            if rapid_result["warning"]:
+                warnings.append(rapid_result["warning"])
+
+            # 6. Manual Breaker (if manually tripped)
             if self.breaker_states[BreakerType.MANUAL.value] == BreakerState.TRIPPED:
                 breakers_tripped.append(BreakerType.MANUAL.value)
                 reasons.append(
@@ -889,3 +904,66 @@ class CircuitBreaker:
             f"Trip Duration: {duration}\n"
             f"{'+'*60}\n"
         )
+
+    def _check_rapid_drawdown_breaker(
+        self, current_portfolio_value: float
+    ) -> Dict[str, Any]:
+        """Check if rapid drawdown breaker should trip."""
+        # Skip if already tripped
+        if (
+            self.breaker_states[BreakerType.RAPID_DRAWDOWN.value]
+            == BreakerState.TRIPPED
+        ):
+            return {
+                "tripped": True,
+                "reason": "Rapid drawdown breaker already tripped",
+                "warning": None,
+            }
+
+        now = datetime.now()
+
+        # Add current value to history
+        self.portfolio_history.append(
+            {"timestamp": now, "value": current_portfolio_value}
+        )
+
+        # Prune history older than window + buffer
+        cutoff = now - timedelta(minutes=self.rapid_drawdown_window_minutes * 2)
+        self.portfolio_history = [
+            p for p in self.portfolio_history if p["timestamp"] > cutoff
+        ]
+
+        # Find max value in the window
+        window_start = now - timedelta(minutes=self.rapid_drawdown_window_minutes)
+        window_values = [
+            p["value"] for p in self.portfolio_history if p["timestamp"] >= window_start
+        ]
+
+        if not window_values:
+            return {"tripped": False, "reason": "", "warning": None}
+
+        max_in_window = max(window_values)
+
+        # Calculate drop from window high
+        drop = max_in_window - current_portfolio_value
+        drop_pct = drop / max_in_window if max_in_window > 0 else 0
+
+        # Check if breaker should trip
+        if drop_pct >= self.rapid_drawdown_limit:
+            reason = (
+                f"RAPID DRAWDOWN DETECTED: {drop_pct:.2%} drop in last "
+                f"{self.rapid_drawdown_window_minutes} mins (limit: {self.rapid_drawdown_limit:.2%}). "
+                f"High: ${max_in_window:,.2f} -> Current: ${current_portfolio_value:,.2f}"
+            )
+            self.trip_breaker(BreakerType.RAPID_DRAWDOWN.value, reason)
+            return {"tripped": True, "reason": reason, "warning": None}
+
+        # Check for warning (80% of limit)
+        warning = None
+        if drop_pct >= self.rapid_drawdown_limit * 0.8:
+            warning = (
+                f"Approaching rapid drawdown limit: {drop_pct:.2%} in "
+                f"{self.rapid_drawdown_window_minutes} mins"
+            )
+
+        return {"tripped": False, "reason": "", "warning": warning}

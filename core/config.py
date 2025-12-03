@@ -200,6 +200,16 @@ class Config(BaseModel):
     # Anthropic API Key (from environment)
     anthropic_api_key: Optional[str] = None
 
+    # Selected LLM Model
+    llm_model: str = Field(
+        default="claude-4-5-sonnet-latest", description="Model to use for agents"
+    )
+
+    # Additional LLM API Keys (from environment)
+    perplexity_api_key: Optional[str] = None
+    deepseek_api_key: Optional[str] = None
+    xai_api_key: Optional[str] = None
+
     @classmethod
     def from_yaml(cls, config_path: str) -> "Config":
         """
@@ -259,6 +269,10 @@ class Config(BaseModel):
             ),
             "alpha_vantage_api_key": os.getenv("ALPHA_VANTAGE_API_KEY"),
             "anthropic_api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "llm_model": os.getenv("LLM_MODEL"),
+            "perplexity_api_key": os.getenv("PERPLEXITY_API_KEY"),
+            "deepseek_api_key": os.getenv("DEEPSEEK_API_KEY"),
+            "xai_api_key": os.getenv("XAI_API_KEY"),
         }
 
         # Merge with config dict
@@ -292,6 +306,10 @@ class Config(BaseModel):
                 "alpaca_base_url",
                 "alpha_vantage_api_key",
                 "anthropic_api_key",
+                "llm_model",
+                "perplexity_api_key",
+                "deepseek_api_key",
+                "xai_api_key",
             }
         )
 

@@ -189,6 +189,10 @@ class ExecutionRouter:
                 result = await self._execute_limit(
                     symbol, quantity, action, current_price
                 )
+            elif strategy == "ICEBERG":
+                result = await self._execute_iceberg(
+                    symbol, quantity, action, current_price
+                )
             else:
                 raise ValueError(f"Unknown execution strategy: {strategy}")
 
@@ -275,10 +279,81 @@ class ExecutionRouter:
                 )  # Assume $100 avg price
                 if participation_rate > 0.01:  # > 1% of daily volume
                     return "VWAP"
-            return "TWAP"  # Fallback for large orders without volume data
+
+            # Use Iceberg for large orders without volume data or lower participation
+            return "ICEBERG"
 
         # Medium orders with normal urgency use TWAP
         return "TWAP"
+
+    async def _execute_iceberg(
+        self, symbol: str, quantity: int, action: str, current_price: float
+    ) -> Dict[str, Any]:
+        """
+        Execute Iceberg order (split into visible chunks).
+
+        Args:
+            symbol: Stock symbol
+            quantity: Total quantity
+            action: 'BUY' or 'SELL'
+            current_price: Current market price
+
+        Returns:
+            Execution results
+        """
+        logger.info(f"Executing ICEBERG order: {action} {quantity} {symbol}")
+
+        # Split into 10 chunks to hide size
+        num_chunks = 10
+        chunk_size = quantity // num_chunks
+        remainder = quantity % num_chunks
+
+        executed_quantity = 0
+        total_cost = 0.0
+        order_ids = []
+
+        # Execute chunks sequentially
+        # In a real system, this would wait for fills.
+        # Here we simulate placing multiple smaller limit orders.
+
+        for i in range(num_chunks):
+            size = chunk_size + (1 if i < remainder else 0)
+            if size == 0:
+                continue
+
+            # Randomize price slightly to avoid stacking
+            import random
+
+            price_variance = random.uniform(-0.0005, 0.0005)
+            limit_price = current_price * (1 + price_variance)
+
+            if action == "BUY":
+                limit_price = min(limit_price, current_price * 1.001)
+            else:
+                limit_price = max(limit_price, current_price * 0.999)
+
+            order_id = await self.order_manager.place_limit_order(
+                symbol=symbol, quantity=size, action=action, limit_price=limit_price
+            )
+
+            if order_id:
+                order_ids.append(order_id)
+                executed_quantity += size
+                total_cost += size * limit_price  # Estimate cost
+
+        avg_price = total_cost / executed_quantity if executed_quantity > 0 else 0.0
+
+        return {
+            "execution_type": "ICEBERG",
+            "symbol": symbol,
+            "quantity": executed_quantity,
+            "action": action,
+            "order_ids": order_ids,
+            "avg_price": avg_price,
+            "status": "FILLED" if executed_quantity == quantity else "PARTIAL",
+            "timestamp": datetime.now(),
+            "chunks": num_chunks,
+        }
 
     async def _execute_market(
         self, symbol: str, quantity: int, action: str
@@ -301,7 +376,15 @@ class ExecutionRouter:
         )
 
         if not order_id:
-            raise Exception("Market order failed")
+            from core.exceptions import OrderExecutionError
+
+            raise OrderExecutionError(
+                message="Market order execution failed",
+                symbol=symbol,
+                quantity=quantity,
+                side=action,
+                reason="Order submission returned no order ID",
+            )
 
         # Get order status for fill details
         order_status = await self.order_manager.get_order_status(order_id)

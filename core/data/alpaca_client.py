@@ -37,10 +37,6 @@ class TimeFrameEnum(str, Enum):
     MONTH_1 = "1mo"
 
 
-class RateLimitError(Exception):
-    """Raised when API rate limit is exceeded."""
-
-
 class AlpacaClient:
     """
     Alpaca Markets API client for DeepStack Trading System.

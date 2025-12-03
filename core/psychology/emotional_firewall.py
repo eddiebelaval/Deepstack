@@ -29,6 +29,8 @@ from typing import Deque, Dict, List, Optional
 
 import pytz
 
+from ..exceptions import InvalidConfigError
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,6 +44,7 @@ class EmotionalPattern(Enum):
     LATE_NIGHT = "late_night_trading"
     WEEKEND = "weekend_trading"
     SIZE_INCREASE_AFTER_LOSS = "size_increase_after_loss"
+    PANIC_MODE = "panic_mode"  # Rapid manual interventions
 
 
 class EmotionalFirewall:
@@ -75,12 +78,14 @@ class EmotionalFirewall:
     # Streak thresholds
     LOSS_STREAK_LIMIT = 5  # Halt after 5 consecutive losses
     WIN_STREAK_LIMIT = 5  # Flag after 5 consecutive wins (overconfidence)
+    PANIC_INTERVENTION_LIMIT = 3  # Max 3 manual interventions in 10 mins
 
     # Cooling periods (minutes)
     REVENGE_COOLDOWN = 60  # 1 hour after loss
     OVERTRADING_COOLDOWN = 240  # 4 hours after overtrading
     STREAK_COOLDOWN = 180  # 3 hours after 5-trade streak
     LATE_NIGHT_COOLDOWN = 480  # 8 hours (until next morning)
+    PANIC_COOLDOWN = 120  # 2 hours after panic mode
 
     def __init__(
         self,
@@ -90,6 +95,7 @@ class EmotionalFirewall:
         enable_revenge_check: bool = True,
         enable_overtrading_check: bool = True,
         enable_streak_check: bool = True,
+        enable_panic_check: bool = True,
         timezone_name: str = "America/New_York",
     ):
         """
@@ -110,18 +116,33 @@ class EmotionalFirewall:
         self.enable_revenge_check = enable_revenge_check
         self.enable_overtrading_check = enable_overtrading_check
         self.enable_streak_check = enable_streak_check
+        self.enable_panic_check = enable_panic_check
 
         try:
             self.timezone = pytz.timezone(timezone_name)
-        except Exception:
-            logger.warning(f"Invalid timezone {timezone_name}, using UTC")
+        except pytz.exceptions.UnknownTimeZoneError as e:
+            logger.warning(
+                f"Invalid timezone '{timezone_name}', falling back to UTC. Time-based trading controls may behave unexpectedly."
+            )
             self.timezone = pytz.UTC
+            self._timezone_fallback = True  # Track that we're using fallback
+        except Exception as e:
+            logger.error(f"Unexpected error setting timezone: {e}")
+            raise InvalidConfigError(
+                message=f"Failed to configure timezone: {timezone_name}",
+                config_key="timezone",
+                config_value=timezone_name,
+                original_error=str(e),
+            )
 
         # Trade history
         self.trade_history: Deque[Dict] = deque(maxlen=1000)
 
         # Recent trades for pattern detection
         self.recent_trades: Deque[Dict] = deque(maxlen=50)
+
+        # Manual interventions for panic detection
+        self.manual_interventions: Deque[datetime] = deque(maxlen=20)
 
         # Streak tracking
         self.current_streak_type: Optional[str] = None  # 'win' or 'loss'
@@ -298,6 +319,29 @@ class EmotionalFirewall:
             f"Streak: {self.current_streak_count} {self.current_streak_type or 'none'}"
         )
 
+    def record_manual_intervention(self, timestamp: Optional[datetime] = None):
+        """
+        Record a manual intervention (e.g., manual override, forced close).
+        Checks for panic mode (too many interventions in short time).
+        """
+        if not self.enable_panic_check:
+            return
+
+        timestamp = timestamp or datetime.now(self.timezone)
+        self.manual_interventions.append(timestamp)
+
+        # Check for panic mode
+        ten_mins_ago = timestamp - timedelta(minutes=10)
+        recent_interventions = [
+            t for t in self.manual_interventions if t > ten_mins_ago
+        ]
+
+        if len(recent_interventions) >= self.PANIC_INTERVENTION_LIMIT:
+            logger.warning(
+                f"Panic Mode detected: {len(recent_interventions)} manual interventions in 10 mins"
+            )
+            self._set_cooldown([EmotionalPattern.PANIC_MODE], timestamp)
+
     def _is_weekend(self, timestamp: datetime) -> bool:
         """Check if timestamp falls on weekend."""
         return timestamp.weekday() >= 5  # Saturday=5, Sunday=6
@@ -418,6 +462,9 @@ class EmotionalFirewall:
         elif EmotionalPattern.WIN_STREAK in patterns:
             cooldown_minutes = max(cooldown_minutes, self.STREAK_COOLDOWN)
             self.cooldown_reason = "Win streak cooldown (overconfidence)"
+        elif EmotionalPattern.PANIC_MODE in patterns:
+            cooldown_minutes = max(cooldown_minutes, self.PANIC_COOLDOWN)
+            self.cooldown_reason = "Panic mode cooldown (excessive interventions)"
 
         self.cooldown_expires_at = timestamp + timedelta(minutes=cooldown_minutes)
 

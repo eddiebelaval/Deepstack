@@ -29,20 +29,25 @@ export async function POST(req: Request) {
 
     return result.toTextStreamResponse();
   } catch (error: any) {
-    console.error('Chat API error:', error);
+    // Log full error server-side only
+    console.error('Chat API error details:', error.stack || error);
 
-    // Return user-friendly error messages
+    // Return user-friendly error messages without exposing internals
     if (error.message?.includes('API_KEY')) {
       return new Response(
         JSON.stringify({
-          error: 'API key not configured for this provider. Please check your environment variables.'
+          error: 'API key not configured for this provider. Please check your environment variables.',
+          error_code: 'API_KEY_MISSING'
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to process chat request' }),
+      JSON.stringify({
+        error: 'Unable to process your request. Please try again.',
+        error_code: 'CHAT_ERROR'
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

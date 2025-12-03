@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from anthropic import Anthropic
+from openai import OpenAI
 from pydantic import BaseModel
 
 from ..config import get_config
@@ -73,7 +74,30 @@ class BaseAgent:
 
         # Claude client
         self.anthropic = Anthropic(api_key=self.config.anthropic_api_key)
-        self.model = "claude-3-5-sonnet-20241022"
+
+        # OpenAI-compatible clients
+        self.perplexity = None
+        if self.config.perplexity_api_key:
+            self.perplexity = OpenAI(
+                api_key=self.config.perplexity_api_key,
+                base_url="https://api.perplexity.ai",
+            )
+
+        self.deepseek = None
+        if self.config.deepseek_api_key:
+            self.deepseek = OpenAI(
+                api_key=self.config.deepseek_api_key,
+                base_url="https://api.deepseek.com",
+            )
+
+        self.xai = None
+        if self.config.xai_api_key:
+            self.xai = OpenAI(
+                api_key=self.config.xai_api_key, base_url="https://api.x.ai/v1"
+            )
+
+        # Default model
+        self.model = self.config.llm_model or "claude-3-5-sonnet-20241022"
 
         # Context management
         self.context: List[Dict[str, str]] = []
@@ -116,14 +140,14 @@ class BaseAgent:
             for tool in self.tools.values()
         ]
 
-    async def call_claude(
+    async def call_llm(
         self,
         messages: List[Dict[str, str]],
         tools: Optional[List[Dict[str, Any]]] = None,
         max_tokens: int = 1024,
-    ) -> Dict[str, Any]:
+    ) -> Any:
         """
-        Call Claude API with messages and optional tools.
+        Call LLM API (Claude, Perplexity, DeepSeek, or Grok).
 
         Args:
             messages: List of message dictionaries
@@ -131,33 +155,95 @@ class BaseAgent:
             max_tokens: Maximum tokens in response
 
         Returns:
-            Claude API response
+            API response object (normalized)
         """
         try:
             # Add system context
             system_message = self._build_system_message()
-            messages_with_system = [system_message] + messages
 
-            # Prepare request
-            request_params = {
-                "model": self.model,
-                "messages": messages_with_system,
-                "max_tokens": max_tokens,
-            }
-
-            if tools:
-                request_params["tools"] = tools
-
-            # Make API call
-            response = await asyncio.get_event_loop().run_in_executor(
-                None, self.anthropic.messages.create, **request_params
-            )
-
-            return response
+            # Provider dispatch
+            if "claude" in self.model:
+                return await self._call_claude(
+                    messages, system_message, tools, max_tokens
+                )
+            elif "sonar" in self.model:
+                return await self._call_openai_compatible(
+                    self.perplexity, messages, system_message, tools, max_tokens
+                )
+            elif "deepseek" in self.model:
+                return await self._call_openai_compatible(
+                    self.deepseek, messages, system_message, tools, max_tokens
+                )
+            elif "grok" in self.model:
+                return await self._call_openai_compatible(
+                    self.xai, messages, system_message, tools, max_tokens
+                )
+            else:
+                # Default to Claude if unknown
+                logger.warning(f"Unknown model {self.model}, defaulting to Claude")
+                return await self._call_claude(
+                    messages, system_message, tools, max_tokens
+                )
 
         except Exception as e:
-            logger.error(f"Error calling Claude API: {e}")
+            logger.error(f"Error calling LLM API: {e}")
             raise
+
+    async def _call_claude(self, messages, system_message, tools, max_tokens):
+        """Internal method to call Claude."""
+        messages_with_system = [system_message] + messages
+
+        request_params = {
+            "model": self.model,
+            "messages": messages_with_system,
+            "max_tokens": max_tokens,
+        }
+
+        if tools:
+            request_params["tools"] = tools
+
+        return await asyncio.get_event_loop().run_in_executor(
+            None, self.anthropic.messages.create, **request_params
+        )
+
+    async def _call_openai_compatible(
+        self, client, messages, system_message, tools, max_tokens
+    ):
+        """Internal method to call OpenAI-compatible APIs."""
+        if not client:
+            raise ValueError(
+                f"Client for model {self.model} is not initialized (missing API key?)"
+            )
+
+        # Convert system message to OpenAI format (separate role)
+        formatted_messages = [
+            {"role": "system", "content": system_message["content"]}
+        ] + messages
+
+        request_params = {
+            "model": self.model,
+            "messages": formatted_messages,
+            "max_tokens": max_tokens,
+        }
+
+        # Note: Tool calling format might differ slightly, but basic chat works.
+        # For now, we'll skip tools for non-Claude models to ensure basic chat works,
+        # or we'd need to adapt tool schemas.
+        # DeepSeek/Grok tool support varies.
+
+        response = await asyncio.get_event_loop().run_in_executor(
+            None, client.chat.completions.create, **request_params
+        )
+
+        # Normalize response to look like Claude's for easy consumption
+        # Create a mock object or simple structure
+        class MockResponse:
+            def __init__(self, content_text):
+                self.content = [type("obj", (object,), {"text": content_text})]
+                self.tool_calls = []
+                self.usage = type("obj", (object,), {"input_tokens": 0})
+
+        return MockResponse(response.choices[0].message.content)
 
     def _build_system_message(self) -> Dict[str, str]:
         """
@@ -319,8 +405,8 @@ Always explain your reasoning step by step.
         messages.append({"role": "user", "content": user_message})
 
         try:
-            # Call Claude with tools
-            response = await self.call_claude(
+            # Call LLM with tools
+            response = await self.call_llm(
                 messages, tools=self.get_tools_for_claude(), max_tokens=2048
             )
 
@@ -395,7 +481,7 @@ Always explain your reasoning step by step.
                 messages.append({"role": msg["role"], "content": msg["content"]})
 
             try:
-                response = await self.call_claude(
+                response = await self.call_llm(
                     messages, tools=self.get_tools_for_claude(), max_tokens=2048
                 )
 

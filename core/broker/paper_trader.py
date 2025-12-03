@@ -23,13 +23,14 @@ Integration Pattern:
 import logging
 import random
 import sqlite3
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 from typing import Any, Dict, List, Optional
 
 import pytz
 
 from ..config import Config
 from ..data.alpaca_client import AlpacaClient
+from ..exceptions import DatabaseInitializationError
 from ..risk.circuit_breaker import CircuitBreaker
 from ..risk.kelly_position_sizer import KellyPositionSizer
 from ..risk.stop_loss_manager import StopLossManager
@@ -197,8 +198,12 @@ class PaperTrader:
                             "Migrating database schema to add commission/slippage tracking..."
                         )
                         # Migrate orders table
-                        conn.execute("ALTER TABLE orders ADD COLUMN commission REAL DEFAULT 0")
-                        conn.execute("ALTER TABLE orders ADD COLUMN slippage REAL DEFAULT 0")
+                        conn.execute(
+                            "ALTER TABLE orders ADD COLUMN commission REAL DEFAULT 0"
+                        )
+                        conn.execute(
+                            "ALTER TABLE orders ADD COLUMN slippage REAL DEFAULT 0"
+                        )
 
                         # Migrate trades table
                         cursor = conn.execute("PRAGMA table_info(trades)")
@@ -208,7 +213,9 @@ class PaperTrader:
                                 "ALTER TABLE trades ADD COLUMN commission REAL DEFAULT 0"
                             )
                         if "pnl" not in trade_columns:
-                            conn.execute("ALTER TABLE trades ADD COLUMN pnl REAL DEFAULT 0")
+                            conn.execute(
+                                "ALTER TABLE trades ADD COLUMN pnl REAL DEFAULT 0"
+                            )
 
                         conn.commit()
                         logger.info("Database migration complete")
@@ -287,8 +294,25 @@ class PaperTrader:
 
                 conn.commit()
 
+            logger.info(f"Paper trading database initialized at {self.db_path}")
+
+        except sqlite3.DatabaseError as e:
+            logger.critical(f"Paper trading database initialization failed: {e}")
+            raise DatabaseInitializationError(
+                message="Failed to initialize paper trading database",
+                database=str(self.db_path),
+                original_error=str(e),
+            )
         except Exception as e:
-            logger.error(f"Error initializing paper trading database: {e}")
+            logger.critical(
+                f"Unexpected error initializing paper trading database: {e}",
+                exc_info=True,
+            )
+            raise DatabaseInitializationError(
+                message="Unexpected error during paper trading database initialization",
+                database=str(self.db_path),
+                original_error=str(e),
+            )
 
     async def check_circuit_breakers(self) -> Dict[str, Any]:
         """
@@ -597,9 +621,22 @@ class PaperTrader:
 
             return order_id
 
+        except ValueError as e:
+            # Expected business logic errors (e.g., insufficient funds)
+            logger.warning(f"Paper order rejected: {e}")
+            return None  # Caller can handle rejection
         except Exception as e:
-            logger.error(f"Error placing paper order: {e}")
-            return None
+            from core.exceptions import OrderExecutionError
+
+            logger.error(f"Error placing paper order: {e}", exc_info=True)
+            raise OrderExecutionError(
+                message="Paper trading system error",
+                symbol=symbol,
+                quantity=quantity,
+                order_type="MKT",
+                side=action,
+                reason=str(e),
+            )
 
     async def place_limit_order(
         self, symbol: str, quantity: int, action: str, limit_price: float
@@ -999,8 +1036,8 @@ class PaperTrader:
 
         # Total slippage
         total_slippage_pct = (
-            base_slippage_pct + size_impact
-        ) * volatility_factor * random_factor
+            (base_slippage_pct + size_impact) * volatility_factor * random_factor
+        )
 
         # Convert to dollars
         slippage_amount = max(self.min_slippage, market_price * total_slippage_pct)
@@ -1194,9 +1231,7 @@ class PaperTrader:
         Returns:
             List of position dictionaries
         """
-        return [
-            {"symbol": symbol, **pos} for symbol, pos in self.positions.items()
-        ]
+        return [{"symbol": symbol, **pos} for symbol, pos in self.positions.items()]
 
     def get_position(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
@@ -1407,7 +1442,9 @@ class PaperTrader:
         """
         portfolio_value = self.get_portfolio_value()
         total_pnl = portfolio_value - self.initial_cash
-        total_return_pct = total_pnl / self.initial_cash if self.initial_cash > 0 else 0.0
+        total_return_pct = (
+            total_pnl / self.initial_cash if self.initial_cash > 0 else 0.0
+        )
 
         drawdown = self.calculate_max_drawdown()
         trade_stats = self.get_trade_statistics()

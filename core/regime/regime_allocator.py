@@ -163,10 +163,9 @@ class RegimeBasedAllocator:
             MarketRegime.BULL: AllocationConfig(
                 regime=MarketRegime.BULL,
                 allocations={
-                    "deep_value": 40.0,
+                    "covered_calls": 30.0,
+                    "long_equity": 40.0,
                     "growth": 30.0,
-                    "squeeze_hunter": 20.0,
-                    "momentum": 10.0,
                 },
                 cash_reserve=0.0,
                 max_position_size=10.0,
@@ -175,34 +174,32 @@ class RegimeBasedAllocator:
             MarketRegime.BEAR: AllocationConfig(
                 regime=MarketRegime.BEAR,
                 allocations={
-                    "deep_value": 30.0,
-                    "defensive": 25.0,
-                    "puts": 15.0,
+                    "shorts": 30.0,
+                    "long_volatility": 30.0,
+                    "cash": 40.0,  # Explicit cash allocation strategy
                 },
-                cash_reserve=30.0,  # 30% cash in bear market
+                cash_reserve=0.0,  # Handled by "cash" strategy allocation
                 max_position_size=8.0,
                 min_position_size=1.5,
             ),
             MarketRegime.SIDEWAYS: AllocationConfig(
                 regime=MarketRegime.SIDEWAYS,
                 allocations={
-                    "deep_value": 35.0,
-                    "mean_reversion": 25.0,
-                    "iron_condor": 15.0,
-                    "pairs_trading": 15.0,
+                    "pairs_trading": 30.0,
+                    "iron_condor": 40.0,
+                    "cash": 30.0,
                 },
-                cash_reserve=10.0,
+                cash_reserve=0.0,
                 max_position_size=8.0,
                 min_position_size=2.0,
             ),
             MarketRegime.CRISIS: AllocationConfig(
                 regime=MarketRegime.CRISIS,
                 allocations={
-                    "deep_value": 20.0,  # Only best opportunities
-                    "defensive": 20.0,
-                    "puts": 10.0,
+                    "long_volatility": 30.0,
+                    "cash": 70.0,
                 },
-                cash_reserve=50.0,  # 50% cash in crisis
+                cash_reserve=0.0,
                 max_position_size=5.0,
                 min_position_size=1.0,
             ),
