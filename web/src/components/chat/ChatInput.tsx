@@ -92,7 +92,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             placeholder="Ask about stocks, analyze positions, or place trades..."
             disabled={disabled || isStreaming}
-            className="min-h-[44px] max-h-[200px] resize-none rounded-xl bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/60"
+            className="min-h-[44px] max-h-[200px] resize-none rounded-xl bg-background/60 border border-border/40 px-4 py-3 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary/50 text-foreground placeholder:text-muted-foreground/50 caret-primary"
             rows={1}
           />
         </div>

@@ -138,9 +138,9 @@
 }
 
 .glass-input {
-  background: oklch(0.15 0.01 55 / 70%);
+  background: oklch(0.22 0.01 55 / 85%);  /* Lighter charcoal for better separation */
   backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.28 0.01 55 / 40%);
+  border: 1px solid oklch(0.35 0.01 55 / 50%);  /* Slightly more visible border */
   border-radius: 1.5rem;  /* Claude-style very rounded */
 }
 

@@ -16,7 +16,7 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
     const { leftSidebarOpen, rightSidebarOpen } = useUIStore();
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="h-screen bg-background flex flex-col overflow-hidden">
             {/* Left Sidebar - Chat History */}
             <LeftSidebar />
 
@@ -29,7 +29,7 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
             {/* Main Content Area */}
             <main
                 className={cn(
-                    "flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out",
+                    "flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out",
                     // Left margin based on sidebar state
                     leftSidebarOpen ? "ml-64" : "ml-14",
                     // Right margin: toolbar + widget panel if open
@@ -39,8 +39,8 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                 {/* LED Ticker at top of workspace */}
                 <StreamingTicker />
 
-                {/* Workspace Content */}
-                <div className="flex-1 flex flex-col">
+                {/* Workspace Content - fills remaining height */}
+                <div className="flex-1 flex flex-col min-h-0">
                     {children}
                 </div>
             </main>

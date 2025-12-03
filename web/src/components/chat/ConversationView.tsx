@@ -164,57 +164,57 @@ export function ConversationView() {
     };
 
     // Home state - no messages, no active content
+    // Centered both horizontally and vertically on the page
     if (!hasMessages && !hasActiveContent) {
         return (
-            <div className="flex flex-col h-full items-center justify-center p-4">
-                <div className="conversation-container w-full max-w-2xl p-8 space-y-6">
-                    {/* Welcome Message Bubble */}
-                    <div className="flex justify-center">
-                        <div className="max-w-lg">
-                            <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl rounded-tl-md p-5 shadow-lg">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-xl bg-primary/20 shrink-0">
-                                        <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                                        </svg>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="text-sm font-medium text-foreground">
-                                            Welcome to DeepStack
-                                        </p>
-                                        <p className="text-muted-foreground">Select a conversation or start a new one to begin chatting with DeepStack&apos;s AI trading assistant.</p>
-                                        <p className="text-sm text-muted-foreground leading-relaxed">
-                                            I can analyze charts, review your portfolio,
-                                            find trading setups, and help you execute trades. What would you like to explore?
-                                        </p>
-                                    </div>
-                                </div>
+            <div className="flex flex-col h-full items-center justify-center p-8">
+                {/* Centered content container */}
+                <div className="flex flex-col items-center gap-8 w-full max-w-2xl">
+                    {/* Welcome Message - Floating on background */}
+                    <div className="text-center space-y-3">
+                        <div className="flex justify-center mb-4">
+                            <div className="p-3 rounded-2xl bg-primary/10">
+                                <svg className="h-8 w-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                </svg>
                             </div>
                         </div>
+                        <h2 className="text-2xl font-semibold text-foreground">
+                            Welcome to DeepStack
+                        </h2>
+                        <p className="text-muted-foreground text-base max-w-md mx-auto leading-relaxed">
+                            I can analyze charts, review your portfolio, find trading setups, and help you execute trades.
+                        </p>
                     </div>
 
-                    {/* Input */}
+                    {/* Chat Input - Centered with clear separation */}
                     <div className="w-full">
                         <ChatInput onSend={handleSend} disabled={isLoading} />
                     </div>
 
-                    {/* Preset Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {presets.map((preset) => (
-                            <div
-                                key={preset.prompt}
-                                onClick={() => handlePresetClick(preset.prompt)}
-                                className="soft-card cursor-pointer p-4 flex items-center gap-3"
-                            >
-                                <div className="p-2 rounded-xl bg-primary/10 text-muted-foreground">
-                                    <preset.icon className="h-4 w-4" />
-                                </div>
-                                <div className="text-left">
-                                    <div className="text-sm font-medium">{preset.prompt}</div>
-                                    <div className="text-xs text-muted-foreground">{preset.desc}</div>
-                                </div>
-                            </div>
-                        ))}
+                    {/* Preset Cards - Visually separated below */}
+                    <div className="w-full">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {presets.map((preset) => (
+                                <button
+                                    key={preset.prompt}
+                                    onClick={() => handlePresetClick(preset.prompt)}
+                                    className="group bg-card/40 hover:bg-card/60 border border-border/40 hover:border-border/60 rounded-xl p-4 flex items-center gap-3 transition-all duration-200 text-left"
+                                >
+                                    <div className="p-2.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 text-primary transition-colors">
+                                        <preset.icon className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                            {preset.prompt}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {preset.desc}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
