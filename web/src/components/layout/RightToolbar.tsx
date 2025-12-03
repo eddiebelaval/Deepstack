@@ -13,7 +13,9 @@ import {
     Newspaper,
     BarChart3,
     Target,
-    LayoutGrid
+    LayoutGrid,
+    Diamond,
+    Shield
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -38,6 +40,8 @@ const SECONDARY_ITEMS: ToolbarItem[] = [
     { id: 'alerts', icon: Bell, label: 'Alerts' },
     { id: 'calendar', icon: Calendar, label: 'Calendar' },
     { id: 'news', icon: Newspaper, label: 'News' },
+    { id: 'deep-value', icon: Diamond, label: 'Deep Value' },
+    { id: 'hedged-positions', icon: Shield, label: 'Hedged Positions' },
 ];
 
 const WIDGET_ITEMS: ToolbarItem[] = [

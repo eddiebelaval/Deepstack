@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'none';
+export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'none';
 
 export interface WidgetConfig {
   id: string;

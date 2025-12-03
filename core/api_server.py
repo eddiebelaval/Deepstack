@@ -19,6 +19,7 @@ from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
 from .broker.paper_trader import PaperTrader
 from .config import get_config
+from .data.alphavantage_client import AlphaVantageClient
 from .exceptions import (
     AuthenticationError,
     CircuitBreakerTrippedError,
@@ -34,6 +35,8 @@ from .exceptions import (
     ValidationError,
     create_error_response,
 )
+from .strategies.deep_value import DeepValueStrategy
+from .strategies.hedged_position import HedgedPositionConfig, HedgedPositionManager
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +106,14 @@ class ErrorResponse(BaseModel):
     details: Optional[Dict[str, Any]] = None
 
 
+class HedgedPositionRequest(BaseModel):
+    symbol: str
+    entry_price: float
+    total_shares: int
+    conviction_pct: float = 0.60
+    tactical_pct: float = 0.40
+
+
 class DeepStackAPIServer:
     """
     FastAPI server for DeepStack trading system.
@@ -123,6 +134,9 @@ class DeepStackAPIServer:
         self.ibkr_client: Optional[IBKRClient] = None
         self.paper_trader: Optional[PaperTrader] = None
         self.order_manager: Optional[OrderManager] = None
+        self.av_client: Optional[AlphaVantageClient] = None
+        self.deep_value_strategy: Optional[DeepValueStrategy] = None
+        self.hedged_position_manager: Optional[HedgedPositionManager] = None
 
         # WebSocket connections
         self.websocket_connections: List[WebSocket] = []
@@ -377,6 +391,89 @@ class DeepStackAPIServer:
                     message="Unable to cancel order", order_id=order_id
                 )
 
+        @self.app.get("/strategies/deep-value/screen")
+        async def run_deep_value_screen():
+            """Run Deep Value screener."""
+            try:
+                if not self.deep_value_strategy:
+                    # Initialize with client if available
+                    self.deep_value_strategy = DeepValueStrategy(client=self.av_client)
+
+                # Define universe to screen
+                # (e.g., S&P 500 top holdings or user watchlist)
+                # For demonstration, we'll use a small list of popular stocks
+                universe = [
+                    "AAPL",
+                    "MSFT",
+                    "GOOGL",
+                    "AMZN",
+                    "TSLA",
+                    "NVDA",
+                    "META",
+                    "BRK.B",
+                    "JPM",
+                    "JNJ",
+                    "GME",
+                    "AMC",
+                    "INTC",
+                    "AMD",
+                ]
+
+                opportunities = await self.deep_value_strategy.screen_market(universe)
+                return [opp.to_dict() for opp in opportunities]
+            except Exception as e:
+                logger.error(f"Error running deep value screen: {e}", exc_info=True)
+                raise DeepStackError(
+                    message="Failed to run deep value screen", error_code="SCREEN_ERROR"
+                )
+
+        @self.app.post("/positions/hedged/create")
+        async def create_hedged_position(request: HedgedPositionRequest):
+            """Create a new hedged position."""
+            try:
+                if not self.hedged_position_manager:
+                    self.hedged_position_manager = HedgedPositionManager()
+
+                config = HedgedPositionConfig(
+                    symbol=request.symbol,
+                    entry_price=request.entry_price,
+                    total_shares=request.total_shares,
+                    conviction_pct=request.conviction_pct,
+                    tactical_pct=request.tactical_pct,
+                )
+
+                position = self.hedged_position_manager.create_position(config)
+                return position.to_dict()
+            except Exception as e:
+                logger.error(f"Error creating hedged position: {e}", exc_info=True)
+                raise DeepStackError(
+                    message="Failed to create hedged position",
+                    error_code="POSITION_ERROR",
+                )
+
+        @self.app.get("/positions/hedged/{symbol}")
+        async def get_hedged_position(symbol: str):
+            """Get details of a hedged position."""
+            try:
+                if not self.hedged_position_manager:
+                    self.hedged_position_manager = HedgedPositionManager()
+
+                position = self.hedged_position_manager.get_position(symbol)
+                if position:
+                    return position.to_dict()
+                else:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Hedged position for {symbol} not found",
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error getting hedged position: {e}", exc_info=True)
+                raise DeepStackError(
+                    message="Failed to get hedged position", error_code="POSITION_ERROR"
+                )
+
     def _setup_websocket(self):
         """Setup WebSocket endpoint for real-time updates."""
 
@@ -503,7 +600,7 @@ class DeepStackAPIServer:
             try:
                 await websocket.close()
             except Exception:
-                pass
+                pass  # nosec
 
         # Disconnect IBKR client
         if self.ibkr_client:

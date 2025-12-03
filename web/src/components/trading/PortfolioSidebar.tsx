@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api, type AccountSummary } from '@/lib/api';
 import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Separator } from '@/components/ui/separator';
 import { PositionsList } from './PositionsList';
 import { Loader2, RefreshCw } from 'lucide-react';
@@ -12,6 +14,7 @@ export function PortfolioSidebar() {
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchAccount = async () => {
     try {
@@ -66,50 +69,60 @@ export function PortfolioSidebar() {
         </Button>
       </div>
 
-      <div className="p-4 space-y-4 overflow-y-auto">
-        {/* Account Summary */}
-        {account && (
-          <Card className="p-4 space-y-3">
-            <div>
-              <div className="text-xs text-muted-foreground">Portfolio Value</div>
-              <div className="text-2xl font-bold">
-                ${account.portfolio_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-xs text-muted-foreground">Cash</div>
-                <div className="text-sm font-medium">
-                  ${account.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      <div className="flex-1 relative overflow-hidden">
+        <ScrollArea className="h-full p-4" viewportRef={scrollRef} hideScrollbar>
+          <div className="space-y-4">
+            {/* Account Summary */}
+            {account && (
+              <Card className="p-4 space-y-3">
+                <div>
+                  <div className="text-xs text-muted-foreground">Portfolio Value</div>
+                  <div className="text-2xl font-bold">
+                    ${account.portfolio_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Buying Power</div>
-                <div className="text-sm font-medium">
-                  ${account.buying_power.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Cash</div>
+                    <div className="text-sm font-medium">
+                      ${account.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Buying Power</div>
+                    <div className="text-sm font-medium">
+                      ${account.buying_power.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <Separator />
+                <Separator />
 
+                <div>
+                  <div className="text-xs text-muted-foreground">Day P&L</div>
+                  <div className={`text-lg font-bold ${account.day_pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
+                    {account.day_pnl >= 0 ? '+' : ''}${account.day_pnl.toFixed(2)}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Positions */}
             <div>
-              <div className="text-xs text-muted-foreground">Day P&L</div>
-              <div className={`text-lg font-bold ${account.day_pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                {account.day_pnl >= 0 ? '+' : ''}${account.day_pnl.toFixed(2)}
-              </div>
+              <h3 className="text-sm font-semibold mb-2">Positions</h3>
+              <PositionsList />
             </div>
-          </Card>
-        )}
-
-        {/* Positions */}
-        <div>
-          <h3 className="text-sm font-semibold mb-2">Positions</h3>
-          <PositionsList />
-        </div>
+          </div>
+        </ScrollArea>
+        <DotScrollIndicator
+          scrollRef={scrollRef}
+          maxDots={5}
+          className="absolute right-1 top-1/2 -translate-y-1/2"
+          minHeightGrowth={0}
+        />
       </div>
     </div>
   );

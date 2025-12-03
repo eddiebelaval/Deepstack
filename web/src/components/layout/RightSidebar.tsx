@@ -1,14 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { PanelRightClose, PanelRightOpen, GripVertical } from 'lucide-react';
 
 export function RightSidebar() {
     const { rightSidebarOpen, toggleRightSidebar, widgets } = useUIStore();
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     if (!rightSidebarOpen) {
         return (
@@ -31,55 +33,63 @@ export function RightSidebar() {
             </div>
 
             {/* Widgets Area */}
-            <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                    {widgets.filter(w => w.isOpen).map((widget) => (
-                        <Card key={widget.id} className="overflow-hidden living-surface">
-                            <CardHeader className="p-3 bg-muted/50 flex flex-row items-center space-y-0">
-                                <GripVertical className="h-4 w-4 text-muted-foreground mr-2 cursor-move" />
-                                <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-3">
-                                {/* Placeholder content based on type */}
-                                {widget.type === 'watchlist' && (
-                                    <div className="text-sm text-muted-foreground">
-                                        <div className="flex justify-between py-1">
-                                            <span>SPY</span>
-                                            <span className="text-green-500">+1.2%</span>
+            <div className="flex-1 relative overflow-hidden">
+                <ScrollArea className="h-full p-4" viewportRef={scrollRef} hideScrollbar>
+                    <div className="space-y-4">
+                        {widgets.filter(w => w.isOpen).map((widget) => (
+                            <Card key={widget.id} className="overflow-hidden living-surface">
+                                <CardHeader className="p-3 bg-muted/50 flex flex-row items-center space-y-0">
+                                    <GripVertical className="h-4 w-4 text-muted-foreground mr-2 cursor-move" />
+                                    <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-3">
+                                    {/* Placeholder content based on type */}
+                                    {widget.type === 'watchlist' && (
+                                        <div className="text-sm text-muted-foreground">
+                                            <div className="flex justify-between py-1">
+                                                <span>SPY</span>
+                                                <span className="text-green-500">+1.2%</span>
+                                            </div>
+                                            <div className="flex justify-between py-1">
+                                                <span>QQQ</span>
+                                                <span className="text-green-500">+1.5%</span>
+                                            </div>
+                                            <div className="flex justify-between py-1">
+                                                <span>IWM</span>
+                                                <span className="text-red-500">-0.4%</span>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between py-1">
-                                            <span>QQQ</span>
-                                            <span className="text-green-500">+1.5%</span>
+                                    )}
+                                    {widget.type === 'quick-stats' && (
+                                        <div className="text-sm">
+                                            <div className="flex justify-between py-1">
+                                                <span className="text-muted-foreground">Portfolio</span>
+                                                <span className="font-mono">$104,230</span>
+                                            </div>
+                                            <div className="flex justify-between py-1">
+                                                <span className="text-muted-foreground">Day P&L</span>
+                                                <span className="text-green-500 font-mono">+$1,240</span>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between py-1">
-                                            <span>IWM</span>
-                                            <span className="text-red-500">-0.4%</span>
+                                    )}
+                                    {widget.type === 'market-status' && (
+                                        <div className="flex items-center space-x-2">
+                                            <div className="h-2 w-2 rounded-full bg-green-500" />
+                                            <span className="text-sm font-medium">Market Open</span>
                                         </div>
-                                    </div>
-                                )}
-                                {widget.type === 'quick-stats' && (
-                                    <div className="text-sm">
-                                        <div className="flex justify-between py-1">
-                                            <span className="text-muted-foreground">Portfolio</span>
-                                            <span className="font-mono">$104,230</span>
-                                        </div>
-                                        <div className="flex justify-between py-1">
-                                            <span className="text-muted-foreground">Day P&L</span>
-                                            <span className="text-green-500 font-mono">+$1,240</span>
-                                        </div>
-                                    </div>
-                                )}
-                                {widget.type === 'market-status' && (
-                                    <div className="flex items-center space-x-2">
-                                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                                        <span className="text-sm font-medium">Market Open</span>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </ScrollArea>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </ScrollArea>
+                <DotScrollIndicator
+                    scrollRef={scrollRef}
+                    maxDots={5}
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    minHeightGrowth={0}
+                />
+            </div>
         </aside>
     );
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
@@ -189,6 +190,7 @@ function WidgetCard({ config, onRemove }: { config: WidgetConfig; onRemove: () =
 export function WidgetPanel() {
     const { rightSidebarOpen, setRightSidebarOpen } = useUIStore();
     const [widgets, setWidgets] = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
+    const widgetScrollRef = useRef<HTMLDivElement>(null);
 
     const removeWidget = (id: string) => {
         setWidgets(widgets.filter(w => w.id !== id));
@@ -228,25 +230,33 @@ export function WidgetPanel() {
                 </div>
 
                 {/* Widget Slots */}
-                <ScrollArea className="flex-1 p-3">
-                    <div className="space-y-3">
-                        {widgets.map((widget) => (
-                            <WidgetCard
-                                key={widget.id}
-                                config={widget}
-                                onRemove={() => removeWidget(widget.id)}
-                            />
-                        ))}
+                <div className="flex-1 relative overflow-hidden">
+                    <ScrollArea className="h-full p-3" viewportRef={widgetScrollRef} hideScrollbar>
+                        <div className="space-y-3">
+                            {widgets.map((widget) => (
+                                <WidgetCard
+                                    key={widget.id}
+                                    config={widget}
+                                    onRemove={() => removeWidget(widget.id)}
+                                />
+                            ))}
 
-                        {/* Empty slot hint */}
-                        {widgets.length < 3 && (
-                            <div className="border-2 border-dashed border-muted rounded-2xl p-4 text-center text-muted-foreground text-sm">
-                                <p>Drop widget here</p>
-                                <p className="text-xs mt-1">or click + to add</p>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
+                            {/* Empty slot hint */}
+                            {widgets.length < 3 && (
+                                <div className="border-2 border-dashed border-muted rounded-2xl p-4 text-center text-muted-foreground text-sm">
+                                    <p>Drop widget here</p>
+                                    <p className="text-xs mt-1">or click + to add</p>
+                                </div>
+                            )}
+                        </div>
+                    </ScrollArea>
+                    <DotScrollIndicator
+                        scrollRef={widgetScrollRef}
+                        maxDots={5}
+                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                        minHeightGrowth={0}
+                    />
+                </div>
 
                 {/* Add Widget Button */}
                 <div className="p-3 border-t border-sidebar-border">

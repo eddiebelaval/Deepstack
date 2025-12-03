@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useChatStore } from '@/lib/stores/chat-store';
 import {
@@ -20,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 export function LeftSidebar() {
     const { leftSidebarOpen, toggleLeftSidebar } = useUIStore();
     const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
+    const chatHistoryRef = useRef<HTMLDivElement>(null);
 
     const handleNewChat = () => {
         setCurrentConversation(null);
@@ -137,24 +139,34 @@ export function LeftSidebar() {
                 </div>
 
                 {/* Chat History */}
-                <ScrollArea className="flex-1 px-2">
-                    {conversations.length === 0 ? (
-                        leftSidebarOpen && (
-                            <div className="text-sm text-muted-foreground text-center py-8">
-                                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                <p>No conversations yet</p>
-                                <p className="text-xs mt-1">Start a new chat to begin</p>
-                            </div>
-                        )
-                    ) : (
-                        <>
-                            {renderConversationGroup("Today", groupedConversations.today)}
-                            {renderConversationGroup("Yesterday", groupedConversations.yesterday)}
-                            {renderConversationGroup("This Week", groupedConversations.thisWeek)}
-                            {renderConversationGroup("Older", groupedConversations.older)}
-                        </>
+                <div className="flex-1 relative overflow-hidden">
+                    <ScrollArea className="h-full px-2" viewportRef={chatHistoryRef} hideScrollbar>
+                        {conversations.length === 0 ? (
+                            leftSidebarOpen && (
+                                <div className="text-sm text-muted-foreground text-center py-8">
+                                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                    <p>No conversations yet</p>
+                                    <p className="text-xs mt-1">Start a new chat to begin</p>
+                                </div>
+                            )
+                        ) : (
+                            <>
+                                {renderConversationGroup("Today", groupedConversations.today)}
+                                {renderConversationGroup("Yesterday", groupedConversations.yesterday)}
+                                {renderConversationGroup("This Week", groupedConversations.thisWeek)}
+                                {renderConversationGroup("Older", groupedConversations.older)}
+                            </>
+                        )}
+                    </ScrollArea>
+                    {leftSidebarOpen && (
+                        <DotScrollIndicator
+                            scrollRef={chatHistoryRef}
+                            maxDots={5}
+                            className="absolute right-1 top-1/2 -translate-y-1/2"
+                            minHeightGrowth={0}
+                        />
                     )}
-                </ScrollArea>
+                </div>
 
                 {/* Bottom Section - Profile & Settings */}
                 <div className="mt-auto border-t border-sidebar-border p-2 space-y-1">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useUIStore } from "@/lib/stores/ui-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { useWatchlistStore } from "@/lib/stores/watchlist-store";
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DotScrollIndicator } from "@/components/ui/DotScrollIndicator";
 import { TrendingUp, TrendingDown, List, BarChart3, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -153,6 +155,7 @@ function MarketStatusWidget() {
 
 export function FloatingPanels() {
   const { rightSidebarOpen, setRightSidebarOpen } = useUIStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <Sheet open={rightSidebarOpen} onOpenChange={setRightSidebarOpen}>
@@ -160,13 +163,21 @@ export function FloatingPanels() {
         <SheetHeader className="p-4 border-b border-border/50">
           <SheetTitle className="text-base font-semibold">Market Data</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100vh-60px)]">
-          <div className="p-4 space-y-4">
-            <WatchlistWidget />
-            <QuickStatsWidget />
-            <MarketStatusWidget />
-          </div>
-        </ScrollArea>
+        <div className="h-[calc(100vh-60px)] relative">
+          <ScrollArea className="h-full" viewportRef={scrollRef} hideScrollbar>
+            <div className="p-4 space-y-4">
+              <WatchlistWidget />
+              <QuickStatsWidget />
+              <MarketStatusWidget />
+            </div>
+          </ScrollArea>
+          <DotScrollIndicator
+            scrollRef={scrollRef}
+            maxDots={5}
+            className="absolute right-1 top-1/2 -translate-y-1/2"
+            minHeightGrowth={0}
+          />
+        </div>
       </SheetContent>
     </Sheet>
   );

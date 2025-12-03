@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useChatStore } from "@/lib/stores/chat-store";
 import { useTradingStore } from "@/lib/stores/trading-store";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DotScrollIndicator } from "@/components/ui/DotScrollIndicator";
 import { Textarea } from "@/components/ui/textarea";
 import { ProviderSelector } from "@/components/chat/ProviderSelector";
 import { X, Send, Loader2, MessageSquare } from "lucide-react";
@@ -25,6 +26,7 @@ export function ChatSidePanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;
@@ -146,8 +148,9 @@ export function ChatSidePanel() {
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-3">
-        {messages.length === 0 ? (
+      <div className="flex-1 relative overflow-hidden">
+        <ScrollArea className="h-full p-3" viewportRef={scrollRef} hideScrollbar>
+          {messages.length === 0 ? (
           <div className="space-y-3">
             <div className="text-center text-muted-foreground py-6">
               <span className="text-xl font-mono font-bold text-primary tracking-tight block mb-2">
@@ -205,7 +208,14 @@ export function ChatSidePanel() {
             ))}
           </div>
         )}
-      </ScrollArea>
+        </ScrollArea>
+        <DotScrollIndicator
+          scrollRef={scrollRef}
+          maxDots={5}
+          className="absolute right-1 top-1/2 -translate-y-1/2"
+          minHeightGrowth={0}
+        />
+      </div>
 
       {/* Input */}
       <div className="p-3 border-t border-border glass-surface-elevated">

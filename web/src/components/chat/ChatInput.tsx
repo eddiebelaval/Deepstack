@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Send, Loader2 } from 'lucide-react';
 import { ProviderSelector } from './ProviderSelector';
 import { useChatStore } from '@/lib/stores/chat-store';
@@ -92,8 +93,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             placeholder="Ask about stocks, analyze positions, or place trades..."
             disabled={disabled || isStreaming}
-            className="min-h-[44px] max-h-[200px] resize-none rounded-xl bg-background/60 border border-border/40 px-4 py-3 focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary/50 text-foreground placeholder:text-muted-foreground/50 caret-primary"
+            className="min-h-[44px] max-h-[200px] resize-none rounded-xl bg-primary/8 border border-primary/20 px-4 py-3 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary shadow-[inset_0_0_12px_rgba(178,120,50,0.15),0_0_8px_rgba(178,120,50,0.1)] scrollbar-hide whitespace-pre-wrap break-all"
             rows={1}
+          />
+          <DotScrollIndicator
+            scrollRef={textareaRef}
+            maxDots={5}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
           />
         </div>
 

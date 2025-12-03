@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTradingStore } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { api } from "@/lib/api";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DotScrollIndicator } from "@/components/ui/DotScrollIndicator";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -35,6 +36,7 @@ export function OrderPanel() {
   const [limitPrice, setLimitPrice] = useState<string>("");
   const [stopPrice, setStopPrice] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const quote = quotes[activeSymbol];
   const currentPrice = quote?.last ?? 0;
@@ -89,8 +91,9 @@ export function OrderPanel() {
         <p className="text-sm text-muted-foreground">{activeSymbol}</p>
       </div>
 
-      <ScrollArea className="flex-1">
-        <form onSubmit={handleSubmit} className="p-3 space-y-4">
+      <div className="flex-1 relative overflow-hidden">
+        <ScrollArea className="h-full" viewportRef={scrollRef} hideScrollbar>
+          <form onSubmit={handleSubmit} className="p-3 space-y-4">
           {/* Buy/Sell Tabs */}
           <Tabs
             value={side}
@@ -226,13 +229,20 @@ export function OrderPanel() {
         </form>
 
         {/* Positions Section */}
-        <div className="p-3 border-t border-border">
-          <h4 className="font-medium mb-2">Open Positions</h4>
-          <div className="text-sm text-muted-foreground text-center py-4">
-            No open positions
+          <div className="p-3 border-t border-border">
+            <h4 className="font-medium mb-2">Open Positions</h4>
+            <div className="text-sm text-muted-foreground text-center py-4">
+              No open positions
+            </div>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+        <DotScrollIndicator
+          scrollRef={scrollRef}
+          maxDots={5}
+          className="absolute right-1 top-1/2 -translate-y-1/2"
+          minHeightGrowth={0}
+        />
+      </div>
     </div>
   );
 }

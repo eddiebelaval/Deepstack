@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useWatchlistStore } from "@/lib/stores/watchlist-store";
 import { useTradingStore } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DotScrollIndicator } from "@/components/ui/DotScrollIndicator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 export function WatchlistPanel() {
   const [isAdding, setIsAdding] = useState(false);
   const [newSymbol, setNewSymbol] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const {
     watchlists,
@@ -97,8 +99,9 @@ export function WatchlistPanel() {
       </div>
 
       {/* Symbol List */}
-      <ScrollArea className="flex-1">
-        <div className="p-1">
+      <div className="flex-1 relative overflow-hidden">
+        <ScrollArea className="h-full" viewportRef={scrollRef} hideScrollbar>
+          <div className="p-1">
           {activeWatchlist?.items.map((item) => {
             const quote = quotes[item.symbol];
             const isActive = item.symbol === activeSymbol;
@@ -187,8 +190,15 @@ export function WatchlistPanel() {
               Add Symbol
             </Button>
           )}
-        </div>
-      </ScrollArea>
+          </div>
+        </ScrollArea>
+        <DotScrollIndicator
+          scrollRef={scrollRef}
+          maxDots={5}
+          className="absolute right-1 top-1/2 -translate-y-1/2"
+          minHeightGrowth={0}
+        />
+      </div>
     </div>
   );
 }

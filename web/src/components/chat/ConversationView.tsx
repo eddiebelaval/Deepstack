@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Button } from '@/components/ui/button';
 import { TradingChart } from '@/components/charts/TradingChart';
 import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
-import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2 } from 'lucide-react';
+import { DeepValuePanel } from '@/components/trading/DeepValuePanel';
+import { HedgedPositionsPanel } from '@/components/trading/HedgedPositionsPanel';
+import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2, Diamond, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Simple message type for our use case
@@ -28,6 +31,7 @@ export function ConversationView() {
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isChartExpanded, setIsChartExpanded] = useState(false);
+    const chatScrollRef = useRef<HTMLDivElement>(null);
 
     // Basic intent detection
     const detectIntent = (content: string) => {
@@ -41,6 +45,10 @@ export function ConversationView() {
             setActiveContent('portfolio');
         } else if (lower.includes('buy') || lower.includes('sell') || lower.includes('order')) {
             setActiveContent('orders');
+        } else if (lower.includes('deep value') || lower.includes('value screen')) {
+            setActiveContent('deep-value');
+        } else if (lower.includes('hedged') || lower.includes('conviction')) {
+            setActiveContent('hedged-positions');
         }
     };
 
@@ -160,6 +168,20 @@ export function ConversationView() {
                 </div>
             );
         }
+        if (activeContent === 'deep-value') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                    <DeepValuePanel />
+                </div>
+            );
+        }
+        if (activeContent === 'hedged-positions') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                    <HedgedPositionsPanel />
+                </div>
+            );
+        }
         return null;
     };
 
@@ -242,6 +264,8 @@ export function ConversationView() {
                                     {activeContent === 'chart' && `Chart: ${activeSymbol}`}
                                     {activeContent === 'orders' && 'Order Entry'}
                                     {activeContent === 'portfolio' && 'Positions'}
+                                    {activeContent === 'deep-value' && 'Deep Value Screener'}
+                                    {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
                                 </span>
                             </div>
                             <div className="flex items-center gap-1">
@@ -277,14 +301,20 @@ export function ConversationView() {
             )}
 
             {/* Chat Area - Scrollable, takes remaining space */}
-            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-hidden min-h-0 relative">
+                <ScrollArea className="h-full" viewportRef={chatScrollRef} hideScrollbar>
                     <div className="p-4">
                         <div className="max-w-3xl mx-auto">
                             <MessageList messages={messages as any} isStreaming={isLoading} />
                         </div>
                     </div>
                 </ScrollArea>
+                <DotScrollIndicator
+                    scrollRef={chatScrollRef}
+                    maxDots={7}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    minHeightGrowth={0}
+                />
             </div>
 
             {/* Input Bar - Fixed at bottom */}
