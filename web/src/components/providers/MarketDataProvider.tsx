@@ -29,7 +29,7 @@ type MarketDataProviderProps = {
 export function MarketDataProvider({
   children,
   wsUrl,
-  autoConnect = true,
+  autoConnect = false, // Disabled - backend doesn't have WebSocket endpoint yet
 }: MarketDataProviderProps) {
   const { activeSymbol } = useTradingStore();
   const { subscribe, wsConnected, setBars, setLoadingBars, updateQuotes, bars } = useMarketDataStore();
