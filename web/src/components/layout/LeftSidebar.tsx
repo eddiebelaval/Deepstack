@@ -6,70 +6,57 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useChatStore } from '@/lib/stores/chat-store';
-import { MessageSquare, Plus, PanelLeftClose, PanelLeftOpen, History } from 'lucide-react';
+import {
+    MessageSquare,
+    Plus,
+    PanelLeftClose,
+    PanelLeftOpen,
+    User,
+    Settings,
+    ChevronRight
+} from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
 
 export function LeftSidebar() {
     const { leftSidebarOpen, toggleLeftSidebar } = useUIStore();
-    const { conversations, currentConversationId, setCurrentConversation, addConversation } = useChatStore();
+    const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
 
     const handleNewChat = () => {
-        // Logic to start a new chat would go here
-        // For now, we just clear the current conversation selection
         setCurrentConversation(null);
     };
 
-    return (
-        <aside
-            className={cn(
-                "flex flex-col border-r bg-background transition-all duration-300 ease-in-out h-screen fixed left-0 top-0 z-30",
-                leftSidebarOpen ? "w-64" : "w-16"
-            )}
-        >
-            {/* Header / Toggle */}
-            <div className="flex items-center justify-between p-4 h-14 border-b">
-                {leftSidebarOpen && <span className="font-semibold truncate">DeepStack</span>}
-                <Button variant="ghost" size="icon" onClick={toggleLeftSidebar} className="ml-auto">
-                    {leftSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-                </Button>
-            </div>
+    // Group conversations by date
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+    const weekStart = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-            {/* New Chat Button */}
-            <div className="p-2">
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={leftSidebarOpen ? "default" : "ghost"}
-                                className={cn("w-full justify-start", !leftSidebarOpen && "justify-center px-2")}
-                                onClick={handleNewChat}
-                            >
-                                <Plus className="h-4 w-4" />
-                                {leftSidebarOpen && <span className="ml-2">New Chat</span>}
-                            </Button>
-                        </TooltipTrigger>
-                        {!leftSidebarOpen && <TooltipContent side="right">New Chat</TooltipContent>}
-                    </Tooltip>
-                </TooltipProvider>
-            </div>
+    const groupedConversations = {
+        today: conversations.filter(c => c.created_at && new Date(c.created_at) >= todayStart),
+        yesterday: conversations.filter(c => c.created_at && new Date(c.created_at) >= yesterdayStart && new Date(c.created_at) < todayStart),
+        thisWeek: conversations.filter(c => c.created_at && new Date(c.created_at) >= weekStart && new Date(c.created_at) < yesterdayStart),
+        older: conversations.filter(c => !c.created_at || new Date(c.created_at) < weekStart),
+    };
 
-            {/* Session List */}
-            <ScrollArea className="flex-1">
-                <div className="p-2 space-y-1">
-                    {conversations.length === 0 && leftSidebarOpen && (
-                        <div className="text-sm text-muted-foreground text-center py-4">
-                            No history
-                        </div>
-                    )}
-
-                    {conversations.map((conv) => (
+    const renderConversationGroup = (title: string, convs: typeof conversations) => {
+        if (convs.length === 0) return null;
+        return (
+            <div className="mb-4">
+                {leftSidebarOpen && (
+                    <div className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {title}
+                    </div>
+                )}
+                <div className="space-y-0.5">
+                    {convs.map((conv) => (
                         <TooltipProvider key={conv.id}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant={currentConversationId === conv.id ? "secondary" : "ghost"}
                                         className={cn(
-                                            "w-full justify-start text-sm font-normal",
+                                            "w-full justify-start text-sm font-normal rounded-xl h-9",
                                             !leftSidebarOpen && "justify-center px-2"
                                         )}
                                         onClick={() => setCurrentConversation(conv.id)}
@@ -89,12 +76,132 @@ export function LeftSidebar() {
                         </TooltipProvider>
                     ))}
                 </div>
-            </ScrollArea>
-
-            {/* Footer (Settings/Profile placeholder) */}
-            <div className="p-4 border-t mt-auto">
-                {/* Placeholder for user settings */}
             </div>
-        </aside>
+        );
+    };
+
+    return (
+        <TooltipProvider>
+            <aside
+                className={cn(
+                    "flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out h-screen fixed left-0 top-0 z-40",
+                    leftSidebarOpen ? "w-64" : "w-14"
+                )}
+            >
+                {/* Header with Logo & Toggle */}
+                <div className={cn(
+                    "flex items-center h-14 border-b border-sidebar-border px-3",
+                    leftSidebarOpen ? "justify-between" : "justify-center"
+                )}>
+                    {leftSidebarOpen && (
+                        <span className="font-semibold text-primary tracking-tight">DeepStack</span>
+                    )}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleLeftSidebar}
+                                className="h-8 w-8 rounded-lg"
+                            >
+                                {leftSidebarOpen ? (
+                                    <PanelLeftClose className="h-4 w-4" />
+                                ) : (
+                                    <PanelLeftOpen className="h-4 w-4" />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                            {leftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+
+                {/* New Chat Button */}
+                <div className="p-2">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="default"
+                                className={cn(
+                                    "w-full rounded-xl",
+                                    leftSidebarOpen ? "justify-start" : "justify-center px-0"
+                                )}
+                                onClick={handleNewChat}
+                            >
+                                <Plus className="h-4 w-4" />
+                                {leftSidebarOpen && <span className="ml-2">New Chat</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!leftSidebarOpen && <TooltipContent side="right">New Chat</TooltipContent>}
+                    </Tooltip>
+                </div>
+
+                {/* Chat History */}
+                <ScrollArea className="flex-1 px-2">
+                    {conversations.length === 0 ? (
+                        leftSidebarOpen && (
+                            <div className="text-sm text-muted-foreground text-center py-8">
+                                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                <p>No conversations yet</p>
+                                <p className="text-xs mt-1">Start a new chat to begin</p>
+                            </div>
+                        )
+                    ) : (
+                        <>
+                            {renderConversationGroup("Today", groupedConversations.today)}
+                            {renderConversationGroup("Yesterday", groupedConversations.yesterday)}
+                            {renderConversationGroup("This Week", groupedConversations.thisWeek)}
+                            {renderConversationGroup("Older", groupedConversations.older)}
+                        </>
+                    )}
+                </ScrollArea>
+
+                {/* Bottom Section - Profile & Settings */}
+                <div className="mt-auto border-t border-sidebar-border p-2 space-y-1">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "w-full rounded-xl h-9",
+                                    leftSidebarOpen ? "justify-start" : "justify-center px-0"
+                                )}
+                            >
+                                <User className="h-4 w-4" />
+                                {leftSidebarOpen && (
+                                    <>
+                                        <span className="ml-2 flex-1 text-left">Profile</span>
+                                        <ChevronRight className="h-3 w-3 opacity-50" />
+                                    </>
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        {!leftSidebarOpen && <TooltipContent side="right">Profile</TooltipContent>}
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "w-full rounded-xl h-9",
+                                    leftSidebarOpen ? "justify-start" : "justify-center px-0"
+                                )}
+                            >
+                                <Settings className="h-4 w-4" />
+                                {leftSidebarOpen && (
+                                    <>
+                                        <span className="ml-2 flex-1 text-left">Settings</span>
+                                        <ChevronRight className="h-3 w-3 opacity-50" />
+                                    </>
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        {!leftSidebarOpen && <TooltipContent side="right">Settings</TooltipContent>}
+                    </Tooltip>
+                </div>
+            </aside>
+        </TooltipProvider>
     );
 }

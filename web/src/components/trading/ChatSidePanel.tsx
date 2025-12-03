@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { ProviderSelector } from "@/components/chat/ProviderSelector";
-import { X, Send, Loader2, Sparkles } from "lucide-react";
+import { X, Send, Loader2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LLMProvider } from "@/lib/llm/providers";
 
@@ -131,8 +131,8 @@ export function ChatSidePanel() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="font-semibold">AI Assistant</span>
+          <MessageSquare className="h-4 w-4 text-primary" />
+          <span className="font-semibold">Assistant</span>
         </div>
         <div className="flex items-center gap-1">
           <ProviderSelector
@@ -148,10 +148,11 @@ export function ChatSidePanel() {
       {/* Messages */}
       <ScrollArea className="flex-1 p-3">
         {messages.length === 0 ? (
-          <div className="space-y-4">
-            <div className="text-center text-muted-foreground py-8">
-              <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="font-medium">AI Trading Assistant</p>
+          <div className="space-y-3">
+            <div className="text-center text-muted-foreground py-6">
+              <span className="text-xl font-mono font-bold text-primary tracking-tight block mb-2">
+                DEEPSTACK
+              </span>
               <p className="text-sm">
                 Ask about {activeSymbol} or any trading question
               </p>
@@ -197,7 +198,7 @@ export function ChatSidePanel() {
                   {isLoading &&
                     message.role === "assistant" &&
                     message.id === messages[messages.length - 1]?.id && (
-                      <span className="inline-block w-1 h-4 ml-0.5 bg-foreground animate-pulse" />
+                      <span className="streaming-indicator" />
                     )}
                 </div>
               </div>
@@ -207,21 +208,21 @@ export function ChatSidePanel() {
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border glass-surface-elevated">
         <div className="flex gap-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Ask about ${activeSymbol}...`}
-            className="min-h-[60px] max-h-[120px] resize-none"
+            className="min-h-[40px] max-h-[100px] resize-none glass-input"
             disabled={isLoading}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             size="icon"
-            className="h-[60px]"
+            className="h-10 w-10"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

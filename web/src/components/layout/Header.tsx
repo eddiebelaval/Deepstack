@@ -26,7 +26,9 @@ import {
   WifiOff,
   TrendingUp,
   TrendingDown,
+  LayoutDashboard,
 } from "lucide-react";
+import { useUIStore } from "@/lib/stores/ui-store";
 import Link from "next/link";
 
 // Popular symbols for quick access
@@ -49,6 +51,7 @@ export function Header() {
 
   const { activeSymbol, setActiveSymbol, showChatPanel, toggleChatPanel } = useTradingStore();
   const { wsConnected, quotes } = useMarketDataStore();
+  const { rightSidebarOpen, toggleRightSidebar } = useUIStore();
 
   // Get quote for active symbol
   const activeQuote = quotes[activeSymbol];
@@ -66,11 +69,16 @@ export function Header() {
         e.preventDefault();
         toggleChatPanel();
       }
+      // Cmd/Ctrl + M for market data panel toggle
+      if ((e.metaKey || e.ctrlKey) && e.key === "m") {
+        e.preventDefault();
+        toggleRightSidebar();
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [toggleChatPanel]);
+  }, [toggleChatPanel, toggleRightSidebar]);
 
   const handleSymbolSelect = useCallback(
     (symbol: string) => {
@@ -96,14 +104,14 @@ export function Header() {
         {/* Left: Logo */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-mono font-bold text-lg text-profit">
+            <span className="font-mono font-bold text-lg text-primary">
               DEEPSTACK
             </span>
           </Link>
 
           {/* Active Symbol Display */}
           {activeQuote && (
-            <div className="hidden md:flex items-center gap-3 px-3 py-1 bg-muted rounded-md">
+            <div className="hidden md:flex items-center gap-3 px-3 py-1 bg-muted rounded-md glass-input">
               <span className="font-semibold">{activeSymbol}</span>
               <span className="text-foreground">
                 ${activeQuote.last?.toFixed(2) ?? "—"}
@@ -169,6 +177,26 @@ export function Header() {
               {wsConnected
                 ? "Connected to real-time data"
                 : "Disconnected from real-time data"}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Market Data Panel Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={rightSidebarOpen ? "secondary" : "ghost"}
+                size="icon"
+                onClick={toggleRightSidebar}
+                aria-label="Toggle Market Data"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Market Data
+              <kbd className="ml-2 rounded border bg-muted px-1 font-mono text-[10px]">
+                ⌘M
+              </kbd>
             </TooltipContent>
           </Tooltip>
 

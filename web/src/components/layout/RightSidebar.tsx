@@ -35,7 +35,7 @@ export function RightSidebar() {
             <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
                     {widgets.filter(w => w.isOpen).map((widget) => (
-                        <Card key={widget.id} className="overflow-hidden">
+                        <Card key={widget.id} className="overflow-hidden living-surface">
                             <CardHeader className="p-3 bg-muted/50 flex flex-row items-center space-y-0">
                                 <GripVertical className="h-4 w-4 text-muted-foreground mr-2 cursor-move" />
                                 <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
@@ -72,7 +72,7 @@ export function RightSidebar() {
                                 )}
                                 {widget.type === 'market-status' && (
                                     <div className="flex items-center space-x-2">
-                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                        <div className="h-2 w-2 rounded-full bg-green-500" />
                                         <span className="text-sm font-medium">Market Open</span>
                                     </div>
                                 )}

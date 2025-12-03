@@ -10,8 +10,8 @@ interface InputBarProps {
 
 export function InputBar({ onSend, isLoading }: InputBarProps) {
     return (
-        <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-10 p-4">
-            <div className="max-w-4xl mx-auto w-full">
+        <div className="sticky bottom-0 z-10 p-3 glass-surface-elevated border-t border-border/50">
+            <div className="max-w-3xl mx-auto w-full">
                 <ChatInput onSend={onSend} disabled={isLoading} />
             </div>
         </div>

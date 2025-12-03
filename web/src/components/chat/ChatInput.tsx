@@ -44,8 +44,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [input]);
 
   return (
-    <div className="border-t border-border bg-card p-4">
-      <div className="flex items-end gap-2 max-w-4xl mx-auto">
+    <div className="glass-input p-4">
+      <div className="flex items-end gap-3">
         <ProviderSelector
           value={activeProvider}
           onChange={setActiveProvider}
@@ -60,7 +60,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             placeholder="Ask about stocks, analyze positions, or place trades..."
             disabled={disabled || isStreaming}
-            className="min-h-[60px] max-h-[200px] resize-none pr-12"
+            className="min-h-[44px] max-h-[200px] resize-none rounded-xl bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/60"
             rows={1}
           />
         </div>
@@ -69,17 +69,17 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onClick={handleSubmit}
           disabled={!input.trim() || disabled || isStreaming}
           size="icon"
-          className="h-[60px] w-[60px]"
+          className="h-10 w-10 rounded-xl"
         >
           {isStreaming ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Send className="h-5 w-5" />
+            <Send className="h-4 w-4" />
           )}
         </Button>
       </div>
 
-      <div className="text-xs text-muted-foreground text-center mt-2">
+      <div className="text-xs text-muted-foreground/60 text-center mt-3">
         Press Enter to send, Shift+Enter for new line
       </div>
     </div>

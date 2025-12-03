@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { MessageList } from './MessageList';
-import { InputBar } from './InputBar';
-import { DynamicContentZone } from './DynamicContentZone';
+import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { TradingChart } from '@/components/charts/TradingChart';
+import { OrderPanel } from '@/components/trading/OrderPanel';
+import { PositionsList } from '@/components/trading/PositionsList';
+import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// Simple message type for our use case (matching ChatContainer)
+// Simple message type for our use case
 type SimpleMessage = {
     id: string;
     role: 'user' | 'assistant' | 'system';
@@ -19,33 +24,29 @@ type SimpleMessage = {
 
 export function ConversationView() {
     const { activeProvider, setIsStreaming } = useChatStore();
-    const { setActiveContent, setActiveSymbol } = useUIStore();
+    const { activeContent, setActiveContent, setActiveSymbol, activeSymbol } = useUIStore();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isChartExpanded, setIsChartExpanded] = useState(false);
 
-    // Basic intent detection (mocking the AI "parsing" for now)
+    // Basic intent detection
     const detectIntent = (content: string) => {
         const lower = content.toLowerCase();
-        if (lower.includes('chart') || lower.includes('spy') || lower.includes('aapl')) {
+        if (lower.includes('chart') || lower.includes('spy') || lower.includes('aapl') || lower.includes('nvda')) {
             setActiveContent('chart');
             if (lower.includes('spy')) setActiveSymbol('SPY');
             if (lower.includes('aapl')) setActiveSymbol('AAPL');
+            if (lower.includes('nvda')) setActiveSymbol('NVDA');
         } else if (lower.includes('portfolio') || lower.includes('positions')) {
             setActiveContent('portfolio');
         } else if (lower.includes('buy') || lower.includes('sell') || lower.includes('order')) {
             setActiveContent('orders');
         }
-        // If no specific intent, maybe keep current or switch to none?
-        // Spec says: "Context switch behavior: Clear current content, render new content."
-        // But also "What happened yesterday? -> Summary view / no content change"
-        // For now, let's leave it as is if no match, or maybe 'none' if explicitly asked to clear.
     };
 
     const handleSend = useCallback(async (content: string) => {
-        // Detect intent immediately for snappy feel
         detectIntent(content);
 
-        // Add user message
         const userMessage: SimpleMessage = {
             id: crypto.randomUUID(),
             role: 'user',
@@ -67,9 +68,7 @@ export function ConversationView() {
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to send message');
-            }
+            if (!response.ok) throw new Error('Failed to send message');
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
@@ -84,14 +83,11 @@ export function ConversationView() {
                     const chunk = decoder.decode(value);
                     assistantContent += chunk;
 
-                    // Update the assistant message
                     setMessages(prev => {
                         const existing = prev.find(m => m.id === assistantId);
                         if (existing) {
                             return prev.map(m =>
-                                m.id === assistantId
-                                    ? { ...m, content: assistantContent }
-                                    : m
+                                m.id === assistantId ? { ...m, content: assistantContent } : m
                             );
                         } else {
                             return [...prev, {
@@ -118,22 +114,179 @@ export function ConversationView() {
         }
     }, [messages, activeProvider, setIsStreaming, setActiveContent, setActiveSymbol]);
 
+    const hasMessages = messages.length > 0;
+    const hasActiveContent = activeContent !== 'none';
+
+    // Quick action presets
+    const presets = [
+        { prompt: "Analyze my portfolio", icon: Briefcase, desc: "Performance and risk" },
+        { prompt: "Show me SPY chart", icon: LineChart, desc: "Real-time with indicators" },
+        { prompt: "What's moving today?", icon: TrendingUp, desc: "Volume leaders" },
+        { prompt: "Find asymmetric setups", icon: Target, desc: "Risk/reward plays" },
+    ];
+
+    const handlePresetClick = (prompt: string) => {
+        handleSend(prompt);
+    };
+
+    const closeContentZone = () => {
+        setActiveContent('none');
+        setIsChartExpanded(false);
+    };
+
+    // Render the active content (chart, orders, etc.)
+    const renderActiveContent = () => {
+        if (activeContent === 'chart') {
+            return (
+                <div className="flex-1 rounded-2xl overflow-hidden bg-card border border-border/50">
+                    <TradingChart />
+                </div>
+            );
+        }
+        if (activeContent === 'orders') {
+            return (
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="w-full max-w-md">
+                        <OrderPanel />
+                    </div>
+                </div>
+            );
+        }
+        if (activeContent === 'portfolio') {
+            return (
+                <div className="flex-1 rounded-2xl overflow-hidden bg-card border border-border/50">
+                    <PositionsList />
+                </div>
+            );
+        }
+        return null;
+    };
+
+    // Home state - no messages, no active content
+    if (!hasMessages && !hasActiveContent) {
+        return (
+            <div className="flex flex-col h-full items-center justify-center p-4">
+                <div className="conversation-container w-full max-w-2xl p-8 space-y-6">
+                    {/* Welcome Message Bubble */}
+                    <div className="flex justify-center">
+                        <div className="max-w-lg">
+                            <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl rounded-tl-md p-5 shadow-lg">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 rounded-xl bg-primary/20 shrink-0">
+                                        <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                        </svg>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-medium text-foreground">
+                                            Welcome to DeepStack
+                                        </p>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            I'm your AI trading assistant. I can analyze charts, review your portfolio,
+                                            find trading setups, and help you execute trades. What would you like to explore?
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Input */}
+                    <div className="w-full">
+                        <ChatInput onSend={handleSend} disabled={isLoading} />
+                    </div>
+
+                    {/* Preset Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {presets.map((preset) => (
+                            <div
+                                key={preset.prompt}
+                                onClick={() => handlePresetClick(preset.prompt)}
+                                className="soft-card cursor-pointer p-4 flex items-center gap-3"
+                            >
+                                <div className="p-2 rounded-xl bg-primary/10 text-muted-foreground">
+                                    <preset.icon className="h-4 w-4" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-sm font-medium">{preset.prompt}</div>
+                                    <div className="text-xs text-muted-foreground">{preset.desc}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Workspace view with active content and/or messages
     return (
         <div className="flex flex-col h-full">
-            {/* Dynamic Content Zone - Top */}
-            <div className="flex-shrink-0 border-b bg-muted/10">
-                <DynamicContentZone />
-            </div>
+            {/* Content Zone - Top (Chart/Orders/Portfolio) */}
+            {hasActiveContent && (
+                <div
+                    className={cn(
+                        "flex-shrink-0 p-3 transition-all duration-300",
+                        isChartExpanded ? "h-[70vh]" : "h-[35vh] min-h-[280px]"
+                    )}
+                >
+                    <div className="h-full flex flex-col">
+                        {/* Content Header with controls */}
+                        <div className="flex items-center justify-between mb-2 px-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    {activeContent === 'chart' && `Chart: ${activeSymbol}`}
+                                    {activeContent === 'orders' && 'Order Entry'}
+                                    {activeContent === 'portfolio' && 'Positions'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                {activeContent === 'chart' && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 rounded-lg"
+                                        onClick={() => setIsChartExpanded(!isChartExpanded)}
+                                    >
+                                        {isChartExpanded ? (
+                                            <Minimize2 className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <Maximize2 className="h-3.5 w-3.5" />
+                                        )}
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 rounded-lg"
+                                    onClick={closeContentZone}
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Content Area */}
+                        {renderActiveContent()}
+                    </div>
+                </div>
+            )}
 
             {/* Conversation Zone - Middle (Scrollable) */}
-            <ScrollArea className="flex-1 p-4">
-                <div className="max-w-4xl mx-auto">
-                    <MessageList messages={messages as any} isStreaming={isLoading} />
+            <ScrollArea className="flex-1">
+                <div className="p-4">
+                    <div className="max-w-3xl mx-auto">
+                        <MessageList messages={messages as any} isStreaming={isLoading} />
+                    </div>
                 </div>
             </ScrollArea>
 
-            {/* Input Bar - Bottom (Fixed) */}
-            <InputBar onSend={handleSend} isLoading={isLoading} />
+            {/* Input Bar - Bottom (Sticky) */}
+            <div className="sticky bottom-0 z-10 p-3 bg-background/80 backdrop-blur-sm border-t border-border/30">
+                <div className="max-w-3xl mx-auto w-full">
+                    <ChatInput onSend={handleSend} disabled={isLoading} />
+                </div>
+            </div>
         </div>
     );
 }

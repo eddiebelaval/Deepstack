@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import { useState, ReactNode } from 'react'
 import { Toaster } from '@/components/ui/sonner'
+import { MarketDataProvider } from '@/components/providers/MarketDataProvider'
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
@@ -16,7 +17,9 @@ export default function Providers({ children }: { children: ReactNode }) {
         enableSystem={false}
         disableTransitionOnChange
       >
-        {children}
+        <MarketDataProvider autoConnect={true}>
+          {children}
+        </MarketDataProvider>
         <Toaster position="top-right" richColors closeButton />
       </ThemeProvider>
     </QueryClientProvider>
