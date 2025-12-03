@@ -222,68 +222,72 @@ export function ConversationView() {
 
     // Workspace view with active content and/or messages
     return (
-        <div className="flex flex-col h-full">
-            {/* Content Zone - Top (Chart/Orders/Portfolio) */}
-            {hasActiveContent && (
-                <div
-                    className={cn(
-                        "flex-shrink-0 p-3 transition-all duration-300",
-                        isChartExpanded ? "h-[70vh]" : "h-[35vh] min-h-[280px]"
-                    )}
-                >
-                    <div className="h-full flex flex-col">
-                        {/* Content Header with controls */}
-                        <div className="flex items-center justify-between mb-2 px-1">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-muted-foreground">
-                                    {activeContent === 'chart' && `Chart: ${activeSymbol}`}
-                                    {activeContent === 'orders' && 'Order Entry'}
-                                    {activeContent === 'portfolio' && 'Positions'}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {activeContent === 'chart' && (
+        <div className="flex flex-col h-full overflow-hidden">
+            {/* Main scrollable container - chat scrolls under the sticky chart */}
+            <div className="flex-1 overflow-y-auto">
+                {/* Content Zone - Sticky at top (Chart/Orders/Portfolio) */}
+                {hasActiveContent && (
+                    <div
+                        className={cn(
+                            "sticky top-0 z-20 p-3 bg-background/95 backdrop-blur-md transition-all duration-300 border-b border-border/30",
+                            isChartExpanded ? "h-[65vh]" : "h-[40vh] min-h-[300px]"
+                        )}
+                    >
+                        <div className="h-full flex flex-col">
+                            {/* Content Header with controls */}
+                            <div className="flex items-center justify-between mb-2 px-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                        {activeContent === 'chart' && `Chart: ${activeSymbol}`}
+                                        {activeContent === 'orders' && 'Order Entry'}
+                                        {activeContent === 'portfolio' && 'Positions'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    {activeContent === 'chart' && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 rounded-lg"
+                                            onClick={() => setIsChartExpanded(!isChartExpanded)}
+                                        >
+                                            {isChartExpanded ? (
+                                                <Minimize2 className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <Maximize2 className="h-3.5 w-3.5" />
+                                            )}
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         className="h-7 w-7 rounded-lg"
-                                        onClick={() => setIsChartExpanded(!isChartExpanded)}
+                                        onClick={closeContentZone}
                                     >
-                                        {isChartExpanded ? (
-                                            <Minimize2 className="h-3.5 w-3.5" />
-                                        ) : (
-                                            <Maximize2 className="h-3.5 w-3.5" />
-                                        )}
+                                        <X className="h-3.5 w-3.5" />
                                     </Button>
-                                )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 rounded-lg"
-                                    onClick={closeContentZone}
-                                >
-                                    <X className="h-3.5 w-3.5" />
-                                </Button>
+                                </div>
                             </div>
+
+                            {/* Content Area */}
+                            {renderActiveContent()}
                         </div>
-
-                        {/* Content Area */}
-                        {renderActiveContent()}
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Conversation Zone - Middle (Scrollable) */}
-            <ScrollArea className="flex-1">
-                <div className="p-4">
+                {/* Conversation Zone - Scrolls under the sticky chart */}
+                <div className={cn(
+                    "p-4 pb-24",
+                    hasActiveContent && "min-h-[60vh]"
+                )}>
                     <div className="max-w-3xl mx-auto">
                         <MessageList messages={messages as any} isStreaming={isLoading} />
                     </div>
                 </div>
-            </ScrollArea>
+            </div>
 
-            {/* Input Bar - Bottom (Sticky) */}
-            <div className="sticky bottom-0 z-10 p-3 bg-background/80 backdrop-blur-sm border-t border-border/30">
+            {/* Input Bar - Bottom (Fixed) */}
+            <div className="absolute bottom-0 left-0 right-0 z-30 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
                 <div className="max-w-3xl mx-auto w-full">
                     <ChatInput onSend={handleSend} disabled={isLoading} />
                 </div>
