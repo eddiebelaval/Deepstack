@@ -10,18 +10,34 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ib_insync import (
-    IB,
-    BarDataList,
-    Contract,
-    LimitOrder,
-    MarketOrder,
-    Stock,
-    StopOrder,
-    Ticker,
-)
-from ib_insync.contract import ContractDetails
-from ib_insync.order import OrderStatus
+try:
+    from ib_insync import (
+        IB,
+        BarDataList,
+        Contract,
+        LimitOrder,
+        MarketOrder,
+        Stock,
+        StopOrder,
+        Ticker,
+    )
+    from ib_insync.contract import ContractDetails
+    from ib_insync.order import OrderStatus
+
+    IB_INSYNC_AVAILABLE = True
+except ImportError:
+    # Mock classes for testing when ib_insync not installed
+    IB_INSYNC_AVAILABLE = False
+    IB = None
+    BarDataList = None
+    Contract = None
+    LimitOrder = None
+    MarketOrder = None
+    Stock = None
+    StopOrder = None
+    Ticker = None
+    ContractDetails = None
+    OrderStatus = None
 
 from ..config import Config
 
@@ -66,9 +82,8 @@ class IBKRClient:
         self.ib.disconnectedEvent += self._on_disconnected
         self.ib.errorEvent += self._on_error
 
-        logger.info(
-            f"IBKR Client initialized for {'paper' if self.readonly else 'live'} trading"
-        )
+        mode = "paper" if self.readonly else "live"
+        logger.info(f"IBKR Client initialized for {mode} trading")
 
     async def connect(self) -> bool:
         """
@@ -79,7 +94,8 @@ class IBKRClient:
         """
         try:
             logger.info(
-                f"Connecting to IBKR at {self.host}:{self.port} (client_id={self.client_id})"
+                f"Connecting to IBKR at {self.host}:{self.port} "
+                f"(client_id={self.client_id})"
             )
 
             # Connect to IBKR

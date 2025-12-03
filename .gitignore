@@ -13,6 +13,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!web/src/lib/
 lib64/
 parts/
 sdist/
@@ -113,3 +114,20 @@ temp/
 !.claude/agents/
 !.claude/hooks/
 coverage.json
+
+# Playwright MCP (screenshots/temp files)
+.playwright-mcp/
+
+# Dev server PID files
+*.pid
+
+# Next.js
+web/.next/
+web/out/
+
+# Vercel
+.vercel
+
+# Allow data directory but ignore sensitive content
+!data/
+data/paper_trading.db

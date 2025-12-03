@@ -107,7 +107,8 @@ class OrderManager:
             symbol, quantity, action, limit_price
         ):
             logger.warning(
-                f"Limit order validation failed: {action} {quantity} {symbol} @ ${limit_price}"
+                f"Limit order validation failed: "
+                f"{action} {quantity} {symbol} @ ${limit_price}"
             )
             return None
 
@@ -150,7 +151,8 @@ class OrderManager:
             symbol, quantity, action, stop_price
         ):
             logger.warning(
-                f"Stop order validation failed: {action} {quantity} {symbol} stop @ ${stop_price}"
+                f"Stop order validation failed: "
+                f"{action} {quantity} {symbol} stop @ ${stop_price}"
             )
             return None
 
@@ -332,7 +334,8 @@ class OrderManager:
                     position_pct = position_value / portfolio_value
                     if position_pct > max_position_pct:
                         logger.warning(
-                            f"Position size {position_pct:.1%} exceeds limit {max_position_pct:.1%}"
+                            f"Position size {position_pct:.1%} exceeds "
+                            f"limit {max_position_pct:.1%}"
                         )
                         return False
 
@@ -347,7 +350,8 @@ class OrderManager:
                     max_concentration = self.config.max_concentration or 0.25
                     if concentration_pct > max_concentration:
                         logger.warning(
-                            f"Concentration {concentration_pct:.1%} exceeds limit {max_concentration:.1%}"
+                            f"Concentration {concentration_pct:.1%} exceeds "
+                            f"limit {max_concentration:.1%}"
                         )
                         return False
 
@@ -495,7 +499,7 @@ class OrderManager:
 
     # Utility Methods
 
-    def calculate_position_size(
+    async def calculate_position_size(
         self, symbol: str, entry_price: float, stop_price: float, risk_pct: float = 0.02
     ) -> int:
         """
@@ -510,16 +514,39 @@ class OrderManager:
         Returns:
             Number of shares to trade
         """
-        risk_amount = self._get_portfolio_value() * risk_pct
+        portfolio_value = await self._get_portfolio_value()
+
+        if portfolio_value <= 0:
+            logger.error(
+                "Cannot calculate position size: portfolio value is 0 or negative"
+            )
+            return 0
+
+        if entry_price <= 0 or stop_price <= 0:
+            logger.error(f"Invalid prices: entry={entry_price}, stop={stop_price}")
+            return 0
+
+        risk_amount = portfolio_value * risk_pct
         risk_per_share = abs(entry_price - stop_price)
 
         if risk_per_share == 0:
+            logger.warning(
+                f"Risk per share is 0 for {symbol}: "
+                f"entry={entry_price}, stop={stop_price}"
+            )
             return 0
 
         shares = int(risk_amount / risk_per_share)
 
         # Apply maximum position limits
-        max_position_value = self._get_portfolio_value() * self.config.max_position_size
+        max_position_value = portfolio_value * self.config.max_position_size
         max_shares_by_value = int(max_position_value / entry_price)
 
-        return min(shares, max_shares_by_value)
+        calculated_shares = min(shares, max_shares_by_value)
+
+        logger.debug(
+            f"Position size for {symbol}: {calculated_shares} shares "
+            f"(risk_amount=${risk_amount:.2f}, risk_per_share=${risk_per_share:.2f})"
+        )
+
+        return calculated_shares

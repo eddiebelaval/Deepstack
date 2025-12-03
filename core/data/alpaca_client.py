@@ -12,10 +12,11 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.live import StockDataStream
+from alpaca.data.models import Bar, Quote, Trade
 from alpaca.data.requests import StockBarsRequest, StockLatestQuoteRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.trading.client import TradingClient
@@ -98,9 +99,27 @@ class AlpacaClient:
         self.quote_cache: Dict[str, tuple] = {}  # (data, timestamp)
         self.cache_ttl = 60  # 1 minute for quotes
 
-        # Connection status
+        # WebSocket streaming
         self.is_connected = False
         self.data_stream: Optional[StockDataStream] = None
+        self._stream_task: Optional[asyncio.Task] = None
+        self._heartbeat_task: Optional[asyncio.Task] = None
+        self._subscribed_symbols: set = set()
+
+        # Callbacks for real-time data
+        self._quote_callbacks: Dict[str, List[Callable]] = {}
+        self._trade_callbacks: Dict[str, List[Callable]] = {}
+        self._bar_callbacks: Dict[str, List[Callable]] = {}
+
+        # Reconnection settings
+        self._reconnect_attempts = 0
+        self._max_reconnect_attempts = 5
+        self._reconnect_delay = 1.0
+        self._reconnect_max_delay = 60.0
+
+        # Thread safety
+        self._cache_lock = asyncio.Lock()
+        self._connection_lock = asyncio.Lock()
 
         logger.info(f"AlpacaClient initialized with base_url: {base_url}")
 
@@ -127,8 +146,9 @@ class AlpacaClient:
             wait_time = (
                 self.request_timestamps[0] + self.rate_limit_window - current_time
             )
+            count = len(self.request_timestamps)
             logger.warning(
-                f"Rate limit approaching: {len(self.request_timestamps)}/{self.rate_limit_requests} "
+                f"Rate limit approaching: {count}/{self.rate_limit_requests} "
                 f"in last {self.rate_limit_window}s. Waiting {wait_time:.2f}s"
             )
             await asyncio.sleep(wait_time + 0.1)
@@ -180,9 +200,8 @@ class AlpacaClient:
             # Cache the result
             self.quote_cache[symbol] = (result, datetime.now())
 
-            logger.debug(
-                f"Retrieved quote for {symbol}: bid={result['bid']}, ask={result['ask']}"
-            )
+            bid, ask = result["bid"], result["ask"]
+            logger.debug(f"Retrieved quote for {symbol}: bid={bid}, ask={ask}")
             return result
 
         except Exception as e:
@@ -330,9 +349,200 @@ class AlpacaClient:
             logger.error(f"Error getting account: {e}")
             return None
 
+    async def _handle_quote(self, quote: Quote) -> None:
+        """
+        Handle incoming quote data from WebSocket.
+
+        Args:
+            quote: Quote object from Alpaca
+        """
+        try:
+            symbol = quote.symbol
+
+            # Update cache with thread safety
+            async with self._cache_lock:
+                quote_data = {
+                    "symbol": symbol,
+                    "bid": quote.bid_price,
+                    "ask": quote.ask_price,
+                    "last": quote.ask_price,
+                    "bid_volume": quote.bid_size,
+                    "ask_volume": quote.ask_size,
+                    "timestamp": datetime.now().isoformat(),
+                }
+                self.quote_cache[symbol] = (quote_data, datetime.now())
+
+            # Trigger callbacks
+            if symbol in self._quote_callbacks:
+                for callback in self._quote_callbacks[symbol]:
+                    try:
+                        if asyncio.iscoroutinefunction(callback):
+                            await callback(quote_data)
+                        else:
+                            callback(quote_data)
+                    except Exception as e:
+                        logger.error(f"Error in quote callback for {symbol}: {e}")
+
+            logger.debug(
+                f"Quote update: {symbol} bid={quote.bid_price} ask={quote.ask_price}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error handling quote: {e}")
+
+    async def _handle_trade(self, trade: Trade) -> None:
+        """
+        Handle incoming trade data from WebSocket.
+
+        Args:
+            trade: Trade object from Alpaca
+        """
+        try:
+            symbol = trade.symbol
+
+            trade_data = {
+                "symbol": symbol,
+                "price": trade.price,
+                "size": trade.size,
+                "timestamp": trade.timestamp.isoformat() if trade.timestamp else None,
+                "conditions": (
+                    trade.conditions if hasattr(trade, "conditions") else None
+                ),
+            }
+
+            # Trigger callbacks
+            if symbol in self._trade_callbacks:
+                for callback in self._trade_callbacks[symbol]:
+                    try:
+                        if asyncio.iscoroutinefunction(callback):
+                            await callback(trade_data)
+                        else:
+                            callback(trade_data)
+                    except Exception as e:
+                        logger.error(f"Error in trade callback for {symbol}: {e}")
+
+            logger.debug(
+                f"Trade update: {symbol} price={trade.price} size={trade.size}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error handling trade: {e}")
+
+    async def _handle_bar(self, bar: Bar) -> None:
+        """
+        Handle incoming bar data from WebSocket.
+
+        Args:
+            bar: Bar object from Alpaca
+        """
+        try:
+            symbol = bar.symbol
+
+            bar_data = {
+                "symbol": symbol,
+                "timestamp": bar.timestamp.isoformat() if bar.timestamp else None,
+                "open": bar.open,
+                "high": bar.high,
+                "low": bar.low,
+                "close": bar.close,
+                "volume": bar.volume,
+                "trade_count": bar.trade_count if hasattr(bar, "trade_count") else None,
+                "vwap": bar.vwap if hasattr(bar, "vwap") else None,
+            }
+
+            # Trigger callbacks
+            if symbol in self._bar_callbacks:
+                for callback in self._bar_callbacks[symbol]:
+                    try:
+                        if asyncio.iscoroutinefunction(callback):
+                            await callback(bar_data)
+                        else:
+                            callback(bar_data)
+                    except Exception as e:
+                        logger.error(f"Error in bar callback for {symbol}: {e}")
+
+            logger.debug(f"Bar update: {symbol} close={bar.close} volume={bar.volume}")
+
+        except Exception as e:
+            logger.error(f"Error handling bar: {e}")
+
+    async def _heartbeat_monitor(self) -> None:
+        """
+        Monitor connection health and handle reconnections.
+        """
+        while self.is_connected:
+            try:
+                await asyncio.sleep(30)  # Check every 30 seconds
+
+                # Check if stream is still alive
+                if self.data_stream and not self.is_connected:
+                    logger.warning("Connection lost, attempting reconnect...")
+                    await self._reconnect()
+
+            except asyncio.CancelledError:
+                logger.info("Heartbeat monitor cancelled")
+                break
+            except Exception as e:
+                logger.error(f"Error in heartbeat monitor: {e}")
+                await asyncio.sleep(5)
+
+    async def _reconnect(self) -> bool:
+        """
+        Attempt to reconnect with exponential backoff.
+
+        Returns:
+            True if reconnection successful
+        """
+        async with self._connection_lock:
+            if self._reconnect_attempts >= self._max_reconnect_attempts:
+                max_attempts = self._max_reconnect_attempts
+                logger.error(f"Max reconnection attempts ({max_attempts}) reached")
+                return False
+
+            self._reconnect_attempts += 1
+            delay = min(
+                self._reconnect_delay * (2 ** (self._reconnect_attempts - 1)),
+                self._reconnect_max_delay,
+            )
+
+            attempts = self._reconnect_attempts
+            max_attempts = self._max_reconnect_attempts
+            logger.info(
+                f"Reconnection attempt {attempts}/{max_attempts} "
+                f"after {delay:.1f}s delay"
+            )
+
+            await asyncio.sleep(delay)
+
+            try:
+                # Store symbols to resubscribe
+                symbols_to_resubscribe = list(self._subscribed_symbols)
+
+                # Disconnect cleanly
+                if self.data_stream:
+                    try:
+                        await self.data_stream.close()
+                    except Exception:  # nosec B110 - intentional ignore on cleanup
+                        pass  # Ignore close errors during reconnection
+
+                # Reconnect
+                success = await self.connect_stream(symbols_to_resubscribe)
+
+                if success:
+                    logger.info("Reconnection successful")
+                    self._reconnect_attempts = 0
+                    return True
+                else:
+                    logger.warning("Reconnection failed")
+                    return False
+
+            except Exception as e:
+                logger.error(f"Error during reconnection: {e}")
+                return False
+
     async def connect_stream(self, symbols: List[str]) -> bool:
         """
-        Connect to real-time quote stream.
+        Connect to real-time quote stream and subscribe to symbols.
 
         Args:
             symbols: List of symbols to stream
@@ -341,22 +551,44 @@ class AlpacaClient:
             True if connection successful
         """
         try:
-            if self.is_connected:
-                logger.warning("Already connected to stream")
-                return False
+            async with self._connection_lock:
+                if self.is_connected:
+                    logger.warning("Already connected to stream")
+                    return False
 
-            # Initialize data stream (note: real implementation would need to handle
-            # the async websocket connection properly)
-            self.data_stream = StockDataStream(
-                api_key=self.api_key, secret_key=self.secret_key
-            )
+                # Initialize data stream
+                self.data_stream = StockDataStream(
+                    api_key=self.api_key, secret_key=self.secret_key
+                )
 
-            logger.info(f"Connected to Alpaca stream for {len(symbols)} symbols")
-            self.is_connected = True
-            return True
+                # Subscribe to quotes for all symbols
+                self.data_stream.subscribe_quotes(self._handle_quote, *symbols)
+
+                # Subscribe to trades for all symbols
+                self.data_stream.subscribe_trades(self._handle_trade, *symbols)
+
+                # Subscribe to bars (minute bars) for all symbols
+                self.data_stream.subscribe_bars(self._handle_bar, *symbols)
+
+                # Store subscribed symbols
+                self._subscribed_symbols.update(symbols)
+
+                # Start the stream in a background task
+                self._stream_task = asyncio.create_task(self.data_stream.run())
+
+                # Start heartbeat monitor
+                self._heartbeat_task = asyncio.create_task(self._heartbeat_monitor())
+
+                self.is_connected = True
+                logger.info(
+                    f"Connected to Alpaca stream and subscribed to "
+                    f"{len(symbols)} symbols: {symbols}"
+                )
+                return True
 
         except Exception as e:
             logger.error(f"Error connecting to stream: {e}")
+            self.is_connected = False
             return False
 
     async def disconnect_stream(self) -> bool:
@@ -367,20 +599,152 @@ class AlpacaClient:
             True if disconnection successful
         """
         try:
-            if not self.is_connected:
-                logger.warning("Stream not connected")
-                return False
+            async with self._connection_lock:
+                if not self.is_connected:
+                    logger.warning("Stream not connected")
+                    return False
 
-            if self.data_stream:
-                await self.data_stream.close()
+                # Cancel heartbeat monitor
+                if self._heartbeat_task and not self._heartbeat_task.done():
+                    self._heartbeat_task.cancel()
+                    try:
+                        await self._heartbeat_task
+                    except asyncio.CancelledError:
+                        pass
 
-            self.is_connected = False
-            logger.info("Disconnected from Alpaca stream")
-            return True
+                # Close stream
+                if self.data_stream:
+                    try:
+                        await self.data_stream.close()
+                    except Exception as e:
+                        logger.warning(f"Error closing stream: {e}")
+
+                # Cancel stream task
+                if self._stream_task and not self._stream_task.done():
+                    self._stream_task.cancel()
+                    try:
+                        await self._stream_task
+                    except asyncio.CancelledError:
+                        pass
+
+                # Reset state
+                self.is_connected = False
+                self.data_stream = None
+                self._stream_task = None
+                self._heartbeat_task = None
+                self._reconnect_attempts = 0
+
+                logger.info("Disconnected from Alpaca stream")
+                return True
 
         except Exception as e:
             logger.error(f"Error disconnecting stream: {e}")
             return False
+
+    def subscribe_to_symbol(self, symbol: str) -> bool:
+        """
+        Subscribe to additional symbol on existing stream.
+
+        Args:
+            symbol: Symbol to subscribe to
+
+        Returns:
+            True if subscription successful
+        """
+        try:
+            if not self.is_connected or not self.data_stream:
+                logger.warning("Stream not connected, cannot subscribe")
+                return False
+
+            self.data_stream.subscribe_quotes(self._handle_quote, symbol)
+            self.data_stream.subscribe_trades(self._handle_trade, symbol)
+            self.data_stream.subscribe_bars(self._handle_bar, symbol)
+
+            self._subscribed_symbols.add(symbol)
+            logger.info(f"Subscribed to {symbol}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error subscribing to {symbol}: {e}")
+            return False
+
+    def unsubscribe_from_symbol(self, symbol: str) -> bool:
+        """
+        Unsubscribe from symbol on existing stream.
+
+        Args:
+            symbol: Symbol to unsubscribe from
+
+        Returns:
+            True if unsubscription successful
+        """
+        try:
+            if not self.is_connected or not self.data_stream:
+                logger.warning("Stream not connected, cannot unsubscribe")
+                return False
+
+            self.data_stream.unsubscribe_quotes(symbol)
+            self.data_stream.unsubscribe_trades(symbol)
+            self.data_stream.unsubscribe_bars(symbol)
+
+            self._subscribed_symbols.discard(symbol)
+            logger.info(f"Unsubscribed from {symbol}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error unsubscribing from {symbol}: {e}")
+            return False
+
+    def on_quote(self, symbol: str, callback: Callable[[Dict], Any]) -> None:
+        """
+        Register callback for quote updates.
+
+        Args:
+            symbol: Symbol to watch
+            callback: Function to call with quote data
+        """
+        if symbol not in self._quote_callbacks:
+            self._quote_callbacks[symbol] = []
+        self._quote_callbacks[symbol].append(callback)
+        logger.info(f"Registered quote callback for {symbol}")
+
+    def on_trade(self, symbol: str, callback: Callable[[Dict], Any]) -> None:
+        """
+        Register callback for trade updates.
+
+        Args:
+            symbol: Symbol to watch
+            callback: Function to call with trade data
+        """
+        if symbol not in self._trade_callbacks:
+            self._trade_callbacks[symbol] = []
+        self._trade_callbacks[symbol].append(callback)
+        logger.info(f"Registered trade callback for {symbol}")
+
+    def on_bar(self, symbol: str, callback: Callable[[Dict], Any]) -> None:
+        """
+        Register callback for bar updates.
+
+        Args:
+            symbol: Symbol to watch
+            callback: Function to call with bar data
+        """
+        if symbol not in self._bar_callbacks:
+            self._bar_callbacks[symbol] = []
+        self._bar_callbacks[symbol].append(callback)
+        logger.info(f"Registered bar callback for {symbol}")
+
+    def remove_callbacks(self, symbol: str) -> None:
+        """
+        Remove all callbacks for a symbol.
+
+        Args:
+            symbol: Symbol to remove callbacks for
+        """
+        self._quote_callbacks.pop(symbol, None)
+        self._trade_callbacks.pop(symbol, None)
+        self._bar_callbacks.pop(symbol, None)
+        logger.info(f"Removed all callbacks for {symbol}")
 
     def clear_cache(self) -> None:
         """Clear quote cache."""
