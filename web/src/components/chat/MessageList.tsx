@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 type Message = any; // import { Message } from '@ai-sdk/react';
 import { MessageBubble } from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, BarChart3, Briefcase, LineChart, Newspaper } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 type MessageListProps = {
   messages: Message[];
@@ -21,53 +21,19 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-center p-6">
-        <div className="max-w-md space-y-3">
-          <span className="text-3xl font-mono font-bold text-primary tracking-tight">
-            DEEPSTACK
-          </span>
-          <p className="text-sm text-muted-foreground">
-            What would you like to analyze?
-          </p>
-          <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
-            <div className="p-2.5 bg-muted rounded-lg flex items-center gap-2 hover:bg-secondary/50 transition-colors cursor-pointer group">
-              <div className="p-1.5 rounded-md bg-primary/5 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                <BarChart3 className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <div className="font-medium text-xs">Analyze</div>
-                <div className="text-xs text-muted-foreground">&quot;Analyze AAPL&quot;</div>
-              </div>
-            </div>
-            <div className="p-2.5 bg-muted rounded-lg flex items-center gap-2 hover:bg-secondary/50 transition-colors cursor-pointer group">
-              <div className="p-1.5 rounded-md bg-primary/5 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                <Briefcase className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <div className="font-medium text-xs">Portfolio</div>
-                <div className="text-xs text-muted-foreground">&quot;Show positions&quot;</div>
-              </div>
-            </div>
-            <div className="p-2.5 bg-muted rounded-lg flex items-center gap-2 hover:bg-secondary/50 transition-colors cursor-pointer group">
-              <div className="p-1.5 rounded-md bg-primary/5 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                <LineChart className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <div className="font-medium text-xs">Charts</div>
-                <div className="text-xs text-muted-foreground">&quot;Chart NVDA&quot;</div>
-              </div>
-            </div>
-            <div className="p-2.5 bg-muted rounded-lg flex items-center gap-2 hover:bg-secondary/50 transition-colors cursor-pointer group">
-              <div className="p-1.5 rounded-md bg-primary/5 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                <Newspaper className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <div className="font-medium text-xs">News</div>
-                <div className="text-xs text-muted-foreground">&quot;Latest news&quot;</div>
-              </div>
-            </div>
+      <div className="flex-1 flex flex-col p-6">
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <div className="max-w-md space-y-3">
+            <span className="text-3xl font-mono font-bold text-primary tracking-tight">
+              DEEPSTACK
+            </span>
+            <p className="text-sm text-muted-foreground">
+              What would you like to analyze?
+            </p>
           </div>
         </div>
+
+
       </div>
     );
   }

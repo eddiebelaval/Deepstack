@@ -1,15 +1,51 @@
 import { streamText } from 'ai';
 import { getProviderModel, providerConfig } from '@/lib/llm/providers';
 import { TRADING_SYSTEM_PROMPT } from '@/lib/llm/system-prompt';
-// import { tradingTools } from '@/lib/llm/tools';
+import { tradingTools } from '@/lib/llm/tools';
 import type { LLMProvider } from '@/lib/stores/chat-store';
 
 export const runtime = 'edge';
 export const maxDuration = 60;
 
+// Context interface for runtime information
+interface TradingContext {
+  activeSymbol?: string;
+  activePanel?: string;
+  positions?: Array<{ symbol: string; qty: number; unrealizedPL: number }>;
+  watchlist?: string[];
+}
+
+function buildContextMessage(context?: TradingContext): string {
+  if (!context) return '';
+
+  const parts: string[] = [];
+
+  if (context.activeSymbol) {
+    parts.push(`Current active symbol: ${context.activeSymbol}`);
+  }
+
+  if (context.activePanel) {
+    parts.push(`Currently viewing: ${context.activePanel} panel`);
+  }
+
+  if (context.positions && context.positions.length > 0) {
+    const positionSummary = context.positions
+      .slice(0, 5)
+      .map(p => `${p.symbol}: ${p.qty} shares (${p.unrealizedPL >= 0 ? '+' : ''}$${p.unrealizedPL.toFixed(2)})`)
+      .join(', ');
+    parts.push(`Open positions: ${positionSummary}${context.positions.length > 5 ? ` (+${context.positions.length - 5} more)` : ''}`);
+  }
+
+  if (context.watchlist && context.watchlist.length > 0) {
+    parts.push(`Watchlist: ${context.watchlist.slice(0, 10).join(', ')}`);
+  }
+
+  return parts.length > 0 ? `\n\n## Current Context\n${parts.join('\n')}` : '';
+}
+
 export async function POST(req: Request) {
   try {
-    const { messages, provider = 'claude' } = await req.json();
+    const { messages, provider = 'claude', context, useExtendedThinking = false } = await req.json();
 
     // Validate provider
     if (!providerConfig[provider as LLMProvider]) {
@@ -19,13 +55,28 @@ export async function POST(req: Request) {
     // Get the model for the selected provider
     const model = getProviderModel(provider as LLMProvider);
 
-    // Stream the response (tools temporarily disabled for basic chat)
-    const result = await streamText({
+    // Build system prompt with runtime context
+    const contextMessage = buildContextMessage(context as TradingContext);
+    const systemPrompt = TRADING_SYSTEM_PROMPT + contextMessage;
+
+    // Prepare streamText options
+    const streamOptions: any = {
       model,
-      system: TRADING_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages,
-      // tools: tradingTools, // TODO: Fix tool schemas for AI SDK 5.0
-    });
+      tools: tradingTools,
+    };
+
+    // Add extended thinking for supported Claude models
+    if (useExtendedThinking && (provider === 'claude' || provider === 'claude_opus' || provider === 'claude_haiku')) {
+      streamOptions.experimental_thinking = {
+        type: 'enabled',
+        budget_tokens: 10000,
+      };
+    }
+
+    // Stream the response with tools enabled
+    const result = await streamText(streamOptions);
 
     return result.toTextStreamResponse();
   } catch (error: any) {

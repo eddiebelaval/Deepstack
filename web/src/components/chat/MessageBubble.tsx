@@ -4,12 +4,13 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ToolUseCard } from './ToolUseCard';
 import { CodeBlock } from './CodeBlock';
+import { ThinkingBlock } from './ThinkingBlock';
 import { cn } from '@/lib/utils';
 
 type Message = any; // import { Message } from '@ai-sdk/react';
 
 type MessageBubbleProps = {
-  message: Message;
+  message: Message & { thinking?: string };
 };
 
 // Strip XML tool tags from message content (e.g., <get_quote>, <search_news>, etc.)
@@ -48,6 +49,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className="flex justify-start mb-10 w-full">
       <div className="w-full max-w-4xl">
+        {/* Thinking Block - if present */}
+        {message.thinking && (
+          <ThinkingBlock content={message.thinking} defaultExpanded={false} />
+        )}
+
         <div className="text-foreground/90 text-[15px] leading-relaxed">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -99,7 +105,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               },
               table({ children }) {
                 return (
-                  <div className="my-6 w-full overflow-y-auto rounded-lg border border-border/50 shadow-sm">
+                  <div className="my-6 w-full overflow-y-auto scrollbar-hide rounded-lg border border-border/50 shadow-sm">
                     <table className="w-full text-sm">
                       {children}
                     </table>

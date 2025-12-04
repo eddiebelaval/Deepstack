@@ -43,6 +43,7 @@ type ChatState = {
   // Streaming state
   isStreaming: boolean;
   activeProvider: LLMProvider;
+  useExtendedThinking: boolean;
 
   // Order confirmation
   pendingOrderTicket: OrderTicket | null;
@@ -59,6 +60,7 @@ type ChatState = {
 
   setIsStreaming: (streaming: boolean) => void;
   setActiveProvider: (provider: LLMProvider) => void;
+  setUseExtendedThinking: (useExtendedThinking: boolean) => void;
 
   setPendingOrderTicket: (ticket: OrderTicket | null) => void;
 
@@ -72,6 +74,7 @@ const initialState = {
   messages: [],
   isStreaming: false,
   activeProvider: 'claude' as LLMProvider,
+  useExtendedThinking: false,
   pendingOrderTicket: null,
 };
 
@@ -110,6 +113,8 @@ export const useChatStore = create<ChatState>((set) => ({
   setIsStreaming: (isStreaming) => set({ isStreaming }),
 
   setActiveProvider: (activeProvider) => set({ activeProvider }),
+
+  setUseExtendedThinking: (useExtendedThinking) => set({ useExtendedThinking }),
 
   setPendingOrderTicket: (pendingOrderTicket) => set({ pendingOrderTicket }),
 

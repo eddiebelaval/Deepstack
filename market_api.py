@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -22,8 +22,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Alpaca imports
-from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest, StockLatestQuoteRequest
+from alpaca.data.historical import CryptoHistoricalDataClient, StockHistoricalDataClient
+from alpaca.data.requests import (
+    CryptoBarsRequest,
+    CryptoLatestQuoteRequest,
+    StockBarsRequest,
+    StockLatestQuoteRequest,
+)
 from alpaca.data.timeframe import TimeFrame
 
 # Initialize FastAPI
@@ -43,17 +48,19 @@ from core.api.router import router as command_router
 
 app.include_router(command_router)
 
-# Initialize Alpaca client
+# Initialize Alpaca clients
 api_key = os.getenv("ALPACA_API_KEY")
 secret_key = os.getenv("ALPACA_SECRET_KEY")
 
 if not api_key or not secret_key:
     logger.warning("Alpaca API keys not found - using demo mode")
-    data_client = None
+    stock_client = None
+    crypto_client = None
 else:
-    logger.info("Initializing Alpaca data client...")
-    data_client = StockHistoricalDataClient(api_key=api_key, secret_key=secret_key)
-    logger.info("Alpaca client initialized successfully")
+    logger.info("Initializing Alpaca data clients...")
+    stock_client = StockHistoricalDataClient(api_key=api_key, secret_key=secret_key)
+    crypto_client = CryptoHistoricalDataClient(api_key=api_key, secret_key=secret_key)
+    logger.info("Alpaca clients initialized successfully")
 
 
 # Response models
@@ -63,7 +70,7 @@ class BarData(BaseModel):
     h: float
     l: float
     c: float
-    v: int
+    v: float  # Changed to float for crypto
 
 
 class QuoteData(BaseModel):
@@ -75,7 +82,7 @@ class QuoteData(BaseModel):
     high: Optional[float] = None
     low: Optional[float] = None
     close: Optional[float] = None
-    volume: Optional[int] = None
+    volume: Optional[float] = None  # Changed to float for crypto
     change: Optional[float] = None
     changePercent: Optional[float] = None
     timestamp: str
@@ -99,22 +106,24 @@ async def health():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "alpaca_connected": data_client is not None,
+        "alpaca_connected": stock_client is not None,
     }
 
 
 @app.get("/api/market/bars")
 async def get_bars(
-    symbol: str = Query(..., description="Stock symbol"),
+    symbol: str = Query(..., description="Stock or Crypto symbol"),
     timeframe: str = Query(
         "1d", description="Timeframe (1min, 5min, 15min, 30min, 1h, 1d, 1w, 1mo)"
     ),
     limit: int = Query(100, description="Number of bars to return"),
 ):
     """Get historical OHLCV bars for a symbol."""
-    if not data_client:
+    is_crypto = "/" in symbol
+
+    if not stock_client:  # Check if clients are initialized (both or neither)
         # Return demo data if no client
-        return {"bars": generate_demo_bars(symbol, limit)}
+        return {"bars": generate_demo_bars(symbol, limit, is_crypto)}
 
     try:
         tf = TIMEFRAME_MAP.get(timeframe, TimeFrame.Day)
@@ -133,21 +142,27 @@ async def get_bars(
             f"Fetching bars for {symbol}, tf={timeframe}, start={start}, lim={limit}"
         )
 
-        request = StockBarsRequest(
-            symbol_or_symbols=[symbol.upper()],
-            timeframe=tf,
-            start=start,
-        )
+        bars_list = []
+        symbol_upper = symbol.upper()
 
-        bars_data = data_client.get_stock_bars(request)
+        if is_crypto:
+            request = CryptoBarsRequest(
+                symbol_or_symbols=[symbol_upper],
+                timeframe=tf,
+                start=start,
+            )
+            bars_data = crypto_client.get_crypto_bars(request)
+        else:
+            request = StockBarsRequest(
+                symbol_or_symbols=[symbol_upper],
+                timeframe=tf,
+                start=start,
+            )
+            bars_data = stock_client.get_stock_bars(request)
 
         logger.info(f"Bars data type: {type(bars_data)}")
 
-        # BarSet is accessed like bars_data["SPY"] or bars_data.data["SPY"]
-        symbol_upper = symbol.upper()
-
-        # Try different access patterns
-        bars_list = None
+        # Helper to extract bars from response
         if hasattr(bars_data, "data") and symbol_upper in bars_data.data:
             bars_list = bars_data.data[symbol_upper]
         elif hasattr(bars_data, "__getitem__"):
@@ -171,7 +186,7 @@ async def get_bars(
                     "h": float(bar.high),
                     "l": float(bar.low),
                     "c": float(bar.close),
-                    "v": int(bar.volume),
+                    "v": float(bar.volume),
                 }
             )
 
@@ -179,7 +194,9 @@ async def get_bars(
 
     except Exception as e:
         logger.error(f"Error fetching bars for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Fallback to demo data on error
+        logger.warning(f"Falling back to demo data for {symbol}")
+        return {"bars": generate_demo_bars(symbol, limit, is_crypto)}
 
 
 @app.get("/api/market/quotes")
@@ -189,52 +206,86 @@ async def get_quotes(
     """Get latest quotes for multiple symbols."""
     symbol_list = [s.strip().upper() for s in symbols.split(",")]
 
-    if not data_client:
+    if not stock_client:
         # Return demo data if no client
-        return {"quotes": {s: generate_demo_quote(s) for s in symbol_list}}
+        return {"quotes": {s: generate_demo_quote(s, "/" in s) for s in symbol_list}}
 
     try:
-        request = StockLatestQuoteRequest(symbol_or_symbols=symbol_list)
-        quotes = data_client.get_stock_latest_quote(request)
-
         result = {}
-        for symbol in symbol_list:
-            if symbol in quotes:
-                q = quotes[symbol]
-                result[symbol] = {
-                    "bid": float(q.bid_price) if q.bid_price else None,
-                    "ask": float(q.ask_price) if q.ask_price else None,
-                    "last": (
-                        float(q.ask_price) if q.ask_price else None
-                    ),  # Use ask as last
-                    "timestamp": (
-                        q.timestamp.isoformat()
-                        if q.timestamp
-                        else datetime.now().isoformat()
-                    ),
-                }
-            else:
-                result[symbol] = generate_demo_quote(symbol)
+        stock_symbols = [s for s in symbol_list if "/" not in s]
+        crypto_symbols = [s for s in symbol_list if "/" in s]
+
+        # Fetch Stock Quotes
+        if stock_symbols:
+            request = StockLatestQuoteRequest(symbol_or_symbols=stock_symbols)
+            quotes = stock_client.get_stock_latest_quote(request)
+            for symbol in stock_symbols:
+                if symbol in quotes:
+                    q = quotes[symbol]
+                    result[symbol] = {
+                        "bid": float(q.bid_price) if q.bid_price else None,
+                        "ask": float(q.ask_price) if q.ask_price else None,
+                        "last": (
+                            float(q.ask_price) if q.ask_price else None
+                        ),  # Use ask as last
+                        "timestamp": (
+                            q.timestamp.isoformat()
+                            if q.timestamp
+                            else datetime.now().isoformat()
+                        ),
+                    }
+                else:
+                    result[symbol] = generate_demo_quote(symbol, False)
+
+        # Fetch Crypto Quotes
+        if crypto_symbols:
+            request = CryptoLatestQuoteRequest(symbol_or_symbols=crypto_symbols)
+            quotes = crypto_client.get_crypto_latest_quote(request)
+            for symbol in crypto_symbols:
+                if symbol in quotes:
+                    q = quotes[symbol]
+                    result[symbol] = {
+                        "bid": float(q.bid_price) if q.bid_price else None,
+                        "ask": float(q.ask_price) if q.ask_price else None,
+                        "last": (
+                            float(q.ask_price) if q.ask_price else None
+                        ),  # Use ask as last
+                        "timestamp": (
+                            q.timestamp.isoformat()
+                            if q.timestamp
+                            else datetime.now().isoformat()
+                        ),
+                    }
+                else:
+                    result[symbol] = generate_demo_quote(symbol, True)
 
         return {"quotes": result}
 
     except Exception as e:
         logger.error(f"Error fetching quotes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Fallback to demo data on error
+        logger.warning("Falling back to demo data for quotes")
+        return {"quotes": {s: generate_demo_quote(s, "/" in s) for s in symbol_list}}
 
 
-def generate_demo_bars(symbol: str, count: int = 100) -> List[dict]:
+def generate_demo_bars(
+    symbol: str, count: int = 100, is_crypto: bool = False
+) -> List[dict]:
     """Generate demo bar data for testing."""
     import random  # nosec B311 - demo data only, not security-critical
 
     bars = []
     base_price = 100.0 + hash(symbol) % 400
+    if is_crypto:
+        base_price = 30000.0 + hash(symbol) % 20000  # Higher base for crypto like BTC
 
     for i in range(count):
         timestamp = datetime.now() - timedelta(days=count - i)
-        open_price = base_price + random.uniform(-2, 2)  # nosec B311
-        high_price = open_price + random.uniform(0, 3)  # nosec B311
-        low_price = open_price - random.uniform(0, 3)  # nosec B311
+        volatility = base_price * 0.05 if is_crypto else 2.0
+
+        open_price = base_price + random.uniform(-volatility, volatility)  # nosec B311
+        high_price = open_price + random.uniform(0, volatility)  # nosec B311
+        low_price = open_price - random.uniform(0, volatility)  # nosec B311
         close_price = random.uniform(low_price, high_price)  # nosec B311
 
         bars.append(
@@ -244,7 +295,11 @@ def generate_demo_bars(symbol: str, count: int = 100) -> List[dict]:
                 "h": round(high_price, 2),
                 "l": round(low_price, 2),
                 "c": round(close_price, 2),
-                "v": random.randint(100000, 10000000),  # nosec B311
+                "v": (
+                    random.uniform(0.1, 100.0)
+                    if is_crypto
+                    else random.randint(100000, 10000000)
+                ),  # nosec B311
             }
         )
 
@@ -253,20 +308,28 @@ def generate_demo_bars(symbol: str, count: int = 100) -> List[dict]:
     return bars
 
 
-def generate_demo_quote(symbol: str) -> dict:
+def generate_demo_quote(symbol: str, is_crypto: bool = False) -> dict:
     """Generate demo quote data for testing."""
     import random  # nosec B311 - demo data only, not security-critical
 
     base_price = 100.0 + hash(symbol) % 400
-    price = base_price + random.uniform(-5, 5)  # nosec B311
+    if is_crypto:
+        base_price = 30000.0 + hash(symbol) % 20000
+
+    volatility = base_price * 0.02 if is_crypto else 5.0
+    price = base_price + random.uniform(-volatility, volatility)  # nosec B311
 
     return {
-        "bid": round(price - 0.01, 2),
-        "ask": round(price + 0.01, 2),
+        "bid": round(price * 0.999, 2),
+        "ask": round(price * 1.001, 2),
         "last": round(price, 2),
-        "change": round(random.uniform(-5, 5), 2),  # nosec B311
-        "changePercent": round(random.uniform(-2, 2), 2),  # nosec B311
-        "volume": random.randint(100000, 10000000),  # nosec B311
+        "change": round(random.uniform(-volatility, volatility), 2),  # nosec B311
+        "changePercent": round(random.uniform(-5, 5), 2),  # nosec B311
+        "volume": (
+            random.uniform(0.1, 100.0)
+            if is_crypto
+            else random.randint(100000, 10000000)
+        ),  # nosec B311
         "timestamp": datetime.now().isoformat(),
     }
 

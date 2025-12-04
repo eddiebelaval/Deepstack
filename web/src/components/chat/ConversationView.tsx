@@ -16,7 +16,13 @@ import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { DeepValuePanel } from '@/components/trading/DeepValuePanel';
 import { HedgedPositionsPanel } from '@/components/trading/HedgedPositionsPanel';
+import { ScreenerPanel } from '@/components/trading/ScreenerPanel';
+import { AlertsPanel } from '@/components/trading/AlertsPanel';
+import { CalendarPanel } from '@/components/trading/CalendarPanel';
+import { NewsPanel } from '@/components/trading/NewsPanel';
 import { OptionsScreenerPanel, OptionsStrategyBuilder } from '@/components/options';
+import { PresetGrid } from './PresetGrid';
+import { HomeWidgets } from './HomeWidgets';
 import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2, Square, RectangleHorizontal, Search, Loader2 } from 'lucide-react';
 
 // Simple message type for our use case
@@ -26,10 +32,11 @@ type SimpleMessage = {
     content: string;
     createdAt?: Date;
     toolInvocations?: any[];
+    thinking?: string;
 };
 
 export function ConversationView() {
-    const { activeProvider, setIsStreaming } = useChatStore();
+    const { activeProvider, setIsStreaming, useExtendedThinking } = useChatStore();
     const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
     const { isLoadingBars, bars } = useMarketDataStore();
@@ -41,17 +48,15 @@ export function ConversationView() {
     const isChartLoading = activeSymbol ? isLoadingBars[activeSymbol] ?? false : false;
     const hasChartData = activeSymbol ? (bars[activeSymbol]?.length ?? 0) > 0 : false;
 
-    // Chart size presets (in pixels)
-    type ChartSize = 'compact' | 'default' | 'large' | 'full';
-    const CHART_SIZES: Record<ChartSize, number> = {
-        compact: 200,
-        default: 280,
-        large: 400,
-        full: 550,
+    // Panel size presets (in pixels)
+    type PanelSize = 'compact' | 'default' | 'large' | 'full';
+    const PANEL_SIZES: Record<PanelSize, number> = {
+        compact: 300,
+        default: 600,
+        large: 800,
+        full: 1000,
     };
-    // Options panels need more height - use 'full' height for them
-    const OPTIONS_PANEL_HEIGHT = 600;
-    const [chartSize, setChartSize] = useState<ChartSize>('default');
+    const [panelSize, setPanelSize] = useState<PanelSize>('default');
 
     // Symbol search state
     const [isSearchingSymbol, setIsSearchingSymbol] = useState(false);
@@ -101,6 +106,33 @@ export function ConversationView() {
         }
     };
 
+    // Handle tool results that control UI
+    const handleToolResult = useCallback((toolName: string, result: any) => {
+        if (result?.action === 'show_panel') {
+            const panelMap: Record<string, typeof activeContent> = {
+                'chart': 'chart',
+                'portfolio': 'portfolio',
+                'orders': 'orders',
+                'screener': 'screener',
+                'alerts': 'alerts',
+                'calendar': 'calendar',
+                'news': 'news',
+                'deep-value': 'deep-value',
+                'hedged-positions': 'hedged-positions',
+                'options-screener': 'options-screener',
+                'options-builder': 'options-builder',
+            };
+
+            if (result.panel && panelMap[result.panel]) {
+                setActiveContent(panelMap[result.panel]);
+            }
+
+            if (result.symbol) {
+                setActiveSymbol(result.symbol);
+            }
+        }
+    }, [setActiveContent, setActiveSymbol]);
+
     const handleSend = useCallback(async (content: string) => {
         detectIntent(content);
 
@@ -116,12 +148,21 @@ export function ConversationView() {
         setIsStreaming(true);
 
         try {
+            // Build context for the AI
+            const context = {
+                activeSymbol,
+                activePanel: activeContent,
+                // Could add more context here like positions, watchlist, etc.
+            };
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
                     provider: activeProvider,
+                    context,
+                    useExtendedThinking,
                 }),
             });
 
@@ -130,29 +171,85 @@ export function ConversationView() {
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
             let assistantContent = '';
+            let thinkingContent = '';
             const assistantId = crypto.randomUUID();
+            const toolInvocations: any[] = [];
+            let buffer = '';
 
             if (reader) {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value);
-                    assistantContent += chunk;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    // Process complete lines from buffer
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+
+                        // AI SDK data stream format: "0:text" or "9:tool_call" etc.
+                        const colonIndex = line.indexOf(':');
+                        if (colonIndex === -1) {
+                            // Plain text (fallback)
+                            assistantContent += line;
+                            continue;
+                        }
+
+                        const prefix = line.substring(0, colonIndex);
+                        const data = line.substring(colonIndex + 1);
+
+                        try {
+                            if (prefix === '0') {
+                                // Text chunk
+                                const text = JSON.parse(data);
+                                assistantContent += text;
+                            } else if (prefix === '3') {
+                                // Thinking chunk (extended thinking)
+                                const text = JSON.parse(data);
+                                thinkingContent += text;
+                            } else if (prefix === '9') {
+                                // Tool call
+                                const toolCall = JSON.parse(data);
+                                toolInvocations.push(toolCall);
+                            } else if (prefix === 'a') {
+                                // Tool result
+                                const toolResult = JSON.parse(data);
+                                // Handle UI-controlling tool results
+                                if (toolResult?.result) {
+                                    handleToolResult(toolResult.toolName || '', toolResult.result);
+                                }
+                            } else if (prefix === 'e') {
+                                // Error
+                                const errorData = JSON.parse(data);
+                                console.error('Stream error:', errorData);
+                            }
+                            // Ignore other prefixes (d=done, etc.)
+                        } catch {
+                            // If parsing fails, treat as plain text
+                            if (prefix === '0') {
+                                assistantContent += data;
+                            }
+                        }
+                    }
 
                     setMessages(prev => {
                         const existing = prev.find(m => m.id === assistantId);
+                        const newMessage = {
+                            id: assistantId,
+                            role: 'assistant' as const,
+                            content: assistantContent,
+                            createdAt: new Date(),
+                            toolInvocations: toolInvocations.length > 0 ? toolInvocations : undefined,
+                            thinking: thinkingContent || undefined,
+                        };
+
                         if (existing) {
-                            return prev.map(m =>
-                                m.id === assistantId ? { ...m, content: assistantContent } : m
-                            );
+                            return prev.map(m => m.id === assistantId ? newMessage : m);
                         } else {
-                            return [...prev, {
-                                id: assistantId,
-                                role: 'assistant' as const,
-                                content: assistantContent,
-                                createdAt: new Date(),
-                            }];
+                            return [...prev, newMessage];
                         }
                     });
                 }
@@ -169,18 +266,10 @@ export function ConversationView() {
             setIsLoading(false);
             setIsStreaming(false);
         }
-    }, [messages, activeProvider, setIsStreaming, setActiveContent, setActiveSymbol]);
+    }, [messages, activeProvider, activeSymbol, activeContent, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult]);
 
     const hasMessages = messages.length > 0;
     const hasActiveContent = activeContent !== 'none';
-
-    // Quick action presets
-    const presets = [
-        { prompt: "Analyze my portfolio", icon: Briefcase, desc: "Performance and risk" },
-        { prompt: "Show me SPY chart", icon: LineChart, desc: "Real-time with indicators" },
-        { prompt: "What's moving today?", icon: TrendingUp, desc: "Volume leaders" },
-        { prompt: "Find asymmetric setups", icon: Target, desc: "Risk/reward plays" },
-    ];
 
     const handlePresetClick = (prompt: string) => {
         handleSend(prompt);
@@ -188,7 +277,7 @@ export function ConversationView() {
 
     const closeContentZone = () => {
         setActiveContent('none');
-        setChartSize('default');
+        setPanelSize('default');
     };
 
     // Render the active content (chart, orders, etc.)
@@ -237,29 +326,57 @@ export function ConversationView() {
         }
         if (activeContent === 'deep-value') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
                     <DeepValuePanel />
                 </div>
             );
         }
         if (activeContent === 'hedged-positions') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
                     <HedgedPositionsPanel />
                 </div>
             );
         }
         if (activeContent === 'options-screener') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
                     <OptionsScreenerPanel />
                 </div>
             );
         }
         if (activeContent === 'options-builder') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
                     <OptionsStrategyBuilder />
+                </div>
+            );
+        }
+        if (activeContent === 'screener') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
+                    <ScreenerPanel />
+                </div>
+            );
+        }
+        if (activeContent === 'alerts') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
+                    <AlertsPanel />
+                </div>
+            );
+        }
+        if (activeContent === 'calendar') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
+                    <CalendarPanel />
+                </div>
+            );
+        }
+        if (activeContent === 'news') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
+                    <NewsPanel />
                 </div>
             );
         }
@@ -270,11 +387,13 @@ export function ConversationView() {
     // Centered both horizontally and vertically on the page
     if (!hasMessages && !hasActiveContent) {
         return (
-            <div className="flex flex-col h-full items-center justify-center p-8">
-                {/* Centered content container */}
-                <div className="flex flex-col items-center gap-8 w-full max-w-2xl">
-                    {/* Welcome Message - Floating on background */}
-                    <div className="text-center space-y-3">
+            <div className="flex flex-col h-full p-8">
+                {/* Top Widgets Section */}
+                <HomeWidgets />
+
+                {/* Centered Welcome Message */}
+                <div className="flex-1 flex flex-col items-center justify-center">
+                    <div className="text-center space-y-3 max-w-2xl">
                         <div className="flex justify-center mb-4">
                             <div className="p-3 rounded-2xl bg-primary/10">
                                 <svg className="h-8 w-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
@@ -289,35 +408,18 @@ export function ConversationView() {
                             I can analyze charts, review your portfolio, find trading setups, and help you execute trades.
                         </p>
                     </div>
+                </div>
 
-                    {/* Chat Input - Centered with clear separation */}
-                    <div className="w-full">
-                        <ChatInput onSend={handleSend} disabled={isLoading} />
-                    </div>
-
+                {/* Bottom Section: Presets and Input */}
+                <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto">
                     {/* Preset Cards - Visually separated below */}
                     <div className="w-full">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {presets.map((preset) => (
-                                <button
-                                    key={preset.prompt}
-                                    onClick={() => handlePresetClick(preset.prompt)}
-                                    className="group bg-card/40 hover:bg-card/60 border border-border/40 hover:border-border/60 rounded-xl p-4 flex items-center gap-3 transition-all duration-200 text-left"
-                                >
-                                    <div className="p-2.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 text-primary transition-colors">
-                                        <preset.icon className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                                            {preset.prompt}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {preset.desc}
-                                        </div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                        <PresetGrid onSelect={handlePresetClick} />
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="w-full">
+                        <ChatInput onSend={handleSend} disabled={isLoading} />
                     </div>
                 </div>
             </div>
@@ -333,7 +435,7 @@ export function ConversationView() {
             {hasActiveContent && (
                 <div
                     className="flex-shrink-0 p-3 bg-background border-b border-border/30 transition-all duration-300 ease-in-out"
-                    style={{ height: `${(activeContent === 'options-screener' || activeContent === 'options-builder') ? OPTIONS_PANEL_HEIGHT : CHART_SIZES[chartSize]}px` }}
+                    style={{ height: `${PANEL_SIZES[panelSize]}px` }}
                 >
                     <div className="h-full flex flex-col min-h-0">
                         {/* Tool Header with controls */}
@@ -392,53 +494,53 @@ export function ConversationView() {
                                         {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
                                         {activeContent === 'options-screener' && 'Options Screener'}
                                         {activeContent === 'options-builder' && 'Strategy Builder'}
+                                        {activeContent === 'screener' && 'Stock Screener'}
+                                        {activeContent === 'alerts' && 'Price Alerts'}
+                                        {activeContent === 'calendar' && 'Market Calendar'}
+                                        {activeContent === 'news' && 'Market News'}
                                     </span>
                                 )}
                             </div>
                             <div className="flex items-center gap-1">
-                                {activeContent === 'chart' && (
-                                    <>
-                                        {/* Size preset buttons */}
-                                        <div className="flex items-center gap-0.5 mr-1 border-r border-border/50 pr-2">
-                                            <Button
-                                                variant={chartSize === 'compact' ? 'secondary' : 'ghost'}
-                                                size="icon"
-                                                className="h-6 w-6 rounded"
-                                                onClick={() => setChartSize('compact')}
-                                                title="Compact"
-                                            >
-                                                <Minimize2 className="h-3 w-3" />
-                                            </Button>
-                                            <Button
-                                                variant={chartSize === 'default' ? 'secondary' : 'ghost'}
-                                                size="icon"
-                                                className="h-6 w-6 rounded"
-                                                onClick={() => setChartSize('default')}
-                                                title="Default"
-                                            >
-                                                <Square className="h-3 w-3" />
-                                            </Button>
-                                            <Button
-                                                variant={chartSize === 'large' ? 'secondary' : 'ghost'}
-                                                size="icon"
-                                                className="h-6 w-6 rounded"
-                                                onClick={() => setChartSize('large')}
-                                                title="Large"
-                                            >
-                                                <RectangleHorizontal className="h-3 w-3" />
-                                            </Button>
-                                            <Button
-                                                variant={chartSize === 'full' ? 'secondary' : 'ghost'}
-                                                size="icon"
-                                                className="h-6 w-6 rounded"
-                                                onClick={() => setChartSize('full')}
-                                                title="Full"
-                                            >
-                                                <Maximize2 className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    </>
-                                )}
+                                {/* Size preset buttons - Available for ALL panels */}
+                                <div className="flex items-center gap-0.5 mr-1 border-r border-border/50 pr-2">
+                                    <Button
+                                        variant={panelSize === 'compact' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className="h-6 w-6 rounded"
+                                        onClick={() => setPanelSize('compact')}
+                                        title="Compact"
+                                    >
+                                        <Minimize2 className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                        variant={panelSize === 'default' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className="h-6 w-6 rounded"
+                                        onClick={() => setPanelSize('default')}
+                                        title="Default"
+                                    >
+                                        <Square className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                        variant={panelSize === 'large' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className="h-6 w-6 rounded"
+                                        onClick={() => setPanelSize('large')}
+                                        title="Large"
+                                    >
+                                        <RectangleHorizontal className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                        variant={panelSize === 'full' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className="h-6 w-6 rounded"
+                                        onClick={() => setPanelSize('full')}
+                                        title="Full"
+                                    >
+                                        <Maximize2 className="h-3 w-3" />
+                                    </Button>
+                                </div>
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -459,9 +561,12 @@ export function ConversationView() {
             {/* Chat Area - Scrollable, takes remaining space */}
             <div className="flex-1 overflow-hidden min-h-0 relative">
                 <ScrollArea className="h-full" viewportRef={chatScrollRef} hideScrollbar>
-                    <div className="p-4">
-                        <div className="max-w-3xl mx-auto">
-                            <MessageList messages={messages as any} isStreaming={isLoading} />
+                    <div className="p-4 min-h-full flex flex-col">
+                        <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
+                            <MessageList
+                                messages={messages as any}
+                                isStreaming={isLoading}
+                            />
                         </div>
                     </div>
                 </ScrollArea>
@@ -475,7 +580,8 @@ export function ConversationView() {
 
             {/* Input Bar - Fixed at bottom */}
             <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
-                <div className="max-w-3xl mx-auto w-full">
+                <div className="max-w-3xl mx-auto w-full space-y-3">
+                    <PresetGrid onSelect={handlePresetClick} />
                     <ChatInput onSend={handleSend} disabled={isLoading} />
                 </div>
             </div>

@@ -21,6 +21,7 @@ from .broker.order_manager import OrderManager
 from .broker.paper_trader import PaperTrader
 from .config import get_config
 from .data.alphavantage_client import AlphaVantageClient
+from .data.market_data import MarketDataManager
 from .exceptions import (
     AuthenticationError,
     CircuitBreakerTrippedError,
@@ -115,6 +116,12 @@ class HedgedPositionRequest(BaseModel):
     tactical_pct: float = 0.40
 
 
+class ManualPositionRequest(BaseModel):
+    symbol: str
+    quantity: int
+    avg_cost: float
+
+
 class DeepStackAPIServer:
     """
     FastAPI server for DeepStack trading system.
@@ -138,6 +145,7 @@ class DeepStackAPIServer:
         self.av_client: Optional[AlphaVantageClient] = None
         self.deep_value_strategy: Optional[DeepValueStrategy] = None
         self.hedged_position_manager: Optional[HedgedPositionManager] = None
+        self.market_data_manager: Optional[MarketDataManager] = None
 
         # WebSocket connections
         self.websocket_connections: List[WebSocket] = []
@@ -158,7 +166,7 @@ class DeepStackAPIServer:
         @self.app.exception_handler(DeepStackError)
         async def deepstack_error_handler(request: Request, exc: DeepStackError):
             """Handle all custom DeepStack errors."""
-            logger.error(f"{exc.error_code}: {exc.message}", extra=exc.to_dict())
+            logger.error(f"{exc.error_code}: {exc.message} - {exc.to_dict()}")
             return JSONResponse(
                 status_code=self._get_status_code(exc),
                 content=create_error_response(exc),
@@ -248,7 +256,69 @@ class DeepStackAPIServer:
                     message=f"Unable to fetch quote for {symbol}", symbol=symbol
                 )
 
-        @self.app.get("/positions", response_model=List[PositionResponse])
+                raise QuoteUnavailableError(
+                    message=f"Unable to fetch quote for {symbol}", symbol=symbol
+                )
+
+        @self.app.get("/api/market/bars")
+        async def get_market_bars(symbol: str, timeframe: str = "1d", limit: int = 100):
+            """Get historical market bars."""
+            try:
+                if not self.market_data_manager:
+                    self.market_data_manager = MarketDataManager(self.config)
+
+                # Calculate start/end dates based on limit and timeframe
+                # For simplicity, we'll just ask for a wide range and let the manager handle it
+                # or we could calculate it.
+                # MarketDataManager.get_historical_data takes start_date, end_date.
+
+                # Calculate start date based on timeframe to ensure sufficient history
+                now = datetime.now()
+
+                # Map timeframe to yfinance-compatible interval
+                # yfinance expects: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo
+                yf_interval = timeframe
+                if timeframe in ["1w", "1W"]:
+                    yf_interval = "1wk"
+                    start_date = now.replace(year=now.year - 10)
+                elif timeframe in ["1mo", "1M"]:
+                    yf_interval = "1mo"
+                    start_date = now.replace(year=now.year - 20)
+                elif timeframe in ["1d", "1D"]:
+                    yf_interval = "1d"
+                    start_date = now.replace(year=now.year - 5)
+                elif timeframe in ["4h", "4H"]:
+                    yf_interval = "1h"  # yfinance doesn't support 4h, use 1h
+                    start_date = now.replace(year=now.year - 2)
+                else:
+                    # 1h and others
+                    yf_interval = "1h"
+                    start_date = now.replace(year=now.year - 1)
+
+                end_date = now
+
+                bars = await self.market_data_manager.get_historical_data(
+                    symbol, start_date, end_date, yf_interval
+                )
+
+                # Format for frontend
+                return [
+                    {
+                        "time": int(bar.timestamp.timestamp()),
+                        "open": bar.open,
+                        "high": bar.high,
+                        "low": bar.low,
+                        "close": bar.close,
+                        "volume": bar.volume,
+                    }
+                    for bar in bars
+                ]
+            except Exception as e:
+                logger.error(
+                    f"Error getting market bars for {symbol}: {e}", exc_info=True
+                )
+                raise DataError(message=f"Unable to fetch market bars for {symbol}")
+
         async def get_positions():
             """Get current positions."""
             try:
@@ -473,6 +543,28 @@ class DeepStackAPIServer:
                 logger.error(f"Error getting hedged position: {e}", exc_info=True)
                 raise DeepStackError(
                     message="Failed to get hedged position", error_code="POSITION_ERROR"
+                )
+
+        @self.app.post("/positions/manual")
+        async def add_manual_position(request: ManualPositionRequest):
+            """Manually add a position."""
+            try:
+                if not self.paper_trader:
+                    raise DeepStackError(
+                        message="Manual positions only available in paper trading mode",
+                        error_code="INVALID_MODE",
+                    )
+
+                position = await self.paper_trader.add_manual_position(
+                    request.symbol, request.quantity, request.avg_cost
+                )
+                return position
+            except ValueError as e:
+                raise ValidationError(message=str(e), field="quantity/avg_cost")
+            except Exception as e:
+                logger.error(f"Error adding manual position: {e}", exc_info=True)
+                raise DeepStackError(
+                    message="Failed to add manual position", error_code="POSITION_ERROR"
                 )
 
         # Include options router

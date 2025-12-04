@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Brain } from 'lucide-react';
 import { ProviderSelector } from './ProviderSelector';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { CommandPalette } from './CommandPalette';
@@ -18,7 +18,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { isStreaming, activeProvider, setActiveProvider } = useChatStore();
+  const { isStreaming, activeProvider, setActiveProvider, useExtendedThinking, setUseExtendedThinking } = useChatStore();
 
   const handleCommand = async (command: string) => {
     // Populate input for visual feedback
@@ -84,6 +84,20 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           onChange={setActiveProvider}
           disabled={isStreaming}
         />
+
+        <Button
+          onClick={() => setUseExtendedThinking(!useExtendedThinking)}
+          variant={useExtendedThinking ? 'default' : 'outline'}
+          size="icon"
+          className="h-10 w-10 rounded-xl relative"
+          title={useExtendedThinking ? 'Extended thinking enabled' : 'Extended thinking disabled'}
+          disabled={isStreaming}
+        >
+          <Brain className="h-4 w-4" />
+          {useExtendedThinking && (
+            <div className="absolute -top-1 -right-1 h-2 w-2 bg-purple-500 rounded-full animate-pulse" />
+          )}
+        </Button>
 
         <div className="flex-1 relative">
           <Textarea

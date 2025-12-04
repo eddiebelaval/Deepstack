@@ -25,6 +25,12 @@ export type OrderRequest = {
   stop_price?: number;
 };
 
+export type ManualPositionRequest = {
+  symbol: string;
+  quantity: number;
+  avg_cost: number;
+};
+
 export type OrderResponse = {
   order_id?: string;
   status: string;
@@ -60,6 +66,7 @@ export const api = {
   positions: () => http<PositionData[]>(`/positions`),
   account: () => http<AccountSummary>(`/account`),
   placeOrder: (body: OrderRequest) => http<OrderResponse>(`/orders`, { method: 'POST', body: JSON.stringify(body) }),
+  addManualPosition: (body: ManualPositionRequest) => http<PositionData>(`/positions/manual`, { method: 'POST', body: JSON.stringify(body) }),
   cancelOrder: (orderId: string) => http(`/orders/${encodeURIComponent(orderId)}`, { method: 'DELETE' }),
   automationStart: (cadence_s?: number, symbols?: string[]) =>
     http(`/automation/start`, { method: 'POST', body: JSON.stringify({ cadence_s, symbols }) }),

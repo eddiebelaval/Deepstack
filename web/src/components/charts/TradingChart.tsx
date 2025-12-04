@@ -174,28 +174,47 @@ export function TradingChart({ className }: TradingChartProps) {
     }
   }, [chartType]);
 
+  // Track state for efficient updates
+  const lastSymbolRef = useRef<string | null>(null);
+  const prevDataLengthRef = useRef<number>(0);
+
   // Update chart data when symbol or bars change
-  // Including activeSymbol ensures this runs on symbol change even before data arrives
   useEffect(() => {
     if (!mainSeriesRef.current) return;
 
-    // Clear existing data if no bars for current symbol
-    if (chartData.length === 0) {
-      mainSeriesRef.current.setData([]);
+    // Check if we need a full reset (symbol change or significant data change)
+    const isSymbolChange = activeSymbol !== lastSymbolRef.current;
+    const dataLengthDiff = Math.abs(chartData.length - prevDataLengthRef.current);
+    const isSignificantChange = dataLengthDiff > 1;
+
+    if (isSymbolChange || isSignificantChange || chartData.length === 0) {
+      // Full reset
+      mainSeriesRef.current.setData(chartData as any);
+
       if (volumeSeriesRef.current) {
-        volumeSeriesRef.current.setData([]);
+        volumeSeriesRef.current.setData(volumeData);
       }
-      return;
+
+      // Only fit content on symbol change or initial load
+      if (isSymbolChange && chartData.length > 0) {
+        chartRef.current?.timeScale().fitContent();
+      }
+
+      lastSymbolRef.current = activeSymbol;
+    } else {
+      // Incremental update (real-time tick)
+      const lastBar = chartData[chartData.length - 1];
+      const lastVolume = volumeData[volumeData.length - 1];
+
+      if (lastBar) {
+        mainSeriesRef.current.update(lastBar as any);
+      }
+      if (volumeSeriesRef.current && lastVolume) {
+        volumeSeriesRef.current.update(lastVolume);
+      }
     }
 
-    mainSeriesRef.current.setData(chartData as any);
-
-    if (volumeSeriesRef.current && volumeData.length > 0) {
-      volumeSeriesRef.current.setData(volumeData);
-    }
-
-    // Fit content to view
-    chartRef.current?.timeScale().fitContent();
+    prevDataLengthRef.current = chartData.length;
   }, [activeSymbol, chartData, volumeData]);
 
   // Update indicators

@@ -14,6 +14,7 @@ import {
 import { Loader2, ChevronDown, TrendingUp, TrendingDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ManualPositionDialog } from './ManualPositionDialog';
 
 export function PositionsList() {
   const [positions, setPositions] = useState<PositionData[]>([]);
@@ -145,6 +146,11 @@ export function PositionsList() {
         >
           {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}
         </span>
+      </div>
+
+      {/* Manual Entry Dialog */}
+      <div className="px-1">
+        <ManualPositionDialog onSuccess={fetchPositions} />
       </div>
 
       {/* Positions List */}

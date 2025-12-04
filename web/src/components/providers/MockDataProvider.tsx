@@ -84,9 +84,29 @@ export function MockDataProvider({ children }: { children: React.ReactNode }) {
         timestamp: new Date().toISOString(),
       };
 
-      // Update ref and store
+      // Update ref and store for quote
       quotesRef.current[symbol] = updatedQuote;
       updateQuote(symbol, updatedQuote);
+
+      // ALSO update the bar data so the chart moves
+      // Get the current bars for this symbol to find the last one
+      const currentBars = useMarketDataStore.getState().bars[symbol];
+      if (currentBars && currentBars.length > 0) {
+        const lastBar = currentBars[currentBars.length - 1];
+
+        // Update the last bar with new price data
+        const updatedBar = {
+          ...lastBar,
+          close: newLast,
+          high: Math.max(lastBar.high, newLast),
+          low: Math.min(lastBar.low, newLast),
+          volume: (lastBar.volume || 0) + Math.floor(Math.random() * 100), // Add some volume
+        };
+
+        // Use the store action to update it
+        // We need to access the store directly or add updateLastBar to the destructuring above
+        useMarketDataStore.getState().updateLastBar(symbol, updatedBar);
+      }
     };
 
     loadData();

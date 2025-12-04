@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'options-screener' | 'options-builder' | 'none';
+export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'options-screener' | 'options-builder' | 'screener' | 'alerts' | 'calendar' | 'news' | 'none';
 
 export interface WidgetConfig {
   id: string;
@@ -23,6 +23,14 @@ interface UIState {
   setLeftSidebarOpen: (isOpen: boolean) => void;
   setRightSidebarOpen: (isOpen: boolean) => void;
 
+  // Profile & Settings State
+  profileOpen: boolean;
+  settingsOpen: boolean;
+  toggleProfile: () => void;
+  toggleSettings: () => void;
+  setProfileOpen: (isOpen: boolean) => void;
+  setSettingsOpen: (isOpen: boolean) => void;
+
   // Widget State
   widgets: WidgetConfig[];
   toggleWidget: (id: string) => void;
@@ -35,6 +43,8 @@ export const useUIStore = create<UIState>()(
       activeContent: 'none',
       leftSidebarOpen: false, // Collapsed by default as per spec
       rightSidebarOpen: true, // Visible by default as per spec
+      profileOpen: false,
+      settingsOpen: false,
       widgets: [
         { id: 'watchlist', type: 'watchlist', title: 'Watchlist', isOpen: true },
         { id: 'quick-stats', type: 'quick-stats', title: 'Quick Stats', isOpen: true },
@@ -49,6 +59,17 @@ export const useUIStore = create<UIState>()(
       setLeftSidebarOpen: (isOpen) => set({ leftSidebarOpen: isOpen }),
       setRightSidebarOpen: (isOpen) => set({ rightSidebarOpen: isOpen }),
 
+      toggleProfile: () => set((state) => ({
+        profileOpen: !state.profileOpen,
+        settingsOpen: false // Close settings when opening profile
+      })),
+      toggleSettings: () => set((state) => ({
+        settingsOpen: !state.settingsOpen,
+        profileOpen: false // Close profile when opening settings
+      })),
+      setProfileOpen: (isOpen) => set({ profileOpen: isOpen }),
+      setSettingsOpen: (isOpen) => set({ settingsOpen: isOpen }),
+
       toggleWidget: (id) => set((state) => ({
         widgets: state.widgets.map((w) =>
           w.id === id ? { ...w, isOpen: !w.isOpen } : w
@@ -61,6 +82,8 @@ export const useUIStore = create<UIState>()(
         // Persist sidebar states and widgets
         leftSidebarOpen: state.leftSidebarOpen,
         rightSidebarOpen: state.rightSidebarOpen,
+        profileOpen: state.profileOpen,
+        settingsOpen: state.settingsOpen,
         widgets: state.widgets,
       }),
     }

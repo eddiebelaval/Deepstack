@@ -4,11 +4,25 @@ Step definitions for covered call options E2E test.
 Implements BDD-style test steps for options trading workflow validation.
 """
 
-import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 # Load scenarios from feature file
 scenarios("../features/covered_call.feature")
+
+
+# Shared step definitions (matching other E2E test files)
+@given("the trading system is initialized")
+def trading_system_initialized(e2e_trading_system):
+    """Verify trading system is ready."""
+    assert e2e_trading_system is not None
+    assert e2e_trading_system["trader"] is not None
+
+
+@given(parsers.parse("the portfolio has {amount:d} dollars in cash"))
+def portfolio_with_cash(e2e_trading_system, amount):
+    """Initialize portfolio with specified cash."""
+    trader = e2e_trading_system["trader"]
+    assert trader.get_portfolio_value() == amount
 
 
 @given("options trading is enabled")
@@ -20,12 +34,14 @@ def options_trading_enabled(e2e_trading_system):
 
 
 @given(
-    parsers.parse(
-        'the portfolio holds {shares:d} shares of "{symbol}" at {price:f} dollars'
+    parsers.re(
+        r'the portfolio holds (?P<shares>\d+) shares of "(?P<symbol>[^"]+)" at (?P<price>[\d.]+) dollars'
     )
 )
 def portfolio_holds_shares(e2e_trading_system, shares, symbol, price, event_loop):
     """Create existing position in portfolio."""
+    shares = int(shares)
+    price = float(price)
     trader = e2e_trading_system["trader"]
 
     # Add mock data for symbol
@@ -47,9 +63,10 @@ def portfolio_holds_shares(e2e_trading_system, shares, symbol, price, event_loop
     e2e_trading_system[f"{symbol}_entry_price"] = price
 
 
-@given(parsers.parse('"{symbol}" is trading at {price:f} dollars'))
+@given(parsers.re(r'"(?P<symbol>[^"]+)" is trading at (?P<price>[\d.]+) dollars'))
 def stock_trading_at_price(e2e_trading_system, symbol, price):
     """Update current stock price."""
+    price = float(price)
     # Update mock data with current price
     if symbol not in e2e_trading_system["mock_data"]:
         e2e_trading_system["mock_data"][symbol] = {}
@@ -58,9 +75,14 @@ def stock_trading_at_price(e2e_trading_system, symbol, price):
     e2e_trading_system[f"{symbol}_current_price"] = price
 
 
-@given(parsers.parse('the portfolio has sold calls on "{symbol}" at strike {strike:d}'))
+@given(
+    parsers.re(
+        r'the portfolio has sold calls on "(?P<symbol>[^"]+)" at strike (?P<strike>\d+)'
+    )
+)
 def portfolio_has_sold_calls(e2e_trading_system, symbol, strike):
     """Simulate sold call options on position."""
+    strike = int(strike)
     # Store call position details
     e2e_trading_system[f"{symbol}_call_strike"] = strike
     e2e_trading_system[f"{symbol}_call_sold"] = True
@@ -77,9 +99,10 @@ def portfolio_has_sold_calls(e2e_trading_system, symbol, strike):
     trader.cash += total_premium
 
 
-@given(parsers.parse('"{symbol}" rallies to {price:f} dollars'))
+@given(parsers.re(r'"(?P<symbol>[^"]+)" rallies to (?P<price>[\d.]+) dollars'))
 def stock_rallies_to_price(e2e_trading_system, symbol, price):
     """Simulate stock price rally."""
+    price = float(price)
     e2e_trading_system["mock_data"][symbol]["price"] = price
     e2e_trading_system[f"{symbol}_rally_price"] = price
 
@@ -256,7 +279,7 @@ def profit_realized(e2e_trading_system):
 
 
 @then("position should be closed")
-def position_closed(e2e_trading_system):
+def position_closed(e2e_trading_system, event_loop):
     """Verify position is closed after assignment."""
     symbol = "AAPL"
     trader = e2e_trading_system["trader"]
@@ -267,7 +290,6 @@ def position_closed(e2e_trading_system):
     if position and position["quantity"] > 0:
         # Sell all shares at current price
         quantity = position["quantity"]
-        event_loop = pytest.current_event_loop()
         event_loop.run_until_complete(
             trader.place_market_order(symbol, quantity, "SELL")
         )

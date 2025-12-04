@@ -20,14 +20,14 @@ import { cn } from "@/lib/utils";
 const POPULAR_SYMBOLS = [
   { symbol: "SPY", name: "SPDR S&P 500 ETF" },
   { symbol: "QQQ", name: "Invesco QQQ Trust" },
+  { symbol: "BTC/USD", name: "Bitcoin" },
+  { symbol: "ETH/USD", name: "Ethereum" },
+  { symbol: "SOL/USD", name: "Solana" },
   { symbol: "AAPL", name: "Apple Inc." },
   { symbol: "MSFT", name: "Microsoft Corp." },
   { symbol: "NVDA", name: "NVIDIA Corp." },
   { symbol: "TSLA", name: "Tesla Inc." },
   { symbol: "AMZN", name: "Amazon.com Inc." },
-  { symbol: "GOOGL", name: "Alphabet Inc." },
-  { symbol: "META", name: "Meta Platforms Inc." },
-  { symbol: "AMD", name: "Advanced Micro Devices" },
 ];
 
 // Symbol database for search (would be API-based in production)
@@ -52,6 +52,11 @@ const SYMBOL_DATABASE = [
   { symbol: "SLV", name: "iShares Silver Trust" },
   { symbol: "USO", name: "United States Oil Fund" },
   { symbol: "VIX", name: "CBOE Volatility Index" },
+  { symbol: "DOGE/USD", name: "Dogecoin" },
+  { symbol: "ADA/USD", name: "Cardano" },
+  { symbol: "DOT/USD", name: "Polkadot" },
+  { symbol: "MATIC/USD", name: "Polygon" },
+  { symbol: "LTC/USD", name: "Litecoin" },
 ];
 
 type SymbolSearchProps = {
@@ -138,7 +143,7 @@ export function SymbolSearch({ open: controlledOpen, onOpenChange }: SymbolSearc
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search symbols... (e.g., AAPL, SPY)" />
+      <CommandInput placeholder="Search symbols... (e.g., AAPL, BTC/USD)" />
       <CommandList>
         <CommandEmpty>
           <div className="py-6 text-center text-sm">

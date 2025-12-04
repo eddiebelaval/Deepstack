@@ -200,4 +200,182 @@ export const tradingTools = {
       }
     },
   }),
+
+  // UI Panel Control Tools
+  show_chart: tool({
+    description: 'Display the chart panel for a specific stock symbol. Use when user wants to see a chart or you want to show them price action.',
+    parameters: z.object({
+      symbol: z.string().describe('Stock ticker symbol to chart (e.g., AAPL, TSLA)'),
+    }),
+    execute: async ({ symbol }: { symbol: string }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'chart',
+        symbol: symbol.toUpperCase(),
+        message: `Showing chart for ${symbol.toUpperCase()}`,
+      };
+    },
+  }),
+
+  show_portfolio: tool({
+    description: 'Display the portfolio/positions panel showing current holdings and P&L',
+    parameters: z.object({
+      _unused: z.string().optional().describe('No parameters required'),
+    }),
+    execute: async () => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'portfolio',
+        message: 'Showing portfolio positions',
+      };
+    },
+  }),
+
+  show_orders: tool({
+    description: 'Display the orders panel for placing new trades or viewing order history',
+    parameters: z.object({
+      symbol: z.string().optional().describe('Optional: Pre-fill order form with this symbol'),
+    }),
+    execute: async ({ symbol }: { symbol?: string }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'orders',
+        symbol: symbol?.toUpperCase(),
+        message: symbol ? `Showing order form for ${symbol.toUpperCase()}` : 'Showing orders panel',
+      };
+    },
+  }),
+
+  show_screener: tool({
+    description: 'Display the stock screener panel for filtering stocks by criteria like price, volume, sector, market cap',
+    parameters: z.object({
+      filters: z.object({
+        sector: z.string().optional().describe('Filter by sector'),
+        priceMin: z.number().optional().describe('Minimum price'),
+        priceMax: z.number().optional().describe('Maximum price'),
+      }).optional().describe('Optional filters to apply'),
+    }),
+    execute: async ({ filters }: { filters?: { sector?: string; priceMin?: number; priceMax?: number } }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'screener',
+        filters,
+        message: 'Showing stock screener',
+      };
+    },
+  }),
+
+  show_alerts: tool({
+    description: 'Display the price alerts panel for creating or viewing stock price alerts',
+    parameters: z.object({
+      symbol: z.string().optional().describe('Optional: Pre-fill alert form with this symbol'),
+    }),
+    execute: async ({ symbol }: { symbol?: string }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'alerts',
+        symbol: symbol?.toUpperCase(),
+        message: symbol ? `Showing alerts for ${symbol.toUpperCase()}` : 'Showing alerts panel',
+      };
+    },
+  }),
+
+  show_calendar: tool({
+    description: 'Display the market calendar panel showing earnings, economic events, dividends, and IPOs',
+    parameters: z.object({
+      _unused: z.string().optional().describe('No parameters required'),
+    }),
+    execute: async () => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'calendar',
+        message: 'Showing market calendar',
+      };
+    },
+  }),
+
+  show_news: tool({
+    description: 'Display the news panel showing market news. Can filter by symbol.',
+    parameters: z.object({
+      symbol: z.string().optional().describe('Optional: Filter news by this symbol'),
+    }),
+    execute: async ({ symbol }: { symbol?: string }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'news',
+        symbol: symbol?.toUpperCase(),
+        message: symbol ? `Showing news for ${symbol.toUpperCase()}` : 'Showing market news',
+      };
+    },
+  }),
+
+  show_deep_value: tool({
+    description: 'Display the Deep Value screener panel for finding undervalued stocks using fundamental analysis',
+    parameters: z.object({
+      _unused: z.string().optional().describe('No parameters required'),
+    }),
+    execute: async () => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'deep-value',
+        message: 'Showing Deep Value screener',
+      };
+    },
+  }),
+
+  show_hedged_positions: tool({
+    description: 'Display the Hedged Positions panel for building and analyzing hedged stock positions with options',
+    parameters: z.object({
+      symbol: z.string().optional().describe('Optional: Pre-fill with this symbol'),
+    }),
+    execute: async ({ symbol }: { symbol?: string }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'hedged-positions',
+        symbol: symbol?.toUpperCase(),
+        message: symbol ? `Showing hedged positions for ${symbol.toUpperCase()}` : 'Showing Hedged Positions panel',
+      };
+    },
+  }),
+
+  show_options_screener: tool({
+    description: 'Display the Options Screener panel for finding options by various criteria',
+    parameters: z.object({
+      symbol: z.string().optional().describe('Optional: Filter options by underlying symbol'),
+    }),
+    execute: async ({ symbol }: { symbol?: string }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'options-screener',
+        symbol: symbol?.toUpperCase(),
+        message: symbol ? `Showing options for ${symbol.toUpperCase()}` : 'Showing Options Screener',
+      };
+    },
+  }),
+
+  show_options_builder: tool({
+    description: 'Display the Options Strategy Builder panel for constructing multi-leg options strategies with P&L diagrams',
+    parameters: z.object({
+      symbol: z.string().optional().describe('Optional: Pre-fill with this underlying symbol'),
+    }),
+    execute: async ({ symbol }: { symbol?: string }) => {
+      return {
+        success: true,
+        action: 'show_panel',
+        panel: 'options-builder',
+        symbol: symbol?.toUpperCase(),
+        message: symbol ? `Showing options builder for ${symbol.toUpperCase()}` : 'Showing Options Strategy Builder',
+      };
+    },
+  }),
 };

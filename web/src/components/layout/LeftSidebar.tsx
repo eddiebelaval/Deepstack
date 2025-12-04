@@ -19,7 +19,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function LeftSidebar() {
-    const { leftSidebarOpen, toggleLeftSidebar } = useUIStore();
+    const { leftSidebarOpen, toggleLeftSidebar, toggleProfile, toggleSettings, profileOpen, settingsOpen } = useUIStore();
     const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
     const chatHistoryRef = useRef<HTMLDivElement>(null);
 
@@ -173,7 +173,8 @@ export function LeftSidebar() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant="ghost"
+                                variant={profileOpen ? "secondary" : "ghost"}
+                                onClick={toggleProfile}
                                 className={cn(
                                     "w-full rounded-xl h-9",
                                     leftSidebarOpen ? "justify-start" : "justify-center px-0"
@@ -194,7 +195,8 @@ export function LeftSidebar() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant="ghost"
+                                variant={settingsOpen ? "secondary" : "ghost"}
+                                onClick={toggleSettings}
                                 className={cn(
                                     "w-full rounded-xl h-9",
                                     leftSidebarOpen ? "justify-start" : "justify-center px-0"

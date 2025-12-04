@@ -412,6 +412,76 @@ class PaperTrader:
             symbol=symbol,
         )
 
+    async def add_manual_position(
+        self, symbol: str, quantity: int, avg_cost: float
+    ) -> Dict[str, Any]:
+        """
+        Manually add a position to the portfolio.
+
+        Args:
+            symbol: Stock symbol
+            quantity: Number of shares
+            avg_cost: Average cost per share
+
+        Returns:
+            Dict with position details
+        """
+        if quantity <= 0:
+            raise ValueError("Quantity must be positive")
+        if avg_cost < 0:
+            raise ValueError("Average cost cannot be negative")
+
+        # Get current market price for valuation
+        current_price = await self._get_market_price(symbol)
+        if not current_price:
+            current_price = avg_cost  # Fallback to cost if no price available
+
+        market_value = quantity * current_price
+        unrealized_pnl = market_value - (quantity * avg_cost)
+
+        # Create position record
+        position = {
+            "symbol": symbol,
+            "quantity": quantity,
+            "avg_cost": avg_cost,
+            "market_value": market_value,
+            "unrealized_pnl": unrealized_pnl,
+            "realized_pnl": 0.0,
+            "updated_at": datetime.now(),
+        }
+
+        # Save to database
+        self._save_position(position)
+
+        logger.info(f"Manual position added: {quantity} {symbol} @ ${avg_cost:.2f}")
+
+        return position
+
+    def _save_position(self, position: Dict[str, Any]):
+        """Save position to database."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO positions
+                    (symbol, quantity, avg_cost, market_value, unrealized_pnl, realized_pnl, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        position["symbol"],
+                        position["quantity"],
+                        position["avg_cost"],
+                        position["market_value"],
+                        position["unrealized_pnl"],
+                        position["realized_pnl"],
+                        position["updated_at"],
+                    ),
+                )
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Error saving position {position['symbol']}: {e}")
+            raise
+
     async def place_stop_loss(
         self,
         symbol: str,
@@ -556,7 +626,8 @@ class PaperTrader:
             )
             return None
 
-        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"
+        # nosec B311 - random used for order ID uniqueness, not security
+        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"  # nosec B311
 
         try:
             # Step 3: Get current market price
@@ -657,7 +728,7 @@ class PaperTrader:
         if self.enable_risk_systems and self.circuit_breaker:
             breaker_status = await self.check_circuit_breakers()
             if not breaker_status["trading_allowed"]:
-                logger.error(f"Order rejected - circuit breakers tripped")
+                logger.error("Order rejected - circuit breakers tripped")
                 return None
 
         # Check market hours
@@ -665,7 +736,8 @@ class PaperTrader:
             logger.error("Order rejected - market is closed")
             return None
 
-        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"
+        # nosec B311 - random used for order ID uniqueness, not security
+        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"  # nosec B311
 
         try:
             order = {
@@ -758,7 +830,8 @@ class PaperTrader:
             logger.error("Stop order rejected - market is closed")
             return None
 
-        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"
+        # nosec B311 - random used for order ID uniqueness, not security
+        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"  # nosec B311
 
         try:
             order = {
@@ -933,8 +1006,9 @@ class PaperTrader:
                     self.circuit_breaker.record_trade(realized_pnl)
 
             # Record trade
+            # nosec B311 - random used for trade ID uniqueness, not security
             trade = {
-                "trade_id": f"trade_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}",
+                "trade_id": f"trade_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}",  # nosec B311
                 "symbol": symbol,
                 "action": action,
                 "quantity": quantity,
@@ -1032,7 +1106,8 @@ class PaperTrader:
         volatility_factor = self.slippage_volatility_multiplier
 
         # Random component (±50% of base slippage for realism)
-        random_factor = random.uniform(0.5, 1.5)
+        # nosec B311 - random used for simulation realism, not security
+        random_factor = random.uniform(0.5, 1.5)  # nosec B311
 
         # Total slippage
         total_slippage_pct = (

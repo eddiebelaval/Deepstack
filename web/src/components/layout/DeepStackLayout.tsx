@@ -5,6 +5,8 @@ import { LeftSidebar } from './LeftSidebar';
 import { RightToolbar } from './RightToolbar';
 import { WidgetPanel } from './WidgetPanel';
 import { StreamingTicker } from './StreamingTicker';
+import { ProfilePanel } from './ProfilePanel';
+import { SettingsPanel } from './SettingsPanel';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +21,10 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
         <div className="h-screen bg-background flex flex-col overflow-hidden">
             {/* Left Sidebar - Chat History */}
             <LeftSidebar />
+
+            {/* Slide-out Panels */}
+            <ProfilePanel />
+            <SettingsPanel />
 
             {/* Right Toolbar - TradingView style icons */}
             <RightToolbar />
