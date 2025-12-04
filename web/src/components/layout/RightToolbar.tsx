@@ -15,7 +15,9 @@ import {
     Target,
     LayoutGrid,
     Diamond,
-    Shield
+    Shield,
+    Filter,
+    Calculator
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -42,6 +44,8 @@ const SECONDARY_ITEMS: ToolbarItem[] = [
     { id: 'news', icon: Newspaper, label: 'News' },
     { id: 'deep-value', icon: Diamond, label: 'Deep Value' },
     { id: 'hedged-positions', icon: Shield, label: 'Hedged Positions' },
+    { id: 'options-screener', icon: Filter, label: 'Options Screener' },
+    { id: 'options-builder', icon: Calculator, label: 'Strategy Builder' },
 ];
 
 const WIDGET_ITEMS: ToolbarItem[] = [

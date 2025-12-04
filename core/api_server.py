@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from .api.options_router import router as options_router
 from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
 from .broker.paper_trader import PaperTrader
@@ -473,6 +474,9 @@ class DeepStackAPIServer:
                 raise DeepStackError(
                     message="Failed to get hedged position", error_code="POSITION_ERROR"
                 )
+
+        # Include options router
+        self.app.include_router(options_router)
 
     def _setup_websocket(self):
         """Setup WebSocket endpoint for real-time updates."""

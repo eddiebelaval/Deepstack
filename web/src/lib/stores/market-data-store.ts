@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
+
+// Enable Immer's MapSet plugin for Set/Map support
+enableMapSet();
 
 // Market data types
 export type QuoteData = {
@@ -71,6 +75,10 @@ type MarketDataState = {
   reset: () => void;
 };
 
+// LRU cache configuration
+const MAX_CACHED_SYMBOLS = 10;
+let symbolAccessOrder: string[] = []; // Track access order for LRU eviction
+
 const initialState = {
   quotes: {} as Record<string, QuoteData>,
   bars: {} as Record<string, OHLCVBar[]>,
@@ -115,6 +123,20 @@ export const useMarketDataStore = create<MarketDataState>()(
     },
 
     setBars: (symbol, bars) => {
+      // Update LRU access order - move symbol to front
+      symbolAccessOrder = [symbol, ...symbolAccessOrder.filter(s => s !== symbol)];
+
+      // Evict oldest symbol if over cache limit
+      if (symbolAccessOrder.length > MAX_CACHED_SYMBOLS) {
+        const evictSymbol = symbolAccessOrder.pop();
+        if (evictSymbol) {
+          set((state) => {
+            delete state.bars[evictSymbol];
+            delete state.isLoadingBars[evictSymbol];
+          });
+        }
+      }
+
       set((state) => {
         state.bars[symbol] = bars;
         state.isLoadingBars[symbol] = false;
@@ -210,6 +232,7 @@ export const useMarketDataStore = create<MarketDataState>()(
         rafId = null;
       }
       pendingQuoteUpdates = [];
+      symbolAccessOrder = []; // Clear LRU tracking
 
       set((state) => {
         state.quotes = {};

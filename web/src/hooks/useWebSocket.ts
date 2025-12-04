@@ -57,7 +57,11 @@ const DEFAULT_OPTIONS: Required<UseWebSocketOptions> = {
 };
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
+  // Filter out undefined values to ensure defaults are used properly
+  const filteredOptions = Object.fromEntries(
+    Object.entries(options).filter(([, value]) => value !== undefined)
+  );
+  const opts = { ...DEFAULT_OPTIONS, ...filteredOptions };
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);

@@ -174,9 +174,20 @@ export function TradingChart({ className }: TradingChartProps) {
     }
   }, [chartType]);
 
-  // Update chart data when bars change
+  // Update chart data when symbol or bars change
+  // Including activeSymbol ensures this runs on symbol change even before data arrives
   useEffect(() => {
-    if (!mainSeriesRef.current || chartData.length === 0) return;
+    if (!mainSeriesRef.current) return;
+
+    // Clear existing data if no bars for current symbol
+    if (chartData.length === 0) {
+      mainSeriesRef.current.setData([]);
+      if (volumeSeriesRef.current) {
+        volumeSeriesRef.current.setData([]);
+      }
+      return;
+    }
+
     mainSeriesRef.current.setData(chartData as any);
 
     if (volumeSeriesRef.current && volumeData.length > 0) {
@@ -185,7 +196,7 @@ export function TradingChart({ className }: TradingChartProps) {
 
     // Fit content to view
     chartRef.current?.timeScale().fitContent();
-  }, [chartData, volumeData]);
+  }, [activeSymbol, chartData, volumeData]);
 
   // Update indicators
   useEffect(() => {

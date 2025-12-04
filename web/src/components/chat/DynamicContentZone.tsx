@@ -5,6 +5,7 @@ import { useUIStore } from '@/lib/stores/ui-store';
 import { TradingChart } from '@/components/charts/TradingChart';
 import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
+import { OptionsScreenerPanel, OptionsStrategyBuilder } from '@/components/options';
 
 export function DynamicContentZone() {
     const { activeContent } = useUIStore();
@@ -37,7 +38,17 @@ export function DynamicContentZone() {
                 </div>
             )}
 
-            {/* Add other content types here */}
+            {activeContent === 'options-screener' && (
+                <div className="flex-1 border rounded-lg overflow-hidden bg-card">
+                    <OptionsScreenerPanel />
+                </div>
+            )}
+
+            {activeContent === 'options-builder' && (
+                <div className="flex-1 border rounded-lg overflow-hidden bg-card">
+                    <OptionsStrategyBuilder />
+                </div>
+            )}
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'none';
+export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'options-screener' | 'options-builder' | 'none';
 
 export interface WidgetConfig {
   id: string;
@@ -13,9 +13,7 @@ export interface WidgetConfig {
 interface UIState {
   // Main Content State
   activeContent: ActiveContentType;
-  activeSymbol: string | null;
   setActiveContent: (content: ActiveContentType) => void;
-  setActiveSymbol: (symbol: string | null) => void;
 
   // Sidebar State
   leftSidebarOpen: boolean;
@@ -35,7 +33,6 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       // Initial State
       activeContent: 'none',
-      activeSymbol: null,
       leftSidebarOpen: false, // Collapsed by default as per spec
       rightSidebarOpen: true, // Visible by default as per spec
       widgets: [
@@ -46,7 +43,6 @@ export const useUIStore = create<UIState>()(
 
       // Actions
       setActiveContent: (content) => set({ activeContent: content }),
-      setActiveSymbol: (symbol) => set({ activeSymbol: symbol }),
 
       toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
       toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),

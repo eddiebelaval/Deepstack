@@ -1,20 +1,23 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useUIStore } from '@/lib/stores/ui-store';
+import { useTradingStore } from '@/lib/stores/trading-store';
+import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { TradingChart } from '@/components/charts/TradingChart';
 import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { DeepValuePanel } from '@/components/trading/DeepValuePanel';
 import { HedgedPositionsPanel } from '@/components/trading/HedgedPositionsPanel';
-import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2, Diamond, Shield } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { OptionsScreenerPanel, OptionsStrategyBuilder } from '@/components/options';
+import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2, Square, RectangleHorizontal, Search, Loader2 } from 'lucide-react';
 
 // Simple message type for our use case
 type SimpleMessage = {
@@ -27,11 +30,57 @@ type SimpleMessage = {
 
 export function ConversationView() {
     const { activeProvider, setIsStreaming } = useChatStore();
-    const { activeContent, setActiveContent, setActiveSymbol, activeSymbol } = useUIStore();
+    const { activeContent, setActiveContent } = useUIStore();
+    const { activeSymbol, setActiveSymbol } = useTradingStore();
+    const { isLoadingBars, bars } = useMarketDataStore();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isChartExpanded, setIsChartExpanded] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
+
+    // Chart loading state
+    const isChartLoading = activeSymbol ? isLoadingBars[activeSymbol] ?? false : false;
+    const hasChartData = activeSymbol ? (bars[activeSymbol]?.length ?? 0) > 0 : false;
+
+    // Chart size presets (in pixels)
+    type ChartSize = 'compact' | 'default' | 'large' | 'full';
+    const CHART_SIZES: Record<ChartSize, number> = {
+        compact: 200,
+        default: 280,
+        large: 400,
+        full: 550,
+    };
+    // Options panels need more height - use 'full' height for them
+    const OPTIONS_PANEL_HEIGHT = 600;
+    const [chartSize, setChartSize] = useState<ChartSize>('default');
+
+    // Symbol search state
+    const [isSearchingSymbol, setIsSearchingSymbol] = useState(false);
+    const [symbolSearchValue, setSymbolSearchValue] = useState('');
+    const symbolInputRef = useRef<HTMLInputElement>(null);
+
+    // Focus symbol input when search opens
+    useEffect(() => {
+        if (isSearchingSymbol && symbolInputRef.current) {
+            symbolInputRef.current.focus();
+        }
+    }, [isSearchingSymbol]);
+
+    const handleSymbolSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        const symbol = symbolSearchValue.trim().toUpperCase();
+        if (symbol) {
+            setActiveSymbol(symbol);
+            setSymbolSearchValue('');
+            setIsSearchingSymbol(false);
+        }
+    };
+
+    const handleSymbolKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            setSymbolSearchValue('');
+            setIsSearchingSymbol(false);
+        }
+    };
 
     // Basic intent detection
     const detectIntent = (content: string) => {
@@ -139,7 +188,7 @@ export function ConversationView() {
 
     const closeContentZone = () => {
         setActiveContent('none');
-        setIsChartExpanded(false);
+        setChartSize('default');
     };
 
     // Render the active content (chart, orders, etc.)
@@ -147,8 +196,26 @@ export function ConversationView() {
     const renderActiveContent = () => {
         if (activeContent === 'chart') {
             return (
-                <div className="flex-1 min-h-0 rounded-2xl overflow-hidden bg-card border border-border/50">
+                <div className="flex-1 min-h-0 rounded-2xl overflow-hidden bg-card border border-border/50 relative">
                     <TradingChart className="w-full h-full" />
+                    {/* Loading overlay */}
+                    {isChartLoading && (
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+                            <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
+                            </div>
+                        </div>
+                    )}
+                    {/* No data message */}
+                    {!isChartLoading && !hasChartData && (
+                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
+                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                <LineChart className="h-8 w-8 opacity-50" />
+                                <span className="text-sm">No data available for {activeSymbol}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -179,6 +246,20 @@ export function ConversationView() {
             return (
                 <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
                     <HedgedPositionsPanel />
+                </div>
+            );
+        }
+        if (activeContent === 'options-screener') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                    <OptionsScreenerPanel />
+                </div>
+            );
+        }
+        if (activeContent === 'options-builder') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                    <OptionsStrategyBuilder />
                 </div>
             );
         }
@@ -251,37 +332,112 @@ export function ConversationView() {
             {/* Using fixed pixel heights since percentage heights don't work well in nested flex contexts */}
             {hasActiveContent && (
                 <div
-                    className={cn(
-                        "flex-shrink-0 p-3 bg-background border-b border-border/30 transition-all duration-300 ease-in-out",
-                        isChartExpanded ? "h-[400px]" : "h-[280px]"
-                    )}
+                    className="flex-shrink-0 p-3 bg-background border-b border-border/30 transition-all duration-300 ease-in-out"
+                    style={{ height: `${(activeContent === 'options-screener' || activeContent === 'options-builder') ? OPTIONS_PANEL_HEIGHT : CHART_SIZES[chartSize]}px` }}
                 >
                     <div className="h-full flex flex-col min-h-0">
                         {/* Tool Header with controls */}
                         <div className="flex items-center justify-between mb-2 px-1 flex-shrink-0 h-8">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-muted-foreground">
-                                    {activeContent === 'chart' && `Chart: ${activeSymbol}`}
-                                    {activeContent === 'orders' && 'Order Entry'}
-                                    {activeContent === 'portfolio' && 'Positions'}
-                                    {activeContent === 'deep-value' && 'Deep Value Screener'}
-                                    {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
-                                </span>
+                                {activeContent === 'chart' ? (
+                                    isSearchingSymbol ? (
+                                        <form onSubmit={handleSymbolSearch} className="flex items-center gap-1">
+                                            <Input
+                                                ref={symbolInputRef}
+                                                type="text"
+                                                value={symbolSearchValue}
+                                                onChange={(e) => setSymbolSearchValue(e.target.value.toUpperCase())}
+                                                onKeyDown={handleSymbolKeyDown}
+                                                placeholder="Symbol..."
+                                                className="h-6 w-20 text-xs uppercase px-2"
+                                                maxLength={10}
+                                            />
+                                            <Button
+                                                type="submit"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-6 w-6"
+                                                disabled={!symbolSearchValue.trim()}
+                                            >
+                                                <Search className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-6 w-6"
+                                                onClick={() => {
+                                                    setSymbolSearchValue('');
+                                                    setIsSearchingSymbol(false);
+                                                }}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </form>
+                                    ) : (
+                                        <button
+                                            onClick={() => setIsSearchingSymbol(true)}
+                                            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-0.5 rounded transition-colors group"
+                                            title="Click to search symbol"
+                                        >
+                                            <Search className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                                            <span>Chart: {activeSymbol}</span>
+                                        </button>
+                                    )
+                                ) : (
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                        {activeContent === 'orders' && 'Order Entry'}
+                                        {activeContent === 'portfolio' && 'Positions'}
+                                        {activeContent === 'deep-value' && 'Deep Value Screener'}
+                                        {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
+                                        {activeContent === 'options-screener' && 'Options Screener'}
+                                        {activeContent === 'options-builder' && 'Strategy Builder'}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex items-center gap-1">
                                 {activeContent === 'chart' && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 rounded-lg"
-                                        onClick={() => setIsChartExpanded(!isChartExpanded)}
-                                    >
-                                        {isChartExpanded ? (
-                                            <Minimize2 className="h-3.5 w-3.5" />
-                                        ) : (
-                                            <Maximize2 className="h-3.5 w-3.5" />
-                                        )}
-                                    </Button>
+                                    <>
+                                        {/* Size preset buttons */}
+                                        <div className="flex items-center gap-0.5 mr-1 border-r border-border/50 pr-2">
+                                            <Button
+                                                variant={chartSize === 'compact' ? 'secondary' : 'ghost'}
+                                                size="icon"
+                                                className="h-6 w-6 rounded"
+                                                onClick={() => setChartSize('compact')}
+                                                title="Compact"
+                                            >
+                                                <Minimize2 className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                                variant={chartSize === 'default' ? 'secondary' : 'ghost'}
+                                                size="icon"
+                                                className="h-6 w-6 rounded"
+                                                onClick={() => setChartSize('default')}
+                                                title="Default"
+                                            >
+                                                <Square className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                                variant={chartSize === 'large' ? 'secondary' : 'ghost'}
+                                                size="icon"
+                                                className="h-6 w-6 rounded"
+                                                onClick={() => setChartSize('large')}
+                                                title="Large"
+                                            >
+                                                <RectangleHorizontal className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                                variant={chartSize === 'full' ? 'secondary' : 'ghost'}
+                                                size="icon"
+                                                className="h-6 w-6 rounded"
+                                                onClick={() => setChartSize('full')}
+                                                title="Full"
+                                            >
+                                                <Maximize2 className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </>
                                 )}
                                 <Button
                                     variant="ghost"

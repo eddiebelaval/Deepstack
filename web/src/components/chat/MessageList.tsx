@@ -74,13 +74,13 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
 
   return (
     <ScrollArea className="flex-1 px-4">
-      <div className="max-w-3xl mx-auto py-3">
+      <div className="max-w-3xl mx-auto py-6">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
 
         {isStreaming && (
-          <div className="flex items-center gap-2 text-muted-foreground mb-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-6">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">Thinking...</span>
           </div>

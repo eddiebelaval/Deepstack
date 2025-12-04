@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { useTradingStore, type Timeframe, type ChartType, type IndicatorType } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Popover,
@@ -17,6 +19,8 @@ import {
   ChevronDown,
   Maximize2,
   Settings2,
+  Search,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TradingChart } from "@/components/charts/TradingChart";
@@ -52,6 +56,7 @@ export function ChartPanel() {
     chartType,
     timeframe,
     indicators,
+    setActiveSymbol,
     setChartType,
     setTimeframe,
     addIndicator,
@@ -63,6 +68,35 @@ export function ChartPanel() {
   const isLoading = isLoadingBars[activeSymbol] ?? false;
   const quote = quotes[activeSymbol];
 
+  // Symbol search state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when search opens
+  useEffect(() => {
+    if (isSearching && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearching]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const symbol = searchValue.trim().toUpperCase();
+    if (symbol) {
+      setActiveSymbol(symbol);
+      setSearchValue("");
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setSearchValue("");
+      setIsSearching(false);
+    }
+  };
+
   const activeIndicatorIds = indicators.filter((i) => i.visible).map((i) => i.type);
   const hasRSI = activeIndicatorIds.includes("RSI");
   const hasMACD = activeIndicatorIds.includes("MACD");
@@ -72,10 +106,53 @@ export function ChartPanel() {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 p-2 border-b border-border">
         <div className="flex items-center gap-2">
-          {/* Symbol & Price */}
+          {/* Symbol & Price with Search */}
           <div className="flex items-center gap-2 pr-3 border-r border-border">
-            <span className="font-bold text-lg">{activeSymbol}</span>
-            {quote && (
+            {isSearching ? (
+              <form onSubmit={handleSearchSubmit} className="flex items-center gap-1">
+                <Input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value.toUpperCase())}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Symbol..."
+                  className="h-7 w-24 text-sm uppercase"
+                  maxLength={10}
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  disabled={!searchValue.trim()}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => {
+                    setSearchValue("");
+                    setIsSearching(false);
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setIsSearching(true)}
+                className="flex items-center gap-1.5 hover:bg-muted px-2 py-1 rounded transition-colors group"
+                title="Click to search symbol"
+              >
+                <Search className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
+                <span className="font-bold text-lg">{activeSymbol}</span>
+              </button>
+            )}
+            {!isSearching && quote && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">
                   ${quote.last?.toFixed(2) ?? "—"}

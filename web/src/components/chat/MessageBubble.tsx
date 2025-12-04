@@ -37,35 +37,51 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-6">
-        <div className="bg-primary text-primary-foreground px-4 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%] shadow-sm">
-          <div className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</div>
+      <div className="flex justify-end mb-8">
+        <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-tr-sm max-w-[85%] shadow-sm">
+          <div className="text-[15px] whitespace-pre-wrap leading-relaxed">{message.content}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex justify-start mb-8 w-full">
+    <div className="flex justify-start mb-10 w-full">
       <div className="w-full max-w-4xl">
-        <div className="prose prose-sm dark:prose-invert max-w-none
-          prose-headings:font-semibold prose-headings:tracking-tight prose-headings:mb-3 prose-headings:mt-6
-          prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
-          prose-p:leading-7 prose-p:mb-4
-          prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
-          prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
-          prose-li:my-1.5
-          prose-strong:font-semibold
-          prose-blockquote:border-l-4 prose-blockquote:border-primary/20 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground
-          prose-table:w-full prose-table:my-6 prose-table:border-collapse prose-table:border prose-table:border-border/50 prose-table:rounded-lg prose-table:overflow-hidden
-          prose-th:bg-muted/50 prose-th:p-3 prose-th:text-left prose-th:font-medium prose-th:border-b prose-th:border-border/50
-          prose-td:p-3 prose-td:border-b prose-td:border-border/50 last:prose-td:border-0
-          prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-          prose-code:px-1.5 prose-code:py-0.5 prose-code:bg-muted prose-code:rounded-md prose-code:font-mono prose-code:text-xs prose-code:before:content-[''] prose-code:after:content-['']
-        ">
+        <div className="text-foreground/90 text-[15px] leading-relaxed">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
+              h1({ children }) {
+                return <h1 className="text-xl font-semibold mb-4 mt-0 text-foreground tracking-tight">{children}</h1>;
+              },
+              h2({ children }) {
+                return <h2 className="text-lg font-semibold mt-8 mb-4 pb-2 border-b border-border/30 text-foreground tracking-tight">{children}</h2>;
+              },
+              h3({ children }) {
+                return <h3 className="text-base font-medium mt-6 mb-3 text-foreground">{children}</h3>;
+              },
+              p({ children }) {
+                return <p className="mb-4 leading-[1.75]">{children}</p>;
+              },
+              ul({ children }) {
+                return <ul className="my-4 ml-5 space-y-2 list-disc">{children}</ul>;
+              },
+              ol({ children }) {
+                return <ol className="my-4 ml-5 space-y-2 list-decimal">{children}</ol>;
+              },
+              li({ children }) {
+                return <li className="leading-[1.7] pl-1">{children}</li>;
+              },
+              strong({ children }) {
+                return <strong className="font-semibold text-foreground">{children}</strong>;
+              },
+              blockquote({ children }) {
+                return <blockquote className="border-l-2 border-muted-foreground/30 pl-4 my-6 text-muted-foreground">{children}</blockquote>;
+              },
+              hr() {
+                return <hr className="my-8 border-border/20" />;
+              },
               code({ node, inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');
                 return !inline && match ? (
@@ -76,7 +92,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                     {...props}
                   />
                 ) : (
-                  <code className={cn("bg-muted px-1.5 py-0.5 rounded-md font-mono text-sm", className)} {...props}>
+                  <code className={cn("bg-muted px-1.5 py-0.5 rounded font-mono text-[13px]", className)} {...props}>
                     {children}
                   </code>
                 );
@@ -119,7 +135,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
         {/* Tool calls */}
         {message.toolInvocations && message.toolInvocations.length > 0 && (
-          <div className="mt-6 space-y-3">
+          <div className="mt-8 space-y-4">
             {message.toolInvocations.map((tool: any, idx: number) => (
               <ToolUseCard key={idx} tool={tool} />
             ))}

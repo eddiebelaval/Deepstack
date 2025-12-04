@@ -32,8 +32,9 @@ export function MarketDataProvider({
   autoConnect = false, // Disabled - backend doesn't have WebSocket endpoint yet
 }: MarketDataProviderProps) {
   const { activeSymbol } = useTradingStore();
-  const { subscribe, wsConnected, setBars, setLoadingBars, updateQuotes, bars } = useMarketDataStore();
+  const { subscribe, wsConnected, setBars, setLoadingBars, updateQuotes, bars, isLoadingBars } = useMarketDataStore();
   const initialFetchDone = useRef(false);
+  const lastFetchedSymbol = useRef<string | null>(null);
 
   const { connect, disconnect, subscribeSymbols, unsubscribeSymbols, isConnected } =
     useWebSocket({
@@ -140,11 +141,18 @@ export function MarketDataProvider({
   }, [activeSymbol, wsConnected, subscribe, subscribeSymbols]);
 
   // Fetch bars when active symbol changes
+  // Key fix: Track symbol changes with ref to avoid stale closure issues with bars dependency
   useEffect(() => {
-    if (activeSymbol && (!bars[activeSymbol] || bars[activeSymbol].length === 0)) {
-      fetchBars(activeSymbol);
-    }
-  }, [activeSymbol, bars, fetchBars]);
+    if (!activeSymbol) return;
+
+    // Skip if we're already loading this symbol or just fetched it
+    if (isLoadingBars[activeSymbol]) return;
+    if (lastFetchedSymbol.current === activeSymbol && bars[activeSymbol]?.length > 0) return;
+
+    // Fetch data for the new symbol
+    lastFetchedSymbol.current = activeSymbol;
+    fetchBars(activeSymbol);
+  }, [activeSymbol, fetchBars, isLoadingBars, bars]);
 
   // Context value
   const contextValue = useMemo<MarketDataContextType>(
