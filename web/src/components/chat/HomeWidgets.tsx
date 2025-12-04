@@ -83,13 +83,19 @@ export function HomeWidgets() {
                     if (!response.ok) return null;
 
                     const data = await response.json();
-                    // Assuming data is array of { time, open, high, low, close, volume }
+                    // API returns { bars: [...] } with bars having { t, o, h, l, c, v }
+                    const bars = data.bars || [];
+
+                    if (bars.length === 0) {
+                        console.warn(`No bars data for ${symbol}`);
+                        return null;
+                    }
 
                     return {
                         symbol,
-                        data: data.map((d: any) => ({
-                            time: d.time, // Unix timestamp
-                            value: d.close
+                        data: bars.map((d: any) => ({
+                            time: Math.floor(new Date(d.t).getTime() / 1000), // Convert to Unix seconds for lightweight-charts
+                            value: d.c // 'c' is close price
                         })),
                         color: COLORS[index % COLORS.length],
                         visible: true
