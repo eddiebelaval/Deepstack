@@ -14,8 +14,8 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (override=True ensures fresh values from .env file)
+load_dotenv(override=True)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -296,10 +296,10 @@ def generate_demo_bars(
                 "l": round(low_price, 2),
                 "c": round(close_price, 2),
                 "v": (
-                    random.uniform(0.1, 100.0)
+                    random.uniform(0.1, 100.0)  # nosec B311
                     if is_crypto
-                    else random.randint(100000, 10000000)
-                ),  # nosec B311
+                    else random.randint(100000, 10000000)  # nosec B311
+                ),
             }
         )
 
@@ -326,10 +326,10 @@ def generate_demo_quote(symbol: str, is_crypto: bool = False) -> dict:
         "change": round(random.uniform(-volatility, volatility), 2),  # nosec B311
         "changePercent": round(random.uniform(-5, 5), 2),  # nosec B311
         "volume": (
-            random.uniform(0.1, 100.0)
+            random.uniform(0.1, 100.0)  # nosec B311
             if is_crypto
-            else random.randint(100000, 10000000)
-        ),  # nosec B311
+            else random.randint(100000, 10000000)  # nosec B311
+        ),
         "timestamp": datetime.now().isoformat(),
     }
 

@@ -24,7 +24,7 @@ const COLORS = [
 ];
 
 const MARKET_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM'];
-const CRYPTO_SYMBOLS = ['BTC-USD', 'ETH-USD', 'DOGE-USD', 'XRP-USD'];
+const CRYPTO_SYMBOLS = ['BTC/USD', 'ETH/USD', 'DOGE/USD', 'XRP/USD'];
 const TIMEFRAMES = ['1H', '4H', '1D', '1W', '1M'];
 
 export function HomeWidgets() {
@@ -94,8 +94,8 @@ export function HomeWidgets() {
                     return {
                         symbol,
                         data: bars.map((d: any) => ({
-                            time: Math.floor(new Date(d.t).getTime() / 1000), // Convert to Unix seconds for lightweight-charts
-                            value: d.c // 'c' is close price
+                            time: Math.floor(new Date(d.t || d.time).getTime() / 1000), // Support both Alpaca (t) and fallback (time) format
+                            value: d.c ?? d.close ?? 0 // Support both Alpaca (c) and fallback (close) format
                         })),
                         color: COLORS[index % COLORS.length],
                         visible: true
