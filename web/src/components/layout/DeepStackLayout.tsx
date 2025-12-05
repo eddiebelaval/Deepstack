@@ -7,6 +7,7 @@ import { WidgetPanel } from './WidgetPanel';
 import { StreamingTicker } from './StreamingTicker';
 import { ProfilePanel } from './ProfilePanel';
 import { SettingsPanel } from './SettingsPanel';
+import { EmotionalFirewallBanner } from '@/components/emotional-firewall';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,11 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
             >
                 {/* LED Ticker at top of workspace */}
                 <StreamingTicker />
+
+                {/* Emotional Firewall Banner - shows trading status */}
+                <div className="px-4 py-2">
+                    <EmotionalFirewallBanner />
+                </div>
 
                 {/* Workspace Content - fills remaining height */}
                 <div className="flex-1 flex flex-col min-h-0">

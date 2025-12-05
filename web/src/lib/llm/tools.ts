@@ -88,7 +88,7 @@ export const tradingTools = {
   }),
 
   place_order: tool({
-    description: 'Create an order ticket for user confirmation. DOES NOT execute the order - user must approve.',
+    description: 'Create an order ticket for user confirmation. DOES NOT execute the order - user must approve. Checks emotional firewall first.',
     parameters: z.object({
       symbol: z.string().describe('Stock ticker symbol'),
       quantity: z.number().int().positive().describe('Number of shares'),
@@ -106,6 +106,44 @@ export const tradingTools = {
       stop_price?: number;
     }) => {
       try {
+        // Check emotional firewall first
+        const firewallResponse = await fetch('/api/emotional-firewall/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'check_trade',
+            symbol: params.symbol,
+          }),
+        });
+
+        if (firewallResponse.ok) {
+          const firewallResult = await firewallResponse.json();
+
+          if (firewallResult.blocked) {
+            return {
+              success: false,
+              blocked_by_firewall: true,
+              patterns: firewallResult.patterns_detected,
+              reasons: firewallResult.reasons,
+              cooldown_expires: firewallResult.cooldown_expires,
+              message: `Trade blocked by Emotional Firewall: ${firewallResult.reasons.join(', ')}. Take a break and reassess.`,
+            };
+          }
+
+          if (firewallResult.status === 'warning') {
+            // Create ticket but with warning
+            const ticket = await api.createOrderTicket(params);
+            return {
+              success: true,
+              data: ticket,
+              firewall_warning: true,
+              patterns: firewallResult.patterns_detected,
+              reasons: firewallResult.reasons,
+              message: `Order ticket created with caution: ${firewallResult.reasons.join(', ')}. Please confirm carefully.`,
+            };
+          }
+        }
+
         // Create order ticket (not executed yet)
         const ticket = await api.createOrderTicket(params);
         return {
