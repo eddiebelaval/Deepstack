@@ -1,0 +1,61 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.cursor/
+
+# Testing
+.pytest_cache/
+.coverage
+coverage.json
+htmlcov/
+.mypy_cache/
+tests/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Web frontend (deployed separately)
+web/
+
+# Data and logs
+data/
+*.log
+*.db
+*.sqlite
+
+# CI/CD
+.github/
+.factory/
+.claude/
+.playwright-mcp/
+
+# Misc
+*.tar.gz
+*.zip
+examples/
+knowledge-base/
+scripts/

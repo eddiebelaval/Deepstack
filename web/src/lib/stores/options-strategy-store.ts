@@ -61,7 +61,7 @@ type OptionsStrategyState = {
   reset: () => void;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Use Next.js API routes which handle backend fallback with mock data
 
 const initialState = {
   symbol: 'SPY',
@@ -192,7 +192,7 @@ export const useOptionsStrategyStore = create<OptionsStrategyState>()(
             num_points: state.numPoints,
           };
 
-          const response = await fetch(`${API_BASE}/api/options/strategy/calculate`, {
+          const response = await fetch('/api/options/strategy', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

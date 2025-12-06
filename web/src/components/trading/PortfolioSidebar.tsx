@@ -1,42 +1,34 @@
 "use client"
 
-import { useEffect, useState, useRef } from 'react';
-import { api, type AccountSummary } from '@/lib/api';
+import { useRef } from 'react';
+import { usePortfolio } from '@/hooks/usePortfolio';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Separator } from '@/components/ui/separator';
-import { PositionsList } from './PositionsList';
-import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { PositionCard } from './PositionCard';
+import { ManualPositionDialog } from './ManualPositionDialog';
+import { Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function PortfolioSidebar() {
-  const [account, setAccount] = useState<AccountSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const fetchAccount = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await api.account();
-      setAccount(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load account');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    positions,
+    summary,
+    isLoading,
+    isRefreshing,
+    error,
+    refresh,
+    isConnected,
+    removeTrade,
+  } = usePortfolio({ pollInterval: 30000 });
 
-  useEffect(() => {
-    fetchAccount();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchAccount, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading && !account) {
+  // Loading state (only on initial load)
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -44,11 +36,12 @@ export function PortfolioSidebar() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="p-4">
         <div className="text-sm text-destructive">{error}</div>
-        <Button onClick={fetchAccount} variant="outline" size="sm" className="mt-2">
+        <Button onClick={refresh} variant="outline" size="sm" className="mt-2">
           Retry
         </Button>
       </div>
@@ -57,63 +50,150 @@ export function PortfolioSidebar() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between">
-        <h2 className="font-semibold">Portfolio</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold">Portfolio</h2>
+          {isConnected ? (
+            <Wifi className="h-3 w-3 text-profit" />
+          ) : (
+            <WifiOff className="h-3 w-3 text-muted-foreground" />
+          )}
+        </div>
         <Button
           variant="ghost"
           size="icon"
-          onClick={fetchAccount}
+          onClick={refresh}
+          disabled={isRefreshing}
           className="h-8 w-8"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
         </Button>
       </div>
 
+      {/* Content */}
       <div className="flex-1 relative overflow-hidden">
         <ScrollArea className="h-full p-4" viewportRef={scrollRef} hideScrollbar>
           <div className="space-y-4">
             {/* Account Summary */}
-            {account && (
-              <Card className="p-4 space-y-3">
+            <Card className="p-4 space-y-3">
+              <div>
+                <div className="text-xs text-muted-foreground">Portfolio Value</div>
+                <div className="text-2xl font-bold">
+                  ${summary.total_value.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-xs text-muted-foreground">Portfolio Value</div>
-                  <div className="text-2xl font-bold">
-                    ${account.portfolio_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <div className="text-xs text-muted-foreground">Cash</div>
+                  <div className="text-sm font-medium">
+                    ${summary.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Cash</div>
-                    <div className="text-sm font-medium">
-                      ${account.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Buying Power</div>
-                    <div className="text-sm font-medium">
-                      ${account.buying_power.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
                 <div>
-                  <div className="text-xs text-muted-foreground">Day P&L</div>
-                  <div className={`text-lg font-bold ${account.day_pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                    {account.day_pnl >= 0 ? '+' : ''}${account.day_pnl.toFixed(2)}
+                  <div className="text-xs text-muted-foreground">Positions</div>
+                  <div className="text-sm font-medium">
+                    ${summary.positions_value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 </div>
-              </Card>
-            )}
+              </div>
 
-            {/* Positions */}
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-xs text-muted-foreground">Unrealized P&L</div>
+                  <div className={cn(
+                    "text-sm font-bold",
+                    summary.unrealized_pnl >= 0 ? 'text-profit' : 'text-loss'
+                  )}>
+                    {summary.unrealized_pnl >= 0 ? '+' : ''}
+                    ${summary.unrealized_pnl.toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Realized P&L</div>
+                  <div className={cn(
+                    "text-sm font-bold",
+                    summary.realized_pnl >= 0 ? 'text-profit' : 'text-loss'
+                  )}>
+                    {summary.realized_pnl >= 0 ? '+' : ''}
+                    ${summary.realized_pnl.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Positions Section */}
             <div>
-              <h3 className="text-sm font-semibold mb-2">Positions</h3>
-              <PositionsList />
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">Positions</h3>
+                <Badge variant="secondary" className="text-xs">
+                  {summary.positions_count}
+                </Badge>
+              </div>
+
+              {/* Manual Entry Dialog */}
+              <div className="mb-3">
+                <ManualPositionDialog onSuccess={refresh} />
+              </div>
+
+              {/* Positions List */}
+              {positions.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-8">
+                  No open positions
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {positions
+                    .filter(p => p.quantity !== 0)
+                    .map((position) => (
+                      <PositionCard
+                        key={position.symbol}
+                        position={position}
+                        onClose={async () => {
+                          // For now, we'd need to record a closing trade
+                          // This would be handled by the close position flow
+                        }}
+                      />
+                    ))}
+                </div>
+              )}
+
+              {/* Closed Positions with Realized P&L */}
+              {positions.filter(p => p.quantity === 0 && p.realized_pnl !== 0).length > 0 && (
+                <>
+                  <Separator className="my-4" />
+                  <h3 className="text-sm font-semibold mb-2">Closed Positions</h3>
+                  <div className="space-y-2">
+                    {positions
+                      .filter(p => p.quantity === 0 && p.realized_pnl !== 0)
+                      .map((position) => (
+                        <Card key={position.symbol} className="p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{position.symbol}</span>
+                            <span className={cn(
+                              "font-semibold",
+                              position.realized_pnl >= 0 ? 'text-profit' : 'text-loss'
+                            )}>
+                              {position.realized_pnl >= 0 ? '+' : ''}
+                              ${position.realized_pnl.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {position.trades.length} trades
+                          </div>
+                        </Card>
+                      ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </ScrollArea>

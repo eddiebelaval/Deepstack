@@ -51,7 +51,7 @@ type OptionsScreenerState = {
   clearSelection: () => void;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Use Next.js API routes which handle backend fallback with mock data
 
 export const useOptionsScreenerStore = create<OptionsScreenerState>()(
   persist(
@@ -165,7 +165,7 @@ export const useOptionsScreenerStore = create<OptionsScreenerState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await fetch(`${API_BASE}/api/options/screen`, {
+          const response = await fetch('/api/options/screen', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { api } from '@/lib/api';
+import { recordTrade } from '@/lib/supabase/portfolio';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -23,14 +23,25 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 const formSchema = z.object({
-    symbol: z.string().min(1, 'Symbol is required').toUpperCase(),
+    symbol: z.string().min(1, 'Symbol is required'),
+    action: z.enum(['BUY', 'SELL']),
     quantity: z.coerce.number().int().positive('Quantity must be positive'),
-    avg_cost: z.coerce.number().min(0, 'Cost cannot be negative'),
+    price: z.coerce.number().positive('Price must be positive'),
+    order_type: z.enum(['MKT', 'LMT', 'STP']).default('MKT'),
+    notes: z.string().optional(),
 });
 
 interface ManualPositionDialogProps {
@@ -45,23 +56,33 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
             symbol: '',
+            action: 'BUY',
             quantity: 1,
-            avg_cost: 0,
+            price: 0,
+            order_type: 'MKT',
+            notes: '',
         },
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setLoading(true);
         try {
-            await api.addManualPosition(values);
-            toast.success('Position Added', {
-                description: `Added ${values.quantity} ${values.symbol} @ $${values.avg_cost}`,
+            await recordTrade({
+                symbol: values.symbol.toUpperCase(),
+                action: values.action,
+                quantity: values.quantity,
+                price: values.price,
+                order_type: values.order_type,
+                notes: values.notes || undefined,
+            });
+            toast.success('Trade Recorded', {
+                description: `${values.action} ${values.quantity} ${values.symbol.toUpperCase()} @ $${values.price.toFixed(2)}`,
             });
             setOpen(false);
             form.reset();
             onSuccess();
         } catch (error) {
-            toast.error('Failed to add position', {
+            toast.error('Failed to record trade', {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {
@@ -72,16 +93,17 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button variant="outline" size="sm" className="h-8 w-full">
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Position
+                    Record Trade
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Add Manual Position</DialogTitle>
+                    <DialogTitle>Record Paper Trade</DialogTitle>
                     <DialogDescription>
-                        Manually add a position to your portfolio. This will not execute a trade.
+                        Record a paper trade to track in your portfolio.
+                        This will update your positions and P&L.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -93,12 +115,69 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
                                 <FormItem>
                                     <FormLabel>Symbol</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="AAPL" {...field} />
+                                        <Input
+                                            placeholder="AAPL"
+                                            {...field}
+                                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="action"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Action</FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select action" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="BUY">BUY</SelectItem>
+                                                <SelectItem value="SELL">SELL</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="order_type"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Order Type</FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="MKT">Market</SelectItem>
+                                                <SelectItem value="LMT">Limit</SelectItem>
+                                                <SelectItem value="STP">Stop</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
@@ -107,7 +186,7 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
                                     <FormItem>
                                         <FormLabel>Quantity</FormLabel>
                                         <FormControl>
-                                            <Input type="number" min="1" {...field} />
+                                            <Input type="number" min="1" step="1" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -115,22 +194,41 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
                             />
                             <FormField
                                 control={form.control}
-                                name="avg_cost"
+                                name="price"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Avg Cost ($)</FormLabel>
+                                        <FormLabel>Price ($)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" step="0.01" min="0" {...field} />
+                                            <Input type="number" step="0.01" min="0.01" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                         </div>
+
+                        <FormField
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Notes (optional)</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            placeholder="Reason for trade, strategy, etc."
+                                            className="resize-none"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
                         <DialogFooter>
                             <Button type="submit" disabled={loading}>
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Add Position
+                                Record Trade
                             </Button>
                         </DialogFooter>
                     </form>
