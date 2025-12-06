@@ -5,6 +5,7 @@ import { ThemeProvider } from 'next-themes'
 import { useState, ReactNode } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { MarketDataProvider } from '@/components/providers/MarketDataProvider'
+import { ErrorBoundary } from '@/components/error'
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
@@ -17,9 +18,11 @@ export default function Providers({ children }: { children: ReactNode }) {
         enableSystem={false}
         disableTransitionOnChange
       >
-        <MarketDataProvider autoConnect={true}>
-          {children}
-        </MarketDataProvider>
+        <ErrorBoundary level="page">
+          <MarketDataProvider autoConnect={true}>
+            {children}
+          </MarketDataProvider>
+        </ErrorBoundary>
         <Toaster position="top-right" richColors closeButton />
       </ThemeProvider>
     </QueryClientProvider>
