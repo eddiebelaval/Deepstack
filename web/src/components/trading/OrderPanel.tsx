@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useTradingStore } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
-import { api } from "@/lib/api";
+import { usePlacePaperTrade } from "@/hooks/usePortfolio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DotScrollIndicator } from "@/components/ui/DotScrollIndicator";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type OrderType = "MKT" | "LMT" | "STP";
@@ -29,57 +29,90 @@ type OrderSide = "buy" | "sell";
 export function OrderPanel() {
   const { activeSymbol } = useTradingStore();
   const { quotes } = useMarketDataStore();
+  const { execute: placePaperTrade, isSubmitting: isPaperTradeSubmitting } = usePlacePaperTrade();
 
   const [side, setSide] = useState<OrderSide>("buy");
   const [orderType, setOrderType] = useState<OrderType>("MKT");
   const [quantity, setQuantity] = useState<string>("1");
   const [limitPrice, setLimitPrice] = useState<string>("");
   const [stopPrice, setStopPrice] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingFirewall, setIsCheckingFirewall] = useState(false);
+  const [firewallWarning, setFirewallWarning] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const quote = quotes[activeSymbol];
   const currentPrice = quote?.last ?? 0;
   const qty = parseInt(quantity) || 0;
   const estimatedValue = qty * currentPrice;
+  const isSubmitting = isPaperTradeSubmitting || isCheckingFirewall;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (qty <= 0 || !activeSymbol) return;
 
-    setIsSubmitting(true);
+    setFirewallWarning(null);
+    setIsCheckingFirewall(true);
 
     try {
-      const response = await api.placeOrder({
-        symbol: activeSymbol,
-        quantity: qty,
-        action: side === "buy" ? "BUY" : "SELL",
-        order_type: orderType,
-        limit_price: orderType === "LMT" ? parseFloat(limitPrice) : undefined,
-        stop_price: orderType === "STP" ? parseFloat(stopPrice) : undefined,
+      // Check emotional firewall first
+      const firewallResponse = await fetch('/api/emotional-firewall/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check_trade', symbol: activeSymbol }),
       });
 
-      const isSuccess = response.status === "filled" || response.status === "submitted";
-      if (isSuccess) {
-        toast.success("Order Submitted", {
-          description: `${side.toUpperCase()} ${qty} ${activeSymbol} - ${response.message}`,
-        });
-        // Reset form on success
-        setQuantity("1");
-        setLimitPrice("");
-        setStopPrice("");
-      } else {
-        toast.error("Order Issue", {
-          description: response.message,
-        });
+      if (firewallResponse.ok) {
+        const firewallResult = await firewallResponse.json();
+
+        if (firewallResult.blocked) {
+          toast.error("Trade Blocked", {
+            description: `Emotional Firewall: ${firewallResult.reasons?.join(', ') || 'Take a break'}`,
+            duration: 5000,
+          });
+          setIsCheckingFirewall(false);
+          return;
+        }
+
+        if (firewallResult.status === 'warning') {
+          setFirewallWarning(firewallResult.reasons?.join(', ') || 'Proceed with caution');
+        }
       }
-    } catch (error) {
-      toast.error("Order Failed", {
-        description: error instanceof Error ? error.message : "Failed to place order",
+    } catch {
+      // Firewall check failed - proceed anyway
+      console.warn('Emotional firewall check failed, proceeding with trade');
+    }
+
+    setIsCheckingFirewall(false);
+
+    // Get execution price
+    const executionPrice = orderType === "LMT"
+      ? parseFloat(limitPrice) || currentPrice
+      : currentPrice;
+
+    // Record trade in Supabase portfolio
+    const trade = await placePaperTrade({
+      symbol: activeSymbol,
+      action: side === "buy" ? "BUY" : "SELL",
+      quantity: qty,
+      price: executionPrice,
+      order_type: orderType,
+      notes: `${orderType} order via Order Panel`,
+    });
+
+    if (trade) {
+      toast.success("Trade Recorded", {
+        description: `${side.toUpperCase()} ${qty} ${activeSymbol} @ $${executionPrice.toFixed(2)}`,
       });
-    } finally {
-      setIsSubmitting(false);
+      // Reset form on success
+      setQuantity("1");
+      setLimitPrice("");
+      setStopPrice("");
+      setFirewallWarning(null);
+    } else {
+      toast.error("Trade Failed", {
+        description: "Failed to record trade. Check Supabase connection.",
+      });
     }
   };
 
@@ -187,6 +220,14 @@ export function OrderPanel() {
           )}
 
           <Separator />
+
+          {/* Firewall Warning */}
+          {firewallWarning && (
+            <div className="flex items-start gap-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+              <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-yellow-500">{firewallWarning}</p>
+            </div>
+          )}
 
           {/* Order Summary */}
           <div className="space-y-2 text-sm">

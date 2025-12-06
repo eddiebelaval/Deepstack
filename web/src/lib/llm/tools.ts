@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { api } from '@/lib/api-extended';
+import { recordTrade } from '@/lib/supabase/portfolio';
 
 export const tradingTools = {
   get_quote: tool({
@@ -121,6 +122,76 @@ export const tradingTools = {
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to create order ticket';
+        return { success: false, error: message };
+      }
+    },
+  }),
+
+  place_paper_trade: tool({
+    description: 'Execute a paper trade and record it in the portfolio. Use this for confirmed trades that should be tracked.',
+    inputSchema: z.object({
+      symbol: z.string().describe('Stock ticker symbol'),
+      quantity: z.number().int().positive().describe('Number of shares'),
+      action: z.enum(['BUY', 'SELL']).describe('Order action'),
+      price: z.number().positive().optional().describe('Execution price (defaults to current market price)'),
+      order_type: z.enum(['MKT', 'LMT', 'STP']).default('MKT').describe('Order type'),
+      notes: z.string().optional().describe('Trade notes'),
+    }),
+    execute: async (params) => {
+      try {
+        // Check emotional firewall first
+        const firewallResponse = await fetch('/api/emotional-firewall/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check_trade', symbol: params.symbol }),
+        });
+
+        if (firewallResponse.ok) {
+          const firewallResult = await firewallResponse.json();
+
+          if (firewallResult.blocked) {
+            return {
+              success: false,
+              blocked_by_firewall: true,
+              patterns: firewallResult.patterns_detected,
+              reasons: firewallResult.reasons,
+              message: `Trade blocked by Emotional Firewall: ${firewallResult.reasons?.join(', ') || 'Take a break'}`,
+            };
+          }
+        }
+
+        // Get current price if not provided
+        let executionPrice = params.price;
+        if (!executionPrice) {
+          try {
+            const quote = await api.quote(params.symbol.toUpperCase());
+            executionPrice = quote.last || 0;
+          } catch {
+            return { success: false, error: 'Could not fetch current price' };
+          }
+        }
+
+        if (!executionPrice || executionPrice <= 0) {
+          return { success: false, error: 'Invalid execution price' };
+        }
+
+        // Record trade in Supabase
+        const trade = await recordTrade({
+          symbol: params.symbol.toUpperCase(),
+          action: params.action,
+          quantity: params.quantity,
+          price: executionPrice,
+          order_type: params.order_type,
+          notes: params.notes || `Chat trade: ${params.action} ${params.quantity} shares`,
+        });
+
+        return {
+          success: true,
+          data: trade,
+          message: `Paper trade executed: ${params.action} ${params.quantity} ${params.symbol.toUpperCase()} @ $${executionPrice.toFixed(2)}`,
+        };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to place paper trade';
         return { success: false, error: message };
       }
     },
