@@ -8,6 +8,8 @@ import { StreamingTicker } from './StreamingTicker';
 import { ProfilePanel } from './ProfilePanel';
 import { SettingsPanel } from './SettingsPanel';
 import { EmotionalFirewallBanner } from '@/components/emotional-firewall';
+import { ConnectionDot } from '@/components/ui/ConnectionStatusIndicator';
+import { useRealtimePositions } from '@/hooks/useRealtimePositions';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +19,9 @@ interface DeepStackLayoutProps {
 
 export function DeepStackLayout({ children }: DeepStackLayoutProps) {
     const { leftSidebarOpen, rightSidebarOpen } = useUIStore();
+
+    // Initialize realtime subscriptions for positions
+    useRealtimePositions();
 
     return (
         <div className="h-screen bg-background flex flex-col overflow-hidden">

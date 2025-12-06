@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { useWatchlistStore } from "@/lib/stores/watchlist-store";
+import { ConnectionDot } from "@/components/ui/ConnectionStatusIndicator";
 import { cn } from "@/lib/utils";
 
 // Default indices to always show
@@ -135,6 +136,11 @@ export function StreamingTicker() {
 
   return (
     <div className="led-ticker-container h-9 overflow-hidden relative">
+      {/* Connection status dot */}
+      <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20">
+        <ConnectionDot />
+      </div>
+
       {/* Strong dissolving edge gradients */}
       <div className="absolute left-0 top-0 h-full w-24 led-fade-left z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 h-full w-24 led-fade-right z-10 pointer-events-none" />
