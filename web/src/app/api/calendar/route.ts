@@ -1,9 +1,24 @@
 import { NextResponse } from 'next/server';
 
-// Generate dynamic mock calendar events
-function generateMockEvents() {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+// Types for calendar events
+interface CalendarEvent {
+  id: string;
+  type: 'earnings' | 'economic' | 'dividend' | 'ipo' | 'market';
+  symbol?: string;
+  title: string;
+  date: string;
+  time?: string;
+  importance: 'high' | 'medium' | 'low';
+  estimate?: string;
+  prior?: string;
+}
+
+// Generate mock calendar events as fallback
+function generateMockEvents(): CalendarEvent[] {
   const today = new Date();
-  const events = [];
+  const events: CalendarEvent[] = [];
 
   // Earnings events
   const earningsCompanies = [
@@ -11,27 +26,23 @@ function generateMockEvents() {
     { symbol: 'MSFT', name: 'Microsoft Corporation' },
     { symbol: 'GOOGL', name: 'Alphabet Inc.' },
     { symbol: 'NVDA', name: 'NVIDIA Corporation' },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.' },
-    { symbol: 'META', name: 'Meta Platforms' },
-    { symbol: 'TSLA', name: 'Tesla Inc.' },
   ];
 
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 4; i++) {
     const date = new Date(today);
-    date.setDate(date.getDate() + i);
+    date.setDate(date.getDate() + i + 1);
     const dateStr = date.toISOString().split('T')[0];
 
-    // Add 1-2 earnings per day
     if (i < earningsCompanies.length) {
       const company = earningsCompanies[i];
       events.push({
         id: `earnings-${i}`,
         type: 'earnings',
         symbol: company.symbol,
-        title: `${company.name} Q4 Earnings`,
+        title: `${company.name} Earnings`,
         date: dateStr,
         time: i % 2 === 0 ? 'Before Market Open' : 'After Market Close',
-        importance: i < 3 ? 'high' : 'medium',
+        importance: i < 2 ? 'high' : 'medium',
         estimate: `$${(2 + Math.random() * 3).toFixed(2)}`,
         prior: `$${(1.8 + Math.random() * 2.5).toFixed(2)}`,
       });
@@ -40,67 +51,23 @@ function generateMockEvents() {
 
   // Economic events
   const economicEvents = [
-    { title: 'FOMC Meeting Minutes', importance: 'high' },
-    { title: 'Non-Farm Payrolls', importance: 'high' },
-    { title: 'CPI Data Release', importance: 'high' },
-    { title: 'Initial Jobless Claims', importance: 'medium' },
-    { title: 'Retail Sales', importance: 'medium' },
-    { title: 'PMI Manufacturing', importance: 'medium' },
-    { title: 'Consumer Confidence', importance: 'low' },
+    { title: 'FOMC Meeting Minutes', importance: 'high' as const },
+    { title: 'CPI Data Release', importance: 'high' as const },
+    { title: 'Initial Jobless Claims', importance: 'medium' as const },
   ];
 
   for (let i = 0; i < economicEvents.length; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
-    const event = economicEvents[i];
-
-    events.push({
-      id: `economic-${i}`,
-      type: 'economic',
-      title: event.title,
-      date: dateStr,
-      time: '8:30 AM ET',
-      importance: event.importance,
-      estimate: i < 3 ? (Math.random() * 2).toFixed(1) + '%' : undefined,
-      prior: i < 3 ? (Math.random() * 2).toFixed(1) + '%' : undefined,
-    });
-  }
-
-  // Dividend events
-  const dividendStocks = ['JNJ', 'PG', 'KO', 'XOM'];
-  for (let i = 0; i < dividendStocks.length; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() + i + 2);
     const dateStr = date.toISOString().split('T')[0];
 
     events.push({
-      id: `dividend-${i}`,
-      type: 'dividend',
-      symbol: dividendStocks[i],
-      title: 'Ex-Dividend Date',
+      id: `economic-${i}`,
+      type: 'economic',
+      title: economicEvents[i].title,
       date: dateStr,
-      importance: 'low',
-    });
-  }
-
-  // IPO events
-  const ipoEvents = [
-    { title: 'TechStartup Inc. IPO', date: 3 },
-    { title: 'GreenEnergy Corp IPO', date: 5 },
-  ];
-
-  for (const ipo of ipoEvents) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + ipo.date);
-    const dateStr = date.toISOString().split('T')[0];
-
-    events.push({
-      id: `ipo-${ipo.date}`,
-      type: 'ipo',
-      title: ipo.title,
-      date: dateStr,
-      importance: 'medium',
+      time: '8:30 AM ET',
+      importance: economicEvents[i].importance,
     });
   }
 
@@ -113,17 +80,56 @@ export async function GET(request: Request) {
     const start = searchParams.get('start');
     const end = searchParams.get('end');
 
-    let events = generateMockEvents();
+    try {
+      // Try to fetch from Python backend (Alpaca Calendar API)
+      const params = new URLSearchParams();
+      if (start) params.append('start', start);
+      if (end) params.append('end', end);
 
-    // Filter by date range if provided
-    if (start) {
-      events = events.filter(e => e.date >= start);
-    }
-    if (end) {
-      events = events.filter(e => e.date <= end);
-    }
+      const response = await fetch(
+        `${API_BASE_URL}/api/calendar?${params.toString()}`,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+        }
+      );
 
-    return NextResponse.json({ events });
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Combine backend market calendar with mock earnings/economic events
+      // (Alpaca only provides market hours, not earnings)
+      const mockEvents = generateMockEvents();
+      const backendEvents = (data.events || []).map((e: any) => ({
+        ...e,
+        importance: e.importance || 'low',
+      }));
+
+      // Filter mock events by date range if provided
+      let events = [...mockEvents];
+      if (start) events = events.filter(e => e.date >= start);
+      if (end) events = events.filter(e => e.date <= end);
+
+      // Merge with backend market calendar events
+      events = [...events, ...backendEvents].sort((a, b) => a.date.localeCompare(b.date));
+
+      return NextResponse.json({ events });
+    } catch (error) {
+      console.warn('Backend unavailable for calendar, returning mock data:', error);
+
+      let events = generateMockEvents();
+      if (start) events = events.filter(e => e.date >= start);
+      if (end) events = events.filter(e => e.date <= end);
+
+      return NextResponse.json({
+        events,
+        mock: true,
+        warning: 'Using simulated data - backend unavailable',
+      });
+    }
   } catch (error) {
     console.error('Calendar error:', error);
     return NextResponse.json(
