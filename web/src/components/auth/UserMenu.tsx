@@ -11,7 +11,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, User, Settings, ChevronRight, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { LogOut, User, Settings, ChevronRight, Loader2, LogIn } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface UserMenuProps {
@@ -42,8 +43,33 @@ export function UserMenu({
         )
     }
 
+    const router = useRouter()
+
+    if (loading) {
+        return (
+            <div className={cn(
+                "flex items-center justify-center h-11",
+                expanded ? "px-3" : "px-0"
+            )}>
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
+
     if (!user) {
-        return null
+        return (
+            <Button
+                variant="default"
+                className={cn(
+                    "w-full rounded-xl h-11 tap-target shadow-lg shadow-primary/20",
+                    expanded ? "justify-start px-3" : "justify-center px-0"
+                )}
+                onClick={() => router.push('/login')}
+            >
+                <LogIn className="h-4 w-4 shrink-0" />
+                {expanded && <span className="ml-2">Sign In</span>}
+            </Button>
+        )
     }
 
     const userEmail = user.email || 'User'

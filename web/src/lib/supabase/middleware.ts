@@ -46,7 +46,10 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Define protected routes (require authentication)
-    const protectedRoutes = ['/', '/chat', '/dashboard']
+    // We allow public access to '/' (dashboard) for demo mode.
+    // Authentication is only strictly enforced for settings/profile.
+    // Chat functionality will be gated at the UI level.
+    const protectedRoutes = ['/settings', '/profile']
     const isProtectedRoute = protectedRoutes.some(route =>
         request.nextUrl.pathname === route ||
         request.nextUrl.pathname.startsWith(route + '/')
@@ -56,7 +59,7 @@ export async function updateSession(request: NextRequest) {
     const authRoutes = ['/login']
     const isAuthRoute = authRoutes.some(route => request.nextUrl.pathname === route)
 
-    // Redirect unauthenticated users from protected routes to login
+    // Redirect unauthenticated users from strictly protected routes to login
     if (!user && isProtectedRoute) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'

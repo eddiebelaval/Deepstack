@@ -4,9 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
-import { Send, Loader2, Brain } from 'lucide-react';
+import { Send, Loader2, Brain, LogIn } from 'lucide-react';
 import { ProviderSelector } from './ProviderSelector';
 import { useChatStore } from '@/lib/stores/chat-store';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useRouter } from 'next/navigation';
 import { CommandPalette } from './CommandPalette';
 
 type ChatInputProps = {
@@ -19,6 +21,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isStreaming, activeProvider, setActiveProvider, useExtendedThinking, setUseExtendedThinking } = useChatStore();
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   const handleCommand = async (command: string) => {
     // Populate input for visual feedback
@@ -78,7 +82,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [input]);
 
   return (
-    <div className="glass-input p-4">
+    <div className="glass-input p-4 relative">
       <div className="flex items-end gap-3">
         <ProviderSelector
           value={activeProvider}
@@ -141,6 +145,19 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         onOpenChange={setShowCommandPalette}
         onCommand={handleCommand}
       />
+
+      {/* Guest Gate Overlay */}
+      {!user && !loading && (
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-50 flex items-center justify-center rounded-2xl glass-surface border border-primary/20">
+          <Button
+            onClick={() => router.push('/login')}
+            className="shadow-xl shadow-primary/20 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <LogIn className="mr-2 h-4 w-4" />
+            Sign in to Chat
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
