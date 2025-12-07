@@ -110,6 +110,101 @@ async def health():
     }
 
 
+@app.get("/api/market/assets")
+async def search_assets(
+    search: str = Query("", description="Search query for symbol or name"),
+    limit: int = Query(20, description="Maximum number of results"),
+    asset_class: Optional[str] = Query(
+        None, alias="class", description="Asset class filter: us_equity or crypto"
+    ),
+):
+    """Search for tradeable assets from Alpaca."""
+    try:
+        import httpx
+
+        headers = {
+            "APCA-API-KEY-ID": api_key,
+            "APCA-API-SECRET-KEY": secret_key,
+        }
+
+        assets = []
+
+        # Fetch US equity assets
+        if not asset_class or asset_class == "us_equity":
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://paper-api.alpaca.markets/v2/assets",
+                    headers=headers,
+                    params={"status": "active", "asset_class": "us_equity"},
+                    timeout=10.0,
+                )
+
+                if response.status_code == 200:
+                    all_assets = response.json()
+                    # Filter by search term
+                    search_lower = search.lower()
+                    for asset in all_assets:
+                        if asset.get("tradable") and (
+                            not search
+                            or search_lower in asset.get("symbol", "").lower()
+                            or search_lower in asset.get("name", "").lower()
+                        ):
+                            assets.append(
+                                {
+                                    "symbol": asset.get("symbol"),
+                                    "name": asset.get("name"),
+                                    "class": "us_equity",
+                                    "exchange": asset.get("exchange"),
+                                    "tradable": asset.get("tradable"),
+                                }
+                            )
+
+        # Fetch crypto assets
+        if not asset_class or asset_class == "crypto":
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://paper-api.alpaca.markets/v2/assets",
+                    headers=headers,
+                    params={"status": "active", "asset_class": "crypto"},
+                    timeout=10.0,
+                )
+
+                if response.status_code == 200:
+                    all_crypto = response.json()
+                    search_lower = search.lower()
+                    for asset in all_crypto:
+                        if asset.get("tradable") and (
+                            not search
+                            or search_lower in asset.get("symbol", "").lower()
+                            or search_lower in asset.get("name", "").lower()
+                        ):
+                            assets.append(
+                                {
+                                    "symbol": asset.get("symbol"),
+                                    "name": asset.get("name"),
+                                    "class": "crypto",
+                                    "exchange": "CRYPTO",
+                                    "tradable": asset.get("tradable"),
+                                }
+                            )
+
+        # Sort: exact symbol matches first, then partial matches
+        search_upper = search.upper()
+        assets.sort(
+            key=lambda x: (
+                0 if x["symbol"] == search_upper else 1,
+                0 if x["symbol"].startswith(search_upper) else 1,
+                x["symbol"],
+            )
+        )
+
+        return {"assets": assets[:limit]}
+
+    except Exception as e:
+        logger.error(f"Error fetching assets: {e}")
+        return {"assets": [], "error": str(e)}
+
+
 @app.get("/api/market/bars")
 async def get_bars(
     symbol: str = Query(..., description="Stock or Crypto symbol"),
@@ -266,6 +361,108 @@ async def get_quotes(
         # Fallback to demo data on error
         logger.warning("Falling back to demo data for quotes")
         return {"quotes": {s: generate_demo_quote(s, "/" in s) for s in symbol_list}}
+
+
+@app.get("/api/news")
+async def get_news(
+    symbol: Optional[str] = Query(None, description="Filter by stock symbol"),
+    limit: int = Query(10, description="Number of news items to return"),
+):
+    """Get latest market news from Alpaca."""
+    try:
+        import httpx
+
+        headers = {
+            "APCA-API-KEY-ID": api_key,
+            "APCA-API-SECRET-KEY": secret_key,
+        }
+
+        params = {"limit": limit, "sort": "desc"}
+        if symbol:
+            params["symbols"] = symbol.upper()
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://data.alpaca.markets/v1beta1/news",
+                headers=headers,
+                params=params,
+                timeout=10.0,
+            )
+
+            if response.status_code != 200:
+                raise Exception(f"Alpaca API returned {response.status_code}")
+
+            data = response.json()
+            articles = []
+            for item in data.get("news", []):
+                articles.append(
+                    {
+                        "id": str(item.get("id", "")),
+                        "headline": item.get("headline", ""),
+                        "summary": item.get("summary", ""),
+                        "url": item.get("url", ""),
+                        "source": item.get("source", ""),
+                        "created_at": item.get("created_at", ""),
+                        "symbols": item.get("symbols", []),
+                    }
+                )
+
+            return {"news": articles}
+
+    except Exception as e:
+        logger.error(f"Error fetching news: {e}")
+        return {"news": [], "error": str(e)}
+
+
+@app.get("/api/calendar")
+async def get_calendar(
+    start: Optional[str] = Query(None, description="Start date"),
+    end: Optional[str] = Query(None, description="End date"),
+):
+    """Get market calendar events from Alpaca."""
+    try:
+        import httpx
+
+        headers = {
+            "APCA-API-KEY-ID": api_key,
+            "APCA-API-SECRET-KEY": secret_key,
+        }
+        params = {}
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+
+        events = []
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://paper-api.alpaca.markets/v2/calendar",
+                headers=headers,
+                params=params,
+                timeout=10.0,
+            )
+
+            if response.status_code == 200:
+                for day in response.json()[:14]:
+                    events.append(
+                        {
+                            "id": f"market-{day.get('date', '')}",
+                            "type": "market",
+                            "title": "Market Open",
+                            "date": day.get("date", ""),
+                            "time": (
+                                f"{day.get('open', '09:30')} - "
+                                f"{day.get('close', '16:00')} ET"
+                            ),
+                            "importance": "low",
+                        }
+                    )
+
+        return {"events": events}
+
+    except Exception as e:
+        logger.error(f"Error fetching calendar: {e}")
+        return {"events": [], "error": str(e)}
 
 
 def generate_demo_bars(

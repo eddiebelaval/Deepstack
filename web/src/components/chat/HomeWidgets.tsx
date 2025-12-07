@@ -31,6 +31,7 @@ export function HomeWidgets() {
     const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto'>('market');
     const [timeframe, setTimeframe] = useState('1D');
     const [isLogScale, setIsLogScale] = useState(false);
+    const [displayMode, setDisplayMode] = useState<'$' | '%'>('$');
     const [isLoading, setIsLoading] = useState(false);
 
     // State for series data
@@ -115,13 +116,22 @@ export function HomeWidgets() {
         fetchData();
     }, [symbols, timeframe]);
 
-    // Filter series based on visibility state
+    // Filter series based on visibility state and apply % normalization if needed
     const displaySeries = useMemo(() => {
-        return seriesData.map(s => ({
-            ...s,
-            visible: visibleSymbols.has(s.symbol)
-        }));
-    }, [seriesData, visibleSymbols]);
+        return seriesData.map(s => {
+            const firstValue = s.data[0]?.value || 1;
+            return {
+                ...s,
+                visible: visibleSymbols.has(s.symbol),
+                data: displayMode === '%'
+                    ? s.data.map(d => ({
+                        ...d,
+                        value: ((d.value - firstValue) / firstValue) * 100
+                    }))
+                    : s.data
+            };
+        });
+    }, [seriesData, visibleSymbols, displayMode]);
 
     const toggleSymbol = (symbol: string) => {
         const newSet = new Set(visibleSymbols);
@@ -193,6 +203,32 @@ export function HomeWidgets() {
                                     {tf}
                                 </button>
                             ))}
+                        </div>
+
+                        {/* Display Mode Toggle ($ / %) */}
+                        <div className="flex items-center bg-muted/30 rounded-lg p-0.5 border border-border/30">
+                            <button
+                                onClick={() => setDisplayMode('$')}
+                                className={cn(
+                                    "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                                    displayMode === '$'
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                $
+                            </button>
+                            <button
+                                onClick={() => setDisplayMode('%')}
+                                className={cn(
+                                    "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                                    displayMode === '%'
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                %
+                            </button>
                         </div>
 
                         {/* Log Scale Toggle */}
@@ -277,7 +313,7 @@ export function HomeWidgets() {
                                     <div className="text-xs text-muted-foreground font-medium mb-2">{s.symbol}</div>
 
                                     <div className="text-2xl font-bold tracking-tight mb-1">
-                                        ${close.toFixed(2)}
+                                        {displayMode === '$' ? `$${close.toFixed(2)}` : `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`}
                                     </div>
 
                                     <div className={cn(
@@ -289,13 +325,17 @@ export function HomeWidgets() {
 
                                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                                         <div className="text-muted-foreground">Open</div>
-                                        <div className="font-medium text-right">${open.toFixed(2)}</div>
+                                        <div className="font-medium text-right">{displayMode === '$' ? `$${open.toFixed(2)}` : '0.00%'}</div>
 
                                         <div className="text-muted-foreground">High</div>
-                                        <div className="font-medium text-right text-green-500">${high.toFixed(2)}</div>
+                                        <div className="font-medium text-right text-green-500">
+                                            {displayMode === '$' ? `$${high.toFixed(2)}` : `+${(((high - open) / open) * 100).toFixed(2)}%`}
+                                        </div>
 
                                         <div className="text-muted-foreground">Low</div>
-                                        <div className="font-medium text-right text-red-500">${low.toFixed(2)}</div>
+                                        <div className="font-medium text-right text-red-500">
+                                            {displayMode === '$' ? `$${low.toFixed(2)}` : `${(((low - open) / open) * 100).toFixed(2)}%`}
+                                        </div>
                                     </div>
                                 </div>
                             );

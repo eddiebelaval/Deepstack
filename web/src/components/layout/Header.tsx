@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTradingStore } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { Button } from "@/components/ui/button";
@@ -30,24 +30,34 @@ import {
 } from "lucide-react";
 import { useUIStore } from "@/lib/stores/ui-store";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
-// Popular symbols for quick access
-const POPULAR_SYMBOLS = [
-  { symbol: "SPY", name: "SPDR S&P 500 ETF" },
-  { symbol: "QQQ", name: "Invesco QQQ Trust" },
-  { symbol: "AAPL", name: "Apple Inc." },
-  { symbol: "MSFT", name: "Microsoft Corp." },
-  { symbol: "NVDA", name: "NVIDIA Corp." },
-  { symbol: "TSLA", name: "Tesla Inc." },
-  { symbol: "AMZN", name: "Amazon.com Inc." },
-  { symbol: "GOOGL", name: "Alphabet Inc." },
-  { symbol: "META", name: "Meta Platforms Inc." },
-  { symbol: "AMD", name: "Advanced Micro Devices" },
+// Type for asset search results
+type AssetResult = {
+  symbol: string;
+  name: string;
+  class: 'us_equity' | 'crypto';
+  exchange: string;
+};
+
+// Popular symbols for quick access (shown when no search query)
+const POPULAR_SYMBOLS: AssetResult[] = [
+  { symbol: "SPY", name: "SPDR S&P 500 ETF", class: "us_equity", exchange: "ARCA" },
+  { symbol: "QQQ", name: "Invesco QQQ Trust", class: "us_equity", exchange: "NASDAQ" },
+  { symbol: "AAPL", name: "Apple Inc.", class: "us_equity", exchange: "NASDAQ" },
+  { symbol: "MSFT", name: "Microsoft Corp.", class: "us_equity", exchange: "NASDAQ" },
+  { symbol: "NVDA", name: "NVIDIA Corp.", class: "us_equity", exchange: "NASDAQ" },
+  { symbol: "TSLA", name: "Tesla Inc.", class: "us_equity", exchange: "NASDAQ" },
+  { symbol: "BTC/USD", name: "Bitcoin", class: "crypto", exchange: "CRYPTO" },
+  { symbol: "ETH/USD", name: "Ethereum", class: "crypto", exchange: "CRYPTO" },
 ];
 
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<AssetResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { activeSymbol, setActiveSymbol, showChatPanel, toggleChatPanel } = useTradingStore();
   const { wsConnected, quotes } = useMarketDataStore();
@@ -55,6 +65,51 @@ export function Header() {
 
   // Get quote for active symbol
   const activeQuote = quotes[activeSymbol];
+
+  // Debounced search function
+  const searchAssets = useCallback(async (query: string) => {
+    if (!query || query.length < 1) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/market/assets?search=${encodeURIComponent(query)}&limit=20`);
+      const data = await response.json();
+      setSearchResults(data.assets || []);
+    } catch (error) {
+      console.error('Failed to search assets:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle search query changes with debounce
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce API call by 300ms
+    searchTimeoutRef.current = setTimeout(() => {
+      searchAssets(value);
+    }, 300);
+  }, [searchAssets]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -85,18 +140,13 @@ export function Header() {
       setActiveSymbol(symbol);
       setSearchOpen(false);
       setSearchQuery("");
+      setSearchResults([]);
     },
     [setActiveSymbol]
   );
 
-  // Filter symbols based on search
-  const filteredSymbols = searchQuery
-    ? POPULAR_SYMBOLS.filter(
-        (s) =>
-          s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : POPULAR_SYMBOLS;
+  // Display either search results or popular symbols
+  const displaySymbols = searchQuery.length > 0 ? searchResults : POPULAR_SYMBOLS;
 
   return (
     <TooltipProvider>
@@ -118,9 +168,8 @@ export function Header() {
               </span>
               {activeQuote.changePercent !== undefined && (
                 <span
-                  className={`flex items-center gap-1 ${
-                    activeQuote.changePercent >= 0 ? "text-profit" : "text-loss"
-                  }`}
+                  className={`flex items-center gap-1 ${activeQuote.changePercent >= 0 ? "text-profit" : "text-loss"
+                    }`}
                 >
                   {activeQuote.changePercent >= 0 ? (
                     <TrendingUp className="h-3 w-3" />
@@ -157,11 +206,10 @@ export function Header() {
           <Tooltip>
             <TooltipTrigger asChild>
               <div
-                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                  wsConnected
-                    ? "bg-profit/20 text-profit"
-                    : "bg-loss/20 text-loss"
-                }`}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${wsConnected
+                  ? "bg-profit/20 text-profit"
+                  : "bg-loss/20 text-loss"
+                  }`}
               >
                 {wsConnected ? (
                   <Wifi className="h-3 w-3" />
@@ -234,34 +282,54 @@ export function Header() {
         {/* Symbol Search Dialog */}
         <CommandDialog
           open={searchOpen}
-          onOpenChange={setSearchOpen}
+          onOpenChange={(open) => {
+            setSearchOpen(open);
+            if (!open) {
+              setSearchQuery("");
+              setSearchResults([]);
+            }
+          }}
           title="Search Symbols"
-          description="Search for a stock symbol to view"
+          description="Search for a stock or crypto symbol to view"
         >
           <CommandInput
-            placeholder="Search symbols (e.g., AAPL, SPY)..."
+            placeholder="Search 10,000+ symbols (e.g., AAPL, BTC)..."
             value={searchQuery}
-            onValueChange={setSearchQuery}
+            onValueChange={handleSearchChange}
           />
           <CommandList>
-            <CommandEmpty>No symbols found.</CommandEmpty>
-            <CommandGroup heading="Popular Symbols">
-              {filteredSymbols.map((item) => (
-                <CommandItem
-                  key={item.symbol}
-                  value={item.symbol}
-                  onSelect={() => handleSymbolSelect(item.symbol)}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{item.symbol}</span>
-                    <span className="text-muted-foreground text-sm">
-                      {item.name}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {isSearching ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+              </div>
+            ) : displaySymbols.length === 0 ? (
+              <CommandEmpty>No symbols found for "{searchQuery}"</CommandEmpty>
+            ) : (
+              <CommandGroup heading={searchQuery ? `Results for "${searchQuery}"` : "Popular Symbols"}>
+                {displaySymbols.map((item) => (
+                  <CommandItem
+                    key={item.symbol}
+                    value={item.symbol}
+                    onSelect={() => handleSymbolSelect(item.symbol)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{item.symbol}</span>
+                      <span className="text-muted-foreground text-sm truncate max-w-[200px]">
+                        {item.name}
+                      </span>
+                    </div>
+                    <Badge
+                      variant={item.class === 'crypto' ? 'secondary' : 'outline'}
+                      className="text-[10px] px-1.5 py-0"
+                    >
+                      {item.class === 'crypto' ? '₿' : item.exchange}
+                    </Badge>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </CommandDialog>
       </header>
