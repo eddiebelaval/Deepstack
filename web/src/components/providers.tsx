@@ -5,6 +5,7 @@ import { ThemeProvider } from 'next-themes'
 import { useState, ReactNode } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { MarketDataProvider } from '@/components/providers/MarketDataProvider'
+import { AuthProvider } from '@/components/providers/AuthProvider'
 import { ErrorBoundary } from '@/components/error'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
 
@@ -19,13 +20,15 @@ export default function Providers({ children }: { children: ReactNode }) {
         enableSystem={true}
         disableTransitionOnChange
       >
-        <OfflineBanner />
-        <ErrorBoundary level="page">
-          <MarketDataProvider autoConnect={true}>
-            {children}
-          </MarketDataProvider>
-        </ErrorBoundary>
-        <Toaster position="top-right" richColors closeButton />
+        <AuthProvider>
+          <OfflineBanner />
+          <ErrorBoundary level="page">
+            <MarketDataProvider autoConnect={true}>
+              {children}
+            </MarketDataProvider>
+          </ErrorBoundary>
+          <Toaster position="top-right" richColors closeButton />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

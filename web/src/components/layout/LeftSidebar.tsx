@@ -8,14 +8,12 @@ import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { UserMenu } from '@/components/auth/UserMenu';
 import {
     MessageSquare,
     Plus,
     PanelLeftClose,
     PanelLeftOpen,
-    User,
-    Settings,
-    ChevronRight,
     X
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -217,51 +215,15 @@ export function LeftSidebar() {
                     )}
                 </div>
 
-                {/* Bottom Section - Profile & Settings */}
-                <div className="mt-auto border-t border-sidebar-border p-2 space-y-1">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={profileOpen ? "secondary" : "ghost"}
-                                onClick={toggleProfile}
-                                className={cn(
-                                    "w-full rounded-xl h-11 tap-target",
-                                    showExpanded ? "justify-start" : "justify-center px-0"
-                                )}
-                            >
-                                <User className="h-4 w-4" />
-                                {showExpanded && (
-                                    <>
-                                        <span className="ml-2 flex-1 text-left">Profile</span>
-                                        <ChevronRight className="h-3 w-3 opacity-50" />
-                                    </>
-                                )}
-                            </Button>
-                        </TooltipTrigger>
-                        {!showExpanded && <TooltipContent side="right">Profile</TooltipContent>}
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={settingsOpen ? "secondary" : "ghost"}
-                                onClick={toggleSettings}
-                                className={cn(
-                                    "w-full rounded-xl h-11 tap-target",
-                                    showExpanded ? "justify-start" : "justify-center px-0"
-                                )}
-                            >
-                                <Settings className="h-4 w-4" />
-                                {showExpanded && (
-                                    <>
-                                        <span className="ml-2 flex-1 text-left">Settings</span>
-                                        <ChevronRight className="h-3 w-3 opacity-50" />
-                                    </>
-                                )}
-                            </Button>
-                        </TooltipTrigger>
-                        {!showExpanded && <TooltipContent side="right">Settings</TooltipContent>}
-                    </Tooltip>
+                {/* Bottom Section - User Menu with Profile & Settings */}
+                <div className="mt-auto border-t border-sidebar-border p-2">
+                    <UserMenu
+                        expanded={showExpanded}
+                        onProfileClick={toggleProfile}
+                        onSettingsClick={toggleSettings}
+                        profileOpen={profileOpen}
+                        settingsOpen={settingsOpen}
+                    />
                 </div>
             </aside>
         </TooltipProvider>
