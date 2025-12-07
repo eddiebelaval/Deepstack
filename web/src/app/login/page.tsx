@@ -46,26 +46,23 @@ export default function LoginPage() {
             })
         }
     }
-
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-background relative overflow-hidden">
-            {/* Background decorative elements */}
+        <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+            {/* Subtle ambient glow in background - matching app's 'living surface' feel */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
             </div>
 
             {/* Login card */}
-            <div className="relative z-10 w-full max-w-md mx-4">
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl">
+            <div className="relative z-10 w-full max-w-sm mx-4">
+                <div className="glass-surface-elevated rounded-2xl p-8 shadow-2xl">
                     {/* Logo and title */}
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
+                        <h1 className="text-2xl font-semibold text-foreground mb-2 tracking-tight">
                             DeepStack
                         </h1>
                         <p className="text-muted-foreground text-sm">
-                            Autonomous trading agent powered by AI
+                            Autonomous trading agent
                         </p>
                     </div>
 
@@ -73,12 +70,12 @@ export default function LoginPage() {
                     {!isConfigured && (
                         <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                             <div className="flex gap-3">
-                                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                                 <div className="text-sm">
-                                    <p className="font-medium text-amber-400 mb-1">Supabase Not Configured</p>
-                                    <p className="text-amber-200/70">
-                                        Set <code className="bg-white/10 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
-                                        <code className="bg-white/10 px-1 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your .env.local file.
+                                    <p className="font-medium text-amber-500 mb-1">Supabase Not Configured</p>
+                                    <p className="text-amber-500/80">
+                                        Set <code className="bg-black/20 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
+                                        <code className="bg-black/20 px-1 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your .env.local file.
                                     </p>
                                 </div>
                             </div>
@@ -91,12 +88,12 @@ export default function LoginPage() {
                             <button
                                 onClick={handleGoogleLogin}
                                 disabled={isLoadingGoogle || isLoadingMagicLink}
-                                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/10 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 rounded-xl transition-all duration-200 mb-4 group"
+                                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-secondary hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed border border-border rounded-xl transition-all duration-200 mb-4 group text-sm font-medium"
                             >
                                 {isLoadingGoogle ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24">
                                         <path
                                             fill="currentColor"
                                             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -115,20 +112,20 @@ export default function LoginPage() {
                                         />
                                     </svg>
                                 )}
-                                <span className="font-medium">Continue with Google</span>
+                                <span className="text-secondary-foreground">Continue with Google</span>
                             </button>
 
                             {/* Divider */}
                             <div className="flex items-center gap-4 my-6">
-                                <div className="flex-1 h-px bg-white/10" />
+                                <div className="flex-1 h-px bg-border/50" />
                                 <span className="text-xs text-muted-foreground uppercase tracking-wider">or</span>
-                                <div className="flex-1 h-px bg-white/10" />
+                                <div className="flex-1 h-px bg-border/50" />
                             </div>
 
                             {/* Magic Link form */}
                             <form onSubmit={handleMagicLinkLogin} className="space-y-4">
                                 <div>
-                                    <label htmlFor="email" className="block text-sm font-medium text-muted-foreground mb-2">
+                                    <label htmlFor="email" className="sr-only">
                                         Email address
                                     </label>
                                     <input
@@ -136,20 +133,20 @@ export default function LoginPage() {
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="you@example.com"
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-200 placeholder:text-muted-foreground/50"
+                                        placeholder="name@example.com"
+                                        className="w-full px-4 py-2.5 glass-input text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200 text-sm"
                                         disabled={isLoadingGoogle || isLoadingMagicLink}
                                     />
                                 </div>
                                 <button
                                     type="submit"
                                     disabled={isLoadingGoogle || isLoadingMagicLink}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-medium transition-all duration-200 shadow-lg shadow-emerald-500/25"
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-medium transition-all duration-200 text-sm shadow-sm"
                                 >
                                     {isLoadingMagicLink ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
-                                        <Mail className="w-5 h-5" />
+                                        <Mail className="w-4 h-4" />
                                     )}
                                     <span>Send Magic Link</span>
                                 </button>
@@ -158,26 +155,27 @@ export default function LoginPage() {
                     ) : (
                         /* Magic link sent confirmation */
                         <div className="text-center py-8">
-                            <div className="w-16 h-16 mx-auto mb-4 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                                <Mail className="w-8 h-8 text-emerald-400" />
+                            <div className="w-12 h-12 mx-auto mb-4 bg-primary/20 rounded-full flex items-center justify-center">
+                                <Mail className="w-6 h-6 text-primary" />
                             </div>
-                            <h2 className="text-xl font-semibold mb-2">Check your email</h2>
+                            <h2 className="text-lg font-semibold mb-2">Check your email</h2>
                             <p className="text-muted-foreground text-sm mb-6">
                                 We sent a magic link to <span className="text-foreground font-medium">{email}</span>
                             </p>
                             <button
                                 onClick={() => setMagicLinkSent(false)}
-                                className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                                className="text-sm text-primary hover:text-primary/80 transition-colors"
                             >
                                 Use a different email
                             </button>
                         </div>
                     )}
+                </div>
 
-                    {/* Footer */}
-                    <p className="text-center text-xs text-muted-foreground mt-8">
-                        By continuing, you agree to our Terms of Service and Privacy Policy
-                    </p>
+                {/* Footer links */}
+                <div className="mt-8 text-center text-xs text-muted-foreground space-x-4">
+                    <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+                    <a href="#" className="hover:text-foreground transition-colors">Terms</a>
                 </div>
             </div>
         </div>
