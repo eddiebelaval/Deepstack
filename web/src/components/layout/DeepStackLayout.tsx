@@ -9,7 +9,9 @@ import { ProfilePanel } from './ProfilePanel';
 import { SettingsPanel } from './SettingsPanel';
 import { EmotionalFirewallBanner } from '@/components/emotional-firewall';
 import { ConnectionDot } from '@/components/ui/ConnectionStatusIndicator';
+import { SymbolSearchDialog } from '@/components/search/SymbolSearchDialog';
 import { useRealtimePositions } from '@/hooks/useRealtimePositions';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { cn } from '@/lib/utils';
 
@@ -23,8 +25,14 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
     // Initialize realtime subscriptions for positions
     useRealtimePositions();
 
+    // Initialize global keyboard shortcuts
+    useKeyboardShortcuts();
+
     return (
         <div className="h-screen bg-background flex flex-col overflow-hidden">
+            {/* Symbol Search Dialog (Cmd+K) */}
+            <SymbolSearchDialog />
+
             {/* Left Sidebar - Chat History */}
             <LeftSidebar />
 

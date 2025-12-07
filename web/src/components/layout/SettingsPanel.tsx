@@ -2,16 +2,19 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from 'next-themes';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { Button } from '@/components/ui/button';
-import { X, Monitor, Moon, Volume2, Globe, Keyboard, Database } from 'lucide-react';
+import { X, Monitor, Volume2, Globe, Database } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export function SettingsPanel() {
     const { settingsOpen, toggleSettings } = useUIStore();
+    const { theme, setTheme, resolvedTheme } = useTheme();
 
     return (
         <AnimatePresence>
@@ -54,10 +57,10 @@ export function SettingsPanel() {
                                     <div className="space-y-4 pl-7">
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-0.5">
-                                                <Label>Dark Mode</Label>
-                                                <p className="text-xs text-muted-foreground">Enable dark mode for the interface</p>
+                                                <Label>Theme</Label>
+                                                <p className="text-xs text-muted-foreground">Choose your preferred color scheme</p>
                                             </div>
-                                            <Switch checked={true} />
+                                            <ThemeToggle variant="buttons" />
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-0.5">

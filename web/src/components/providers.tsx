@@ -6,6 +6,7 @@ import { useState, ReactNode } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { MarketDataProvider } from '@/components/providers/MarketDataProvider'
 import { ErrorBoundary } from '@/components/error'
+import { OfflineBanner } from '@/components/ui/OfflineBanner'
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
@@ -15,9 +16,10 @@ export default function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider
         attribute="class"
         defaultTheme="dark"
-        enableSystem={false}
+        enableSystem={true}
         disableTransitionOnChange
       >
+        <OfflineBanner />
         <ErrorBoundary level="page">
           <MarketDataProvider autoConnect={true}>
             {children}

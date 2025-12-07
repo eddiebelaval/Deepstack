@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
+import { create } from "zustand";
 import { useTradingStore } from "@/lib/stores/trading-store";
 
 type ShortcutHandler = () => void;
@@ -15,6 +16,26 @@ type ShortcutConfig = {
   description: string;
 };
 
+// Store for search/command palette state
+interface SearchPaletteState {
+  isSearchOpen: boolean;
+  searchQuery: string;
+  setSearchOpen: (open: boolean) => void;
+  setSearchQuery: (query: string) => void;
+  toggleSearch: () => void;
+}
+
+export const useSearchPaletteStore = create<SearchPaletteState>((set) => ({
+  isSearchOpen: false,
+  searchQuery: "",
+  setSearchOpen: (open) => set({ isSearchOpen: open, searchQuery: open ? "" : "" }),
+  setSearchQuery: (searchQuery) => set({ searchQuery }),
+  toggleSearch: () => set((state) => ({
+    isSearchOpen: !state.isSearchOpen,
+    searchQuery: "",
+  })),
+}));
+
 // Global keyboard shortcuts for the trading platform
 export function useKeyboardShortcuts() {
   const {
@@ -24,8 +45,27 @@ export function useKeyboardShortcuts() {
     setTimeframe,
     setChartType,
   } = useTradingStore();
+  const { toggleSearch, setSearchOpen } = useSearchPaletteStore();
 
   const shortcuts: ShortcutConfig[] = [
+    // Search / Command Palette
+    {
+      key: "k",
+      meta: true,
+      handler: toggleSearch,
+      description: "Open symbol search",
+    },
+    {
+      key: "k",
+      ctrl: true,
+      handler: toggleSearch,
+      description: "Open symbol search (Windows/Linux)",
+    },
+    {
+      key: "Escape",
+      handler: () => setSearchOpen(false),
+      description: "Close search",
+    },
     // Panel toggles
     {
       key: "j",
@@ -111,13 +151,14 @@ export function useKeyboardShortcuts() {
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
+      // Don't trigger shortcuts when typing in inputs (except Escape and Cmd+K)
       const target = event.target as HTMLElement;
-      if (
+      const isInInput =
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+        target.isContentEditable;
+
+      if (isInInput && event.key !== "Escape" && !(event.key === "k" && (event.metaKey || event.ctrlKey))) {
         return;
       }
 
