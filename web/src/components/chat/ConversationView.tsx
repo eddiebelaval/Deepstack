@@ -5,6 +5,7 @@ import { useChatStore } from '@/lib/stores/chat-store';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,6 +24,7 @@ import { NewsPanel } from '@/components/trading/NewsPanel';
 import { OptionsScreenerPanel, OptionsStrategyBuilder } from '@/components/options';
 import { PresetGrid } from './PresetGrid';
 import { HomeWidgets } from './HomeWidgets';
+import { cn } from '@/lib/utils';
 import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2, Square, RectangleHorizontal, Search, Loader2 } from 'lucide-react';
 
 // Simple message type for our use case
@@ -40,6 +42,7 @@ export function ConversationView() {
     const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
     const { isLoadingBars, bars } = useMarketDataStore();
+    const { isMobile, isTablet, isDesktop } = useIsMobile();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -387,32 +390,53 @@ export function ConversationView() {
     // Centered both horizontally and vertically on the page
     if (!hasMessages && !hasActiveContent) {
         return (
-            <div className="flex flex-col h-full p-8">
-                {/* Top Widgets Section */}
-                <HomeWidgets />
+            <div className={cn(
+                "flex flex-col h-full",
+                isMobile ? "p-3" : "p-8"
+            )}>
+                {/* Top Widgets Section - hide on mobile to save space */}
+                {isDesktop && <HomeWidgets />}
 
                 {/* Centered Welcome Message */}
                 <div className="flex-1 flex flex-col items-center justify-center">
-                    <div className="text-center space-y-3 max-w-2xl">
+                    <div className="text-center space-y-3 max-w-2xl px-4">
                         <div className="flex justify-center mb-4">
-                            <div className="p-3 rounded-2xl bg-primary/10">
-                                <svg className="h-8 w-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <div className={cn(
+                                "rounded-2xl bg-primary/10",
+                                isMobile ? "p-2" : "p-3"
+                            )}>
+                                <svg className={cn(
+                                    "text-primary",
+                                    isMobile ? "h-6 w-6" : "h-8 w-8"
+                                )} fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                                 </svg>
                             </div>
                         </div>
-                        <h2 className="text-2xl font-semibold text-foreground">
+                        <h2 className={cn(
+                            "font-semibold text-foreground",
+                            isMobile ? "text-xl" : "text-2xl"
+                        )}>
                             Welcome to DeepStack
                         </h2>
-                        <p className="text-muted-foreground text-base max-w-md mx-auto leading-relaxed">
-                            I can analyze charts, review your portfolio, find trading setups, and help you execute trades.
+                        <p className={cn(
+                            "text-muted-foreground max-w-md mx-auto leading-relaxed",
+                            isMobile ? "text-sm" : "text-base"
+                        )}>
+                            {isMobile
+                                ? "Your AI trading assistant for charts, portfolio, and trades."
+                                : "I can analyze charts, review your portfolio, find trading setups, and help you execute trades."
+                            }
                         </p>
                     </div>
                 </div>
 
                 {/* Bottom Section: Presets and Input */}
-                <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto">
-                    {/* Preset Cards - Visually separated below */}
+                <div className={cn(
+                    "flex flex-col items-center w-full max-w-2xl mx-auto",
+                    isMobile ? "gap-3" : "gap-6"
+                )}>
+                    {/* Preset Cards - simplified on mobile */}
                     <div className="w-full">
                         <PresetGrid onSelect={handlePresetClick} />
                     </div>
@@ -430,12 +454,15 @@ export function ConversationView() {
     // Layout: Fixed height page, tool panel slides down from top, chat scrolls in middle, input at bottom
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Tool Panel - Slides down from top when active */}
+            {/* Tool Panel - Slides down from top when active - smaller on mobile */}
             {/* Using fixed pixel heights since percentage heights don't work well in nested flex contexts */}
             {hasActiveContent && (
                 <div
-                    className="flex-shrink-0 p-3 bg-background border-b border-border/30 transition-all duration-300 ease-in-out"
-                    style={{ height: `${PANEL_SIZES[panelSize]}px` }}
+                    className={cn(
+                        "flex-shrink-0 bg-background border-b border-border/30 transition-all duration-300 ease-in-out",
+                        isMobile ? "p-2" : "p-3"
+                    )}
+                    style={{ height: isMobile ? `${Math.min(PANEL_SIZES[panelSize], 400)}px` : `${PANEL_SIZES[panelSize]}px` }}
                 >
                     <div className="h-full flex flex-col min-h-0">
                         {/* Tool Header with controls */}
