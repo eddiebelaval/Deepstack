@@ -13,6 +13,7 @@ interface TradingContext {
   activePanel?: string;
   positions?: Array<{ symbol: string; qty: number; unrealizedPL: number }>;
   watchlist?: string[];
+  patterns?: Array<{ title: string; description: string; impact: string }>;
 }
 
 function buildContextMessage(context?: TradingContext): string {
@@ -38,6 +39,15 @@ function buildContextMessage(context?: TradingContext): string {
 
   if (context.watchlist && context.watchlist.length > 0) {
     parts.push(`Watchlist: ${context.watchlist.slice(0, 10).join(', ')}`);
+  }
+
+  // Include user patterns for personalized responses
+  if (context.patterns && context.patterns.length > 0) {
+    const patternSummary = context.patterns
+      .slice(0, 3)
+      .map(p => `- ${p.title}: ${p.description}`)
+      .join('\n');
+    parts.push(`\n## User Trading Patterns (use these to personalize advice)\n${patternSummary}`);
   }
 
   return parts.length > 0 ? `\n\n## Current Context\n${parts.join('\n')}` : '';

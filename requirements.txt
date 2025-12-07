@@ -12,6 +12,8 @@ pyyaml>=6.0.1
 websockets>=12.0
 alpaca-py>=0.20.0
 aiohttp>=3.9.0
+supabase>=2.0.0
+gotrue>=2.0.0
 
 # Data analysis
 ta-lib>=0.4.28

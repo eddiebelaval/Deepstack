@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export function SettingsPanel() {
-    const { settingsOpen, toggleSettings } = useUIStore();
+    const { settingsOpen, toggleSettings, credits } = useUIStore();
     const { theme, setTheme, resolvedTheme } = useTheme();
 
     return (
@@ -37,9 +37,13 @@ export function SettingsPanel() {
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                         className="fixed left-0 top-0 bottom-0 w-[400px] z-50 bg-background/80 backdrop-blur-md border-r border-border shadow-2xl flex flex-col"
                     >
-                        {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-border">
-                            <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+                            <div className="flex flex-col">
+                                <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    Credits: <span className="font-mono text-primary font-bold">{credits}</span>
+                                </p>
+                            </div>
                             <Button variant="ghost" size="icon" onClick={toggleSettings}>
                                 <X className="h-5 w-5" />
                             </Button>

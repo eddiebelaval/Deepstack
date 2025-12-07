@@ -159,7 +159,7 @@ export function MultiSeriesChart({
                     color: s.color,
                     lineWidth: 2,
                     priceLineVisible: false,
-                    lastValueVisible: false,
+                    lastValueVisible: true,
                     crosshairMarkerVisible: true,
                 });
                 seriesRefs.current.set(s.symbol, lineSeries);

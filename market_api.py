@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from supabase import Client, create_client
 
 # Load environment variables (override=True ensures fresh values from .env file)
 load_dotenv(override=True)
@@ -48,9 +49,13 @@ from core.api.router import router as command_router
 
 app.include_router(command_router)
 
-# Initialize Alpaca clients
+# Initialize Clients
 api_key = os.getenv("ALPACA_API_KEY")
 secret_key = os.getenv("ALPACA_SECRET_KEY")
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv(
+    "SUPABASE_SERVICE_KEY"
+)  # Use Service Role Key for decrementing credits securely
 
 if not api_key or not secret_key:
     logger.warning("Alpaca API keys not found - using demo mode")
@@ -61,6 +66,106 @@ else:
     stock_client = StockHistoricalDataClient(api_key=api_key, secret_key=secret_key)
     crypto_client = CryptoHistoricalDataClient(api_key=api_key, secret_key=secret_key)
     logger.info("Alpaca clients initialized successfully")
+
+if not supabase_url or not supabase_key:
+    logger.warning("Supabase credentials not found - Auth disabled (NOT SECURE)")
+    supabase: Optional[Client] = None
+else:
+    supabase = create_client(supabase_url=supabase_url, supabase_key=supabase_key)
+    logger.info("Supabase client initialized")
+
+# --- DEMO MODE STATE ---
+# In-memory credit tracker for when Supabase is not configured
+DEMO_CREDITS = {"demo-user": 500}
+
+# Auth & Usage Dependencies
+from fastapi import Response
+
+
+async def verify_token(authorization: str = Header(None)):
+    """Verify Supabase JWT and return user ID. If no auth configured, allow bypass."""
+    if not supabase:
+        return "demo-user"  # Bypass if no Supabase configured
+
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization Header")
+
+    try:
+        token = authorization.replace("Bearer ", "")
+        user = supabase.auth.get_user(token)
+        return user.user.id
+    except Exception as e:
+        logger.error(f"Auth error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid Token")
+
+
+class CreditDeduction:
+    """Dependency to check and deduct credits."""
+
+    def __init__(self, cost: int):
+        self.cost = cost
+
+    async def __call__(self, response: Response, user_id: str = Depends(verify_token)):
+        remaining_credits = 0
+        cost = self.cost
+
+        # --- DEMO MODE (No DB) ---
+        if not supabase:
+            current = DEMO_CREDITS.get(user_id, 0)
+            if current < cost:
+                raise HTTPException(
+                    status_code=402, detail="Payment Required: Insufficient Credits"
+                )
+
+            DEMO_CREDITS[user_id] = current - cost
+            remaining_credits = DEMO_CREDITS[user_id]
+
+            # Inject Header
+            response.headers["X-DeepStack-Credits"] = str(remaining_credits)
+            return True
+
+        # --- PRODUCTION MODE (Supabase) ---
+        try:
+            db_resp = (
+                supabase.table("profiles")
+                .select("credits")
+                .eq("id", user_id)
+                .single()
+                .execute()
+            )
+
+            if not db_resp.data:
+                logger.warning(
+                    f"No profile found for user {user_id} - Creating default"
+                )
+                # Auto-create profile with 500 certs if missing? Or error?
+                # For robustness, error 404 is safer, let signup handle creation.
+                raise HTTPException(status_code=404, detail="User profile not found")
+
+            current_credits = db_resp.data.get("credits", 0)
+            if current_credits is None:
+                current_credits = 0
+
+            if current_credits < cost:
+                raise HTTPException(
+                    status_code=402, detail="Payment Required: Insufficient Credits"
+                )
+
+            # Deduct
+            new_credits = current_credits - cost
+            supabase.table("profiles").update({"credits": new_credits}).eq(
+                "id", user_id
+            ).execute()
+
+            # Inject Header
+            response.headers["X-DeepStack-Credits"] = str(new_credits)
+            return True
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Usage check error: {e}")
+            raise HTTPException(status_code=500, detail="Usage check failed")
 
 
 # Response models
@@ -107,6 +212,7 @@ async def health():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "alpaca_connected": stock_client is not None,
+        "supabase_connected": supabase is not None,
     }
 
 
@@ -117,6 +223,7 @@ async def search_assets(
     asset_class: Optional[str] = Query(
         None, alias="class", description="Asset class filter: us_equity or crypto"
     ),
+    user_id: str = Depends(verify_token),
 ):
     """Search for tradeable assets from Alpaca."""
     try:
@@ -205,15 +312,17 @@ async def search_assets(
         return {"assets": [], "error": str(e)}
 
 
-@app.get("/api/market/bars")
+@app.get("/api/market/bars", dependencies=[Depends(CreditDeduction(10))])
 async def get_bars(
     symbol: str = Query(..., description="Stock or Crypto symbol"),
     timeframe: str = Query(
         "1d", description="Timeframe (1min, 5min, 15min, 30min, 1h, 1d, 1w, 1mo)"
     ),
     limit: int = Query(100, description="Number of bars to return"),
+    user_id: str = Depends(verify_token),
 ):
     """Get historical OHLCV bars for a symbol."""
+
     is_crypto = "/" in symbol
 
     if not stock_client:  # Check if clients are initialized (both or neither)
@@ -255,8 +364,6 @@ async def get_bars(
             )
             bars_data = stock_client.get_stock_bars(request)
 
-        logger.info(f"Bars data type: {type(bars_data)}")
-
         # Helper to extract bars from response
         if hasattr(bars_data, "data") and symbol_upper in bars_data.data:
             bars_list = bars_data.data[symbol_upper]
@@ -269,8 +376,6 @@ async def get_bars(
         if not bars_list:
             logger.warning(f"No bars found for {symbol_upper}")
             return {"bars": []}
-
-        logger.info(f"Found {len(bars_list)} bars for {symbol_upper}")
 
         result = []
         for bar in bars_list:
@@ -287,6 +392,8 @@ async def get_bars(
 
         return {"bars": result}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching bars for {symbol}: {e}")
         # Fallback to demo data on error
@@ -294,11 +401,13 @@ async def get_bars(
         return {"bars": generate_demo_bars(symbol, limit, is_crypto)}
 
 
-@app.get("/api/market/quotes")
+@app.get("/api/market/quotes", dependencies=[Depends(CreditDeduction(1))])
 async def get_quotes(
     symbols: str = Query(..., description="Comma-separated list of symbols"),
+    user_id: str = Depends(verify_token),
 ):
     """Get latest quotes for multiple symbols."""
+
     symbol_list = [s.strip().upper() for s in symbols.split(",")]
 
     if not stock_client:
@@ -356,6 +465,8 @@ async def get_quotes(
 
         return {"quotes": result}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching quotes: {e}")
         # Fallback to demo data on error
@@ -363,12 +474,14 @@ async def get_quotes(
         return {"quotes": {s: generate_demo_quote(s, "/" in s) for s in symbol_list}}
 
 
-@app.get("/api/news")
+@app.get("/api/news", dependencies=[Depends(CreditDeduction(5))])
 async def get_news(
     symbol: Optional[str] = Query(None, description="Filter by stock symbol"),
     limit: int = Query(10, description="Number of news items to return"),
+    user_id: str = Depends(verify_token),
 ):
     """Get latest market news from Alpaca."""
+
     try:
         import httpx
 
@@ -409,6 +522,8 @@ async def get_news(
 
             return {"news": articles}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching news: {e}")
         return {"news": [], "error": str(e)}
@@ -418,8 +533,11 @@ async def get_news(
 async def get_calendar(
     start: Optional[str] = Query(None, description="Start date"),
     end: Optional[str] = Query(None, description="End date"),
+    user_id: str = Depends(verify_token),
 ):
     """Get market calendar events from Alpaca."""
+    # Calendar is cheap/free (0 credits)
+
     try:
         import httpx
 

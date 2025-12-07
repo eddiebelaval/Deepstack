@@ -34,6 +34,12 @@ interface UIState {
   // Widget State
   widgets: WidgetConfig[];
   toggleWidget: (id: string) => void;
+
+  // Usage / Paywall State
+  credits: number;
+  setCredits: (credits: number) => void;
+  paywallOpen: boolean;
+  setPaywallOpen: (isOpen: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -50,6 +56,8 @@ export const useUIStore = create<UIState>()(
         { id: 'quick-stats', type: 'quick-stats', title: 'Quick Stats', isOpen: true },
         { id: 'market-status', type: 'market-status', title: 'Market Status', isOpen: true },
       ],
+      credits: 500, // Default optimistic start, updated by DB
+      paywallOpen: false,
 
       // Actions
       setActiveContent: (content) => set({ activeContent: content }),
@@ -75,6 +83,9 @@ export const useUIStore = create<UIState>()(
           w.id === id ? { ...w, isOpen: !w.isOpen } : w
         ),
       })),
+
+      setCredits: (credits) => set({ credits }),
+      setPaywallOpen: (isOpen) => set({ paywallOpen: isOpen }),
     }),
     {
       name: 'deepstack-ui-storage',

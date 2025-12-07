@@ -45,14 +45,58 @@ export type AccountSummary = {
   total_pnl: number;
 };
 
+import { createClient } from '@/lib/supabase/client';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+class PaywallError extends Error {
+  constructor() {
+    super('Payment Required');
+    this.name = 'PaywallError';
+  }
+}
+
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
+  const supabase = createClient();
+  let token = null;
+
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    token = data.session?.access_token;
+  }
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(init?.headers || {}),
+  };
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...init,
+    headers,
     cache: 'no-store'
   });
+
+  if (res.status === 402) {
+    // Dispatch event for UI to catch
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('deepstack-paywall'));
+    }
+    throw new PaywallError();
+  }
+
+  // Check for Credit Sync Header
+  const creditsHeader = res.headers.get('X-DeepStack-Credits');
+  if (creditsHeader && typeof window !== 'undefined') {
+    // Import store dynamically or assume global availability?
+    // Better to use a simpler method or import strictly.
+    // Ideally we'd import useUIStore but that's a React hook/store.
+    // We can use the Zustand store outside React components via .getState()
+
+    // We need to dynamic import or cleaner: dispatch a credit event
+    window.dispatchEvent(new CustomEvent('deepstack-credits', { detail: parseInt(creditsHeader) }));
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`API ${res.status}: ${text}`);

@@ -14,7 +14,10 @@ import {
     Plus,
     PanelLeftClose,
     PanelLeftOpen,
-    X
+    X,
+    Lightbulb,
+    BookOpen,
+    Brain
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -182,6 +185,72 @@ export function LeftSidebar() {
                             </Button>
                         </TooltipTrigger>
                         {!showExpanded && <TooltipContent side="right">New Chat</TooltipContent>}
+                    </Tooltip>
+                </div>
+
+                {/* Thesis Engine & Journal Section */}
+                <div className="px-2 space-y-1 border-b border-sidebar-border pb-3 mb-3">
+                    {showExpanded && (
+                        <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Research Tools
+                        </div>
+                    )}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2"
+                                )}
+                                onClick={() => {
+                                    window.location.href = '/thesis';
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <Lightbulb className="h-4 w-4 shrink-0 text-amber-500" />
+                                {showExpanded && <span className="ml-2">Thesis Engine</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">Thesis Engine</TooltipContent>}
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2"
+                                )}
+                                onClick={() => {
+                                    window.location.href = '/journal';
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <BookOpen className="h-4 w-4 shrink-0 text-blue-500" />
+                                {showExpanded && <span className="ml-2">Trade Journal</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">Trade Journal</TooltipContent>}
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2"
+                                )}
+                                onClick={() => {
+                                    window.location.href = '/insights';
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <Brain className="h-4 w-4 shrink-0 text-purple-500" />
+                                {showExpanded && <span className="ml-2">Insights</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">AI Insights</TooltipContent>}
                     </Tooltip>
                 </div>
 
