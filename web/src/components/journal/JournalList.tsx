@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { JournalEntryDialog } from './JournalEntryDialog';
-import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff, Link2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const EMOTION_EMOJIS: Record<string, string> = {
@@ -205,6 +205,33 @@ function JournalEntryCard({ entry, linkedThesis, onEdit, onDelete }: JournalEntr
                             className="mt-2 text-sm text-muted-foreground line-clamp-2 prose prose-sm prose-invert"
                             dangerouslySetInnerHTML={{ __html: entry.notes }}
                         />
+                    )}
+
+                    {/* Screenshot Thumbnails */}
+                    {entry.screenshotUrls && entry.screenshotUrls.length > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex gap-2 overflow-x-auto">
+                                {entry.screenshotUrls.slice(0, 3).map((url, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="h-12 w-16 rounded overflow-hidden border bg-muted shrink-0"
+                                    >
+                                        <img
+                                            src={url}
+                                            alt={`Screenshot ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                ))}
+                                {entry.screenshotUrls.length > 3 && (
+                                    <div className="h-12 w-12 rounded bg-muted border flex items-center justify-center text-xs text-muted-foreground shrink-0">
+                                        +{entry.screenshotUrls.length - 3}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     )}
                 </div>
 

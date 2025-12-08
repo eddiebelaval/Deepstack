@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RichTextEditor } from './RichTextEditor';
+import { ScreenshotUploader } from './ScreenshotUploader';
 import { type JournalEntry, type EmotionType } from '@/lib/stores/journal-store';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { Loader2, Link2, Unlink } from 'lucide-react';
@@ -56,6 +57,7 @@ export function JournalEntryDialog({
     const [notes, setNotes] = useState(existingEntry?.notes || '');
     const [lessonsLearned, setLessonsLearned] = useState(existingEntry?.lessonsLearned || '');
     const [thesisId, setThesisId] = useState<string | undefined>(existingEntry?.thesisId);
+    const [screenshotUrls, setScreenshotUrls] = useState<string[]>(existingEntry?.screenshotUrls || []);
 
     // Filter theses that match the current symbol (case-insensitive)
     const matchingTheses = activeTheses.filter(
@@ -80,6 +82,7 @@ export function JournalEntryDialog({
                 notes,
                 lessonsLearned,
                 thesisId,
+                screenshotUrls,
             };
 
             if (editingId) {
@@ -97,6 +100,7 @@ export function JournalEntryDialog({
             setNotes('');
             setLessonsLearned('');
             setThesisId(undefined);
+            setScreenshotUrls([]);
         } finally {
             setIsSaving(false);
         }
@@ -278,6 +282,17 @@ export function JournalEntryDialog({
                             content={lessonsLearned}
                             onChange={setLessonsLearned}
                             placeholder="What did you learn from this trade? What would you do differently?"
+                        />
+                    </div>
+
+                    {/* Screenshots */}
+                    <div className="space-y-2">
+                        <Label>Screenshots</Label>
+                        <ScreenshotUploader
+                            value={screenshotUrls}
+                            onChange={setScreenshotUrls}
+                            maxFiles={5}
+                            disabled={isSaving}
                         />
                     </div>
 

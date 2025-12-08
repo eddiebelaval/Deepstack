@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { useThesisStore } from '@/lib/stores/thesis-store';
 import { useJournalStore, type JournalEntry } from '@/lib/stores/journal-store';
+import { type Conversation } from '@/lib/stores/chat-store';
+import { fetchConversationById } from '@/lib/supabase/conversations';
 import {
     ArrowLeft,
     Edit,
@@ -18,9 +21,16 @@ import {
     TrendingDown,
     RefreshCw,
     AlertCircle,
-    BookOpen
+    BookOpen,
+    BarChart3,
+    Pencil,
+    MessageSquare,
+    ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ValidationScoreModal } from './ValidationScoreModal';
+import { ValidationScoreRing } from './ValidationScoreRing';
+import { calculateValidationScore, getScoreColor } from '@/lib/thesis-validation';
 
 interface ThesisDashboardProps {
     thesis: ThesisEntry;
@@ -29,11 +39,38 @@ interface ThesisDashboardProps {
 }
 
 export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps) {
+    const router = useRouter();
     const { updateThesis } = useThesisStore();
     const journalEntries = useJournalStore((state) => state.entries);
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
     const [isMonitoring, setIsMonitoring] = useState(thesis.status === 'active');
     const [lastChecked, setLastChecked] = useState<Date | null>(null);
+    const [showScoreModal, setShowScoreModal] = useState(false);
+
+    // Linked conversation state
+    const [linkedConversation, setLinkedConversation] = useState<Conversation | null>(null);
+    const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+
+    // Load linked conversation if exists
+    useEffect(() => {
+        if (thesis.conversationId) {
+            loadLinkedConversation();
+        }
+    }, [thesis.conversationId]);
+
+    const loadLinkedConversation = async () => {
+        if (!thesis.conversationId) return;
+
+        setIsLoadingConversation(true);
+        try {
+            const conversation = await fetchConversationById(thesis.conversationId);
+            setLinkedConversation(conversation);
+        } catch (error) {
+            console.error('Failed to load linked conversation:', error);
+        } finally {
+            setIsLoadingConversation(false);
+        }
+    };
 
     // Get journal entries linked to this thesis
     const linkedJournalEntries = useMemo(() => {
@@ -98,9 +135,14 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
         updateThesis(thesis.id, { status: 'invalidated', validationScore: 0 });
     };
 
-    // Calculate validation metrics
-    const validationScore = thesis.validationScore ?? 50;
-    const gaugeColor = validationScore >= 70 ? 'bg-green-500' : validationScore >= 40 ? 'bg-amber-500' : 'bg-red-500';
+    // Auto-calculate validation score
+    const autoValidationResult = useMemo(() => {
+        return calculateValidationScore(thesis, currentPrice, linkedJournalEntries);
+    }, [thesis, currentPrice, linkedJournalEntries]);
+
+    // Use manual score if set, otherwise use auto-calculated
+    const validationScore = thesis.validationScore ?? autoValidationResult.totalScore;
+    const scoreColors = getScoreColor(validationScore);
 
     // Price position relative to targets
     const getPricePosition = () => {
@@ -123,8 +165,26 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
 
     const pricePosition = getPricePosition();
 
+    // Handler for saving manual score
+    const handleSaveScore = (score: number, notes: string) => {
+        updateThesis(thesis.id, {
+            validationScore: score,
+            validationNotes: notes,
+        });
+    };
+
     return (
         <div className="space-y-6">
+            {/* Validation Score Modal */}
+            <ValidationScoreModal
+                open={showScoreModal}
+                onOpenChange={setShowScoreModal}
+                currentScore={validationScore}
+                autoCalculatedScore={autoValidationResult.totalScore}
+                currentNotes={thesis.validationNotes}
+                onSave={handleSaveScore}
+            />
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -246,54 +306,78 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
                 <div className="space-y-6">
                     {/* Validation Gauge */}
                     <Card className="p-6">
-                        <h3 className="font-semibold mb-4">Thesis Validation</h3>
-
-                        {/* Circular Gauge */}
-                        <div className="relative w-32 h-32 mx-auto mb-4">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <circle
-                                    className="text-muted"
-                                    strokeWidth="8"
-                                    stroke="currentColor"
-                                    fill="transparent"
-                                    r="56"
-                                    cx="64"
-                                    cy="64"
-                                />
-                                <circle
-                                    className={cn(
-                                        "transition-all duration-500",
-                                        validationScore >= 70 ? "text-green-500" :
-                                            validationScore >= 40 ? "text-amber-500" : "text-red-500"
-                                    )}
-                                    strokeWidth="8"
-                                    strokeDasharray={`${(validationScore / 100) * 352} 352`}
-                                    strokeLinecap="round"
-                                    stroke="currentColor"
-                                    fill="transparent"
-                                    r="56"
-                                    cx="64"
-                                    cy="64"
-                                />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-3xl font-bold">{validationScore}%</span>
-                            </div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold">Thesis Validation</h3>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setShowScoreModal(true)}
+                            >
+                                <Pencil className="h-3 w-3 mr-1" /> Edit
+                            </Button>
                         </div>
 
+                        {/* Validation Score Ring */}
+                        <ValidationScoreRing score={validationScore} size="md" showLabel />
+
+                        {/* Score breakdown */}
+                        <div className="mt-6 space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">Auto-calculated:</span>
+                                <span className="font-medium">{autoValidationResult.totalScore}%</span>
+                            </div>
+                            {thesis.validationScore !== undefined && thesis.validationScore !== autoValidationResult.totalScore && (
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">Manual override:</span>
+                                    <span className="font-medium">{thesis.validationScore}%</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Score breakdown details */}
+                        <div className="mt-4 p-3 bg-muted/30 rounded-lg space-y-1.5">
+                            <div className="flex items-center gap-2 mb-2">
+                                <BarChart3 className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs font-medium text-muted-foreground">Score Breakdown</span>
+                            </div>
+                            {autoValidationResult.breakdown.map((item, i) => (
+                                <div key={i} className="text-xs text-muted-foreground">
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Validation notes */}
+                        {thesis.validationNotes && (
+                            <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
+                                    Validation Notes
+                                </div>
+                                <p className="text-xs text-muted-foreground">{thesis.validationNotes}</p>
+                            </div>
+                        )}
+
                         {lastChecked && (
-                            <div className="text-center text-xs text-muted-foreground mb-4">
+                            <div className="text-center text-xs text-muted-foreground mt-4">
                                 Last checked: {lastChecked.toLocaleTimeString()}
                             </div>
                         )}
 
-                        <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={fetchCurrentPrice}
-                        >
-                            <RefreshCw className="h-4 w-4 mr-2" /> Refresh Data
-                        </Button>
+                        <div className="mt-4 space-y-2">
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={fetchCurrentPrice}
+                            >
+                                <RefreshCw className="h-4 w-4 mr-2" /> Refresh Data
+                            </Button>
+                            <Button
+                                className="w-full"
+                                onClick={() => setShowScoreModal(true)}
+                            >
+                                <Pencil className="h-4 w-4 mr-2" /> Update Score
+                            </Button>
+                        </div>
                     </Card>
 
                     {/* Manual Actions */}
@@ -331,6 +415,61 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
                             )}>
                                 {thesis.riskRewardRatio >= 2 ? "Favorable" : "Consider improving"}
                             </div>
+                        </Card>
+                    )}
+
+                    {/* Linked AI Conversation */}
+                    {(thesis.conversationId || linkedConversation) && (
+                        <Card className="p-6">
+                            <h3 className="font-semibold mb-4 flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4" />
+                                Linked Analysis
+                            </h3>
+                            {isLoadingConversation ? (
+                                <div className="flex items-center justify-center py-6 text-muted-foreground">
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    Loading conversation...
+                                </div>
+                            ) : linkedConversation ? (
+                                <div className="space-y-4">
+                                    <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                                        <div className="font-medium truncate">
+                                            {linkedConversation.title}
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span>Created {new Date(linkedConversation.created_at).toLocaleDateString()}</span>
+                                            <Badge variant="secondary" className="text-xs">
+                                                {linkedConversation.provider}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        className="w-full"
+                                        variant="outline"
+                                        onClick={() => router.push(`/chat?conversation=${linkedConversation.id}`)}
+                                    >
+                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                        Open Chat
+                                    </Button>
+
+                                    <Button
+                                        className="w-full"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={async () => {
+                                            await updateThesis(thesis.id, { conversationId: undefined });
+                                            setLinkedConversation(null);
+                                        }}
+                                    >
+                                        Unlink Conversation
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="text-center text-sm text-muted-foreground py-4">
+                                    Conversation not found
+                                </div>
+                            )}
                         </Card>
                     )}
 

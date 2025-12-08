@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { Lightbulb, TrendingUp, TrendingDown, Target, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ValidationScoreRing } from './ValidationScoreRing';
+import { getScoreColor } from '@/lib/thesis-validation';
 
 interface ThesisCardProps {
     thesis: ThesisEntry;
@@ -25,9 +27,7 @@ export function ThesisCard({ thesis, onClick, compact = false }: ThesisCardProps
     const statusConfig = STATUS_CONFIG[thesis.status];
     const StatusIcon = statusConfig.icon;
     const validationScore = thesis.validationScore ?? 50;
-
-    // Determine validation gauge color
-    const gaugeColor = validationScore >= 70 ? 'bg-green-500' : validationScore >= 40 ? 'bg-amber-500' : 'bg-red-500';
+    const scoreColors = getScoreColor(validationScore);
 
     if (compact) {
         return (
@@ -47,6 +47,14 @@ export function ThesisCard({ thesis, onClick, compact = false }: ThesisCardProps
                         <div className="font-medium truncate">{thesis.title}</div>
                         <div className="text-xs text-muted-foreground">{thesis.symbol} · {thesis.timeframe}</div>
                     </div>
+                    {thesis.status === 'active' && (
+                        <div className="flex items-center gap-1 shrink-0">
+                            <div className={cn("h-2 w-2 rounded-full", scoreColors.bg)} />
+                            <span className={cn("text-xs font-medium", scoreColors.text)}>
+                                {validationScore}%
+                            </span>
+                        </div>
+                    )}
                     <Badge variant="outline" className="text-xs shrink-0">
                         {statusConfig.label}
                     </Badge>
@@ -72,10 +80,17 @@ export function ThesisCard({ thesis, onClick, compact = false }: ThesisCardProps
                         </div>
                     </div>
                 </div>
-                <Badge className={cn("text-white", statusConfig.color)}>
-                    <StatusIcon className="h-3 w-3 mr-1" />
-                    {statusConfig.label}
-                </Badge>
+                <div className="flex items-center gap-2">
+                    {thesis.status === 'active' && (
+                        <div className="flex flex-col items-center">
+                            <ValidationScoreRing score={validationScore} size="sm" />
+                        </div>
+                    )}
+                    <Badge className={cn("text-white", statusConfig.color)}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {statusConfig.label}
+                    </Badge>
+                </div>
             </div>
 
             {/* Hypothesis */}
@@ -122,18 +137,13 @@ export function ThesisCard({ thesis, onClick, compact = false }: ThesisCardProps
                 <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Thesis Validation</span>
-                        <span className={cn(
-                            "font-medium",
-                            validationScore >= 70 && "text-green-500",
-                            validationScore >= 40 && validationScore < 70 && "text-amber-500",
-                            validationScore < 40 && "text-red-500"
-                        )}>
+                        <span className={cn("font-medium", scoreColors.text)}>
                             {validationScore}%
                         </span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                            className={cn("h-full transition-all duration-500", gaugeColor)}
+                            className={cn("h-full transition-all duration-500", scoreColors.bg)}
                             style={{ width: `${validationScore}%` }}
                         />
                     </div>

@@ -250,7 +250,7 @@ export const tradingTools = {
             mock: true,
           };
         }
-      } catch {
+      } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to create order ticket';
         return { success: false, error: message };
       }
@@ -332,7 +332,7 @@ export const tradingTools = {
           data: trade,
           message: `Paper trade executed: ${params.action} ${params.quantity} ${upperSymbol} @ $${executionPrice.toFixed(2)}`,
         };
-      } catch {
+      } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to place paper trade';
         return { success: false, error: message };
       }

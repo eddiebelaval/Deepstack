@@ -8,9 +8,11 @@ import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PositionCard } from './PositionCard';
 import { ManualPositionDialog } from './ManualPositionDialog';
+import { PositionHistory } from './PositionHistory';
 import { Loader2, RefreshCw, Cloud, CloudOff, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -185,71 +187,56 @@ export function PortfolioSidebar() {
               </div>
             </Card>
 
-            {/* Positions Section */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">Positions</h3>
-                <Badge variant="secondary" className="text-xs">
-                  {summary.positions_count}
-                </Badge>
-              </div>
+            {/* Positions Section with Tabs */}
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-3">
+                <TabsTrigger value="active" className="text-xs">
+                  Active
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {summary.positions_count}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="text-xs">
+                  History
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {positions.filter(p => p.quantity === 0 && p.realized_pnl !== 0).length}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Manual Entry Dialog */}
-              <div className="mb-3">
+              {/* Active Positions Tab */}
+              <TabsContent value="active" className="mt-0 space-y-3">
+                {/* Manual Entry Dialog */}
                 <ManualPositionDialog onSuccess={refresh} />
-              </div>
 
-              {/* Positions List */}
-              {positions.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-8">
-                  No open positions
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {positions
-                    .filter(p => p.quantity !== 0)
-                    .map((position) => (
-                      <PositionCard
-                        key={position.symbol}
-                        position={position}
-                        onClose={async () => {
-                          // For now, we'd need to record a closing trade
-                          // This would be handled by the close position flow
-                        }}
-                      />
-                    ))}
-                </div>
-              )}
-
-              {/* Closed Positions with Realized P&L */}
-              {positions.filter(p => p.quantity === 0 && p.realized_pnl !== 0).length > 0 && (
-                <>
-                  <Separator className="my-4" />
-                  <h3 className="text-sm font-semibold mb-2">Closed Positions</h3>
+                {/* Active Positions List */}
+                {positions.filter(p => p.quantity !== 0).length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-8">
+                    No open positions
+                  </div>
+                ) : (
                   <div className="space-y-2">
                     {positions
-                      .filter(p => p.quantity === 0 && p.realized_pnl !== 0)
+                      .filter(p => p.quantity !== 0)
                       .map((position) => (
-                        <Card key={position.symbol} className="p-3">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{position.symbol}</span>
-                            <span className={cn(
-                              "font-semibold",
-                              position.realized_pnl >= 0 ? 'text-profit' : 'text-loss'
-                            )}>
-                              {position.realized_pnl >= 0 ? '+' : ''}
-                              ${position.realized_pnl.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {position.trades.length} trades
-                          </div>
-                        </Card>
+                        <PositionCard
+                          key={position.symbol}
+                          position={position}
+                          onClose={async () => {
+                            // For now, we'd need to record a closing trade
+                            // This would be handled by the close position flow
+                          }}
+                        />
                       ))}
                   </div>
-                </>
-              )}
-            </div>
+                )}
+              </TabsContent>
+
+              {/* History Tab */}
+              <TabsContent value="history" className="mt-0">
+                <PositionHistory positions={positions} />
+              </TabsContent>
+            </Tabs>
           </div>
         </ScrollArea>
         <DotScrollIndicator

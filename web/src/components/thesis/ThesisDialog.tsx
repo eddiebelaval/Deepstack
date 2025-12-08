@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
-import { X, Plus, Loader2 } from 'lucide-react';
+import { type Conversation } from '@/lib/stores/chat-store';
+import { fetchRecentConversations } from '@/lib/supabase/conversations';
+import { X, Plus, Loader2, MessageSquare } from 'lucide-react';
 
 const TIMEFRAMES = ['Intraday', '1-3 Days', '1 Week', '2-4 Weeks', '1-3 Months', '3+ Months'];
 
@@ -41,6 +43,30 @@ export function ThesisDialog({
     const [stopLoss, setStopLoss] = useState(existingThesis?.stopLoss?.toString() || '');
     const [keyConditions, setKeyConditions] = useState<string[]>(existingThesis?.keyConditions || []);
     const [newCondition, setNewCondition] = useState('');
+    const [conversationId, setConversationId] = useState<string | undefined>(existingThesis?.conversationId);
+
+    // Conversations state
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+
+    // Load recent conversations when dialog opens
+    useEffect(() => {
+        if (open) {
+            loadConversations();
+        }
+    }, [open]);
+
+    const loadConversations = async () => {
+        setIsLoadingConversations(true);
+        try {
+            const data = await fetchRecentConversations();
+            setConversations(data);
+        } catch (error) {
+            console.error('Failed to load conversations:', error);
+        } finally {
+            setIsLoadingConversations(false);
+        }
+    };
 
     const handleAddCondition = () => {
         if (newCondition.trim()) {
@@ -65,6 +91,7 @@ export function ThesisDialog({
                 exitTarget: exitTarget ? parseFloat(exitTarget) : undefined,
                 stopLoss: stopLoss ? parseFloat(stopLoss) : undefined,
                 keyConditions,
+                conversationId,
                 status: 'drafting' as const,
             };
 
@@ -84,6 +111,7 @@ export function ThesisDialog({
             setExitTarget('');
             setStopLoss('');
             setKeyConditions([]);
+            setConversationId(undefined);
         } finally {
             setIsSaving(false);
         }
@@ -214,6 +242,45 @@ export function ThesisDialog({
                                 ))}
                             </div>
                         )}
+                    </div>
+
+                    {/* Link AI Conversation */}
+                    <div className="space-y-2">
+                        <Label htmlFor="conversation">Link AI Conversation (Optional)</Label>
+                        <p className="text-xs text-muted-foreground">
+                            Link a chat conversation where you built or analyzed this thesis
+                        </p>
+                        <Select
+                            value={conversationId || 'none'}
+                            onValueChange={(value) => setConversationId(value === 'none' ? undefined : value)}
+                            disabled={isLoadingConversations}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder={isLoadingConversations ? "Loading..." : "Select a conversation..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">
+                                    <span className="text-muted-foreground">No conversation linked</span>
+                                </SelectItem>
+                                {conversations.length === 0 && !isLoadingConversations ? (
+                                    <SelectItem value="no-conversations" disabled>
+                                        <span className="text-muted-foreground italic">No conversations yet</span>
+                                    </SelectItem>
+                                ) : (
+                                    conversations.map((conv) => (
+                                        <SelectItem key={conv.id} value={conv.id}>
+                                            <div className="flex items-center gap-2">
+                                                <MessageSquare className="h-3 w-3" />
+                                                <span className="truncate max-w-[300px]">{conv.title}</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {new Date(conv.created_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        </SelectItem>
+                                    ))
+                                )}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Actions */}

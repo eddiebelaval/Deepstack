@@ -129,11 +129,11 @@
 |---------|--------|--------------|-------|
 | AI Chat Interface | ✅ 100% | ✅ Yes | All 19 tools tested, mock fallbacks, tool-specific loading indicators |
 | Market Data Display | ✅ 95% | ✅ Yes | Connection status indicator, crypto symbols fixed, all timeframes |
-| Portfolio Tracker | 🔄 90% | ⚠️ Partial | Real-time P&L from live prices, refresh indicator, cloud sync |
+| Portfolio Tracker | ✅ 100% | ✅ Yes | Position history with date filtering, aggregate stats, tabs UI |
 | Options Screener | ✅ 95% | ✅ Yes | Auto-calculate with debounce, toast notifications, payoff diagram |
 | Emotional Firewall | ✅ 100% | ✅ Yes | Banner + Modal + API + Chat integration complete |
-| **Trade Journal** | ✅ 95% | ✅ Yes | Thesis linking dropdown, linked thesis badge display |
-| **Thesis Engine** | ✅ 95% | ✅ Yes | Linked trades stats (count, P&L, win rate), recent entries |
+| **Trade Journal** | ✅ 100% | ✅ Yes | Screenshot upload, thesis linking dropdown, badge display |
+| **Thesis Engine** | ✅ 100% | ✅ Yes | Validation scoring, AI conversation linking, linked trades stats |
 | **AI Insights** | ✅ 95% | ✅ Yes | Pattern analysis (day/time/streaks/hold), personalized recommendations |
 
 ### Stage 5 Task Breakdown
@@ -150,14 +150,14 @@
 - [x] Test all timeframes (1h, 4h, 1d, 1w, 1mo) (2025-12-08)
 - [ ] Commit pending format fixes
 
-#### 5.3 Portfolio Tracker (20% → 100%)
+#### 5.3 Portfolio Tracker (20% → 100%) ✅ COMPLETE
 - [x] Create trades-store.ts with Zustand persistence (2025-12-08)
 - [x] Create supabase/trades.ts CRUD layer (2025-12-08)
 - [x] Create useTradesSync hook (2025-12-08)
 - [x] Connect PortfolioSidebar with cloud status indicator (2025-12-08)
 - [x] Update ManualPositionDialog to use sync hook (2025-12-08)
 - [x] Calculate real-time P&L from live prices with refresh indicator (2025-12-08)
-- [ ] Show position history
+- [x] Position history with date filtering and aggregate stats (2025-12-08)
 
 #### 5.4 Options Module (70% → 100%) ✅ COMPLETE
 - [x] Wire OptionsScreenerPanel to /api/options/screen (2025-12-08)
@@ -180,7 +180,7 @@
 - [x] Connect journal-store to Supabase table (created `supabase/journal.ts`)
 - [x] **Wire JournalList + JournalEntryDialog to useJournalSync hook** (done 2025-12-08)
 - [x] Link journal entries to thesis records with dropdown selector (2025-12-08)
-- [ ] Add screenshot upload capability
+- [x] Screenshot upload with drag-drop, compression, previews (2025-12-08)
 
 #### 5.7 Thesis Engine (35% → 100%) ✅ COMPLETE
 - [x] Thesis Dashboard UI component
@@ -189,8 +189,8 @@
 - [x] Connect thesis-store to Supabase table (created `supabase/thesis.ts`)
 - [x] **Wire ThesisList + ThesisDialog to useThesisSync hook** (done 2025-12-08)
 - [x] Display linked trades stats (count, P&L, win rate) in ThesisDashboard (2025-12-08)
-- [ ] Link thesis to AI conversations
-- [ ] Add validation scoring
+- [x] Link thesis to AI conversations with dropdown selector (2025-12-08)
+- [x] Validation scoring with auto-calculation and SVG ring display (2025-12-08)
 
 #### 5.8 AI Insights (25% → 100%) ✅ COMPLETE
 - [x] Insights page shell
