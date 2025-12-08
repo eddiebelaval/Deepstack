@@ -37,7 +37,7 @@ const INDEX_NAMES: Record<string, string> = {
 
 const MARKET_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM'];
 const CRYPTO_SYMBOLS = ['BTC/USD', 'ETH/USD', 'DOGE/USD', 'XRP/USD'];
-const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1MO'];
+const TIMEFRAMES = ['1H', '4H', '1D', '1W', '1MO'];
 
 // Compact Legend Card Component (Webull-style)
 interface LegendCardProps {
@@ -154,10 +154,6 @@ export function HomeWidgets() {
                 const promises = symbols.map(async (symbol, index) => {
                     // Map UI timeframe to API timeframe
                     const timeframeMap: Record<string, string> = {
-                        '1m': '1min',
-                        '5m': '5min',
-                        '15m': '15min',
-                        '30m': '30min',
                         '1H': '1h',
                         '4H': '4h',
                         '1D': '1d',
