@@ -33,6 +33,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.0",
+    "@stripe/stripe-js": "^6.0.0",
     "@tanstack/react-query": "^5.90.3",
     "@tiptap/extension-placeholder": "^3.13.0",
     "@tiptap/pm": "^3.13.0",

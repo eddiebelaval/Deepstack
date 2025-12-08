@@ -5,10 +5,13 @@ import { type JournalEntry } from '@/lib/stores/journal-store';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { useJournalSync } from '@/hooks/useJournalSync';
 import { useThesisSync } from '@/hooks/useThesisSync';
+import { useUser } from '@/hooks/useUser';
+import { canAccess } from '@/lib/subscription';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { JournalEntryDialog } from './JournalEntryDialog';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,10 +29,15 @@ const EMOTION_EMOJIS: Record<string, string> = {
 };
 
 export function JournalList() {
+    const { tier } = useUser();
     const { entries, addEntry, updateEntry, deleteEntry, isLoading, isOnline, error } = useJournalSync();
     const { theses, getThesisById } = useThesisSync();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | undefined>(undefined);
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+    // Check if user has reached journal entry limit
+    const isAtLimit = tier === 'free' && entries.length >= 10;
 
     const handleEdit = (id: string) => {
         setEditingId(id);
@@ -37,6 +45,11 @@ export function JournalList() {
     };
 
     const handleNew = () => {
+        // Check limit for free users
+        if (isAtLimit) {
+            setShowUpgradePrompt(true);
+            return;
+        }
         setEditingId(undefined);
         setDialogOpen(true);
     };
@@ -63,16 +76,21 @@ export function JournalList() {
                                     <CloudOff className="h-4 w-4 text-yellow-500" />
                                 </span>
                             )}
+                            {tier === 'free' && (
+                                <Badge variant="outline" className="text-xs">
+                                    {entries.length}/10 entries
+                                </Badge>
+                            )}
                         </p>
                     </div>
                 </div>
-                <Button onClick={handleNew} disabled={isLoading}>
+                <Button onClick={handleNew} disabled={isLoading} variant={isAtLimit ? 'outline' : 'default'}>
                     {isLoading ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                         <Plus className="h-4 w-4 mr-2" />
                     )}
-                    New Entry
+                    {isAtLimit ? 'Limit Reached' : 'New Entry'}
                 </Button>
             </div>
 
@@ -107,6 +125,26 @@ export function JournalList() {
                             onDelete={() => deleteEntry(entry.id)}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Upgrade Prompt Modal */}
+            {showUpgradePrompt && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="max-w-md">
+                        <UpgradePrompt
+                            feature="Unlimited Journal Entries"
+                            requiredTier="pro"
+                            description="Free users are limited to 10 journal entries. Upgrade to Pro for unlimited journal entries, thesis tracking, and options analysis."
+                        />
+                        <Button
+                            variant="ghost"
+                            className="w-full mt-4"
+                            onClick={() => setShowUpgradePrompt(false)}
+                        >
+                            Close
+                        </Button>
+                    </div>
                 </div>
             )}
 

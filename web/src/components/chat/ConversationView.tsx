@@ -7,6 +7,9 @@ import { useTradingStore } from '@/lib/stores/trading-store';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useUser } from '@/hooks/useUser';
+import { useChatLimit } from '@/hooks/useChatLimit';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,6 +42,8 @@ type SimpleMessage = {
 };
 
 export function ConversationView() {
+    const { tier } = useUser();
+    const { chatsToday, isAtLimit, remaining, canChat } = useChatLimit();
     const { activeProvider, setIsStreaming, useExtendedThinking } = useChatStore();
     const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
@@ -47,6 +52,7 @@ export function ConversationView() {
     const { requireAuth } = useRequireAuth();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [showChatLimitPrompt, setShowChatLimitPrompt] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
 
     // Chart loading state
@@ -141,6 +147,12 @@ export function ConversationView() {
     const handleSend = useCallback(async (content: string) => {
         // Require authentication to use AI Chat
         if (!requireAuth('AI Chat')) return;
+
+        // Check daily chat limit for free users
+        if (!canChat && tier === 'free') {
+            setShowChatLimitPrompt(true);
+            return;
+        }
 
         detectIntent(content);
 
@@ -433,8 +445,33 @@ export function ConversationView() {
                                 : "I can analyze charts, review your portfolio, find trading setups, and help you execute trades."
                             }
                         </p>
+                        {tier === 'free' && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                                {remaining} AI chats remaining today
+                            </p>
+                        )}
                     </div>
                 </div>
+
+                {/* Chat Limit Upgrade Prompt */}
+                {showChatLimitPrompt && (
+                    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="max-w-md">
+                            <UpgradePrompt
+                                feature="Unlimited AI Chat"
+                                requiredTier="pro"
+                                description={`You've used all ${chatsToday} of your free AI chats today. Upgrade to Pro for unlimited conversations with our AI assistant.`}
+                            />
+                            <Button
+                                variant="ghost"
+                                className="w-full mt-4"
+                                onClick={() => setShowChatLimitPrompt(false)}
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Bottom Section: Presets and Input */}
                 <div className={cn(

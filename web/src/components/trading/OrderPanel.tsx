@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { useTradingStore } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { usePlacePaperTrade } from "@/hooks/usePortfolio";
+import { useUser } from "@/hooks/useUser";
+import { canAccess } from "@/lib/subscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +29,7 @@ type OrderType = "MKT" | "LMT" | "STP";
 type OrderSide = "buy" | "sell";
 
 export function OrderPanel() {
+  const { tier } = useUser();
   const { activeSymbol } = useTradingStore();
   const { quotes } = useMarketDataStore();
   const { execute: placePaperTrade, isSubmitting: isPaperTradeSubmitting } = usePlacePaperTrade();
@@ -55,29 +58,32 @@ export function OrderPanel() {
     setIsCheckingFirewall(true);
 
     try {
-      // Check emotional firewall first
-      const firewallResponse = await fetch('/api/emotional-firewall/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check_trade', symbol: activeSymbol }),
-      });
+      // Only check Emotional Firewall for Elite users
+      if (canAccess(tier, 'emotionalFirewall')) {
+        const firewallResponse = await fetch('/api/emotional-firewall/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check_trade', symbol: activeSymbol }),
+        });
 
-      if (firewallResponse.ok) {
-        const firewallResult = await firewallResponse.json();
+        if (firewallResponse.ok) {
+          const firewallResult = await firewallResponse.json();
 
-        if (firewallResult.blocked) {
-          toast.error("Trade Blocked", {
-            description: `Emotional Firewall: ${firewallResult.reasons?.join(', ') || 'Take a break'}`,
-            duration: 5000,
-          });
-          setIsCheckingFirewall(false);
-          return;
-        }
+          if (firewallResult.blocked) {
+            toast.error("Trade Blocked", {
+              description: `Emotional Firewall: ${firewallResult.reasons?.join(', ') || 'Take a break'}`,
+              duration: 5000,
+            });
+            setIsCheckingFirewall(false);
+            return;
+          }
 
-        if (firewallResult.status === 'warning') {
-          setFirewallWarning(firewallResult.reasons?.join(', ') || 'Proceed with caution');
+          if (firewallResult.status === 'warning') {
+            setFirewallWarning(firewallResult.reasons?.join(', ') || 'Proceed with caution');
+          }
         }
       }
+      // Free/Pro users: no firewall, trade proceeds directly
     } catch {
       // Firewall check failed - proceed anyway
       console.warn('Emotional firewall check failed, proceeding with trade');

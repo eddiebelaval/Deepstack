@@ -6,10 +6,12 @@ the trading engine, agents, and market data.
 """
 
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+import stripe
 import yfinance as yf
 from fastapi import (
     Depends,
@@ -145,6 +147,16 @@ class ManualPositionRequest(BaseModel):
     symbol: str
     quantity: int
     avg_cost: float
+
+
+class CheckoutSessionRequest(BaseModel):
+    tier: str  # 'pro' or 'elite'
+    user_id: str
+    user_email: str
+
+
+class CheckoutSessionResponse(BaseModel):
+    url: str
 
 
 class DeepStackAPIServer:
@@ -736,8 +748,282 @@ class DeepStackAPIServer:
                 logger.error(f"Error getting positions: {e}", exc_info=True)
                 raise DataError(message="Unable to retrieve positions")
 
+        # ============================================
+        # STRIPE SUBSCRIPTION ENDPOINTS
+        # ============================================
+
+        @self.app.post(
+            "/api/checkout/create-session", response_model=CheckoutSessionResponse
+        )
+        async def create_checkout_session(request: CheckoutSessionRequest):
+            """
+            Create Stripe checkout session for subscription.
+
+            Args:
+                request: Checkout session request with tier, user_id, and user_email
+
+            Returns:
+                Checkout session URL
+            """
+            try:
+                # Configure Stripe API key
+                stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+                if not stripe.api_key:
+                    raise DeepStackError(
+                        message="Stripe not configured",
+                        error_code="STRIPE_NOT_CONFIGURED",
+                    )
+
+                # Map tier to Stripe price ID
+                price_ids = {
+                    "pro": os.getenv("STRIPE_PRICE_PRO"),
+                    "elite": os.getenv("STRIPE_PRICE_ELITE"),
+                }
+
+                if request.tier not in price_ids:
+                    raise ValidationError(
+                        message=f"Invalid tier: {request.tier}",
+                        field="tier",
+                        value=request.tier,
+                    )
+
+                price_id = price_ids[request.tier]
+                if not price_id:
+                    raise DeepStackError(
+                        message=(
+                            f"Stripe price ID not configured "
+                            f"for tier: {request.tier}"
+                        ),
+                        error_code="STRIPE_PRICE_NOT_CONFIGURED",
+                    )
+
+                # Create checkout session
+                session = stripe.checkout.Session.create(
+                    customer_email=request.user_email,
+                    line_items=[{"price": price_id, "quantity": 1}],
+                    mode="subscription",
+                    success_url=("https://deepstack.trade/app?upgraded=true"),
+                    cancel_url="https://deepstack.trade/pricing",
+                    metadata={"user_id": request.user_id, "tier": request.tier},
+                )
+
+                logger.info(
+                    f"Created checkout session for user {request.user_id}, "
+                    f"tier {request.tier}"
+                )
+                return CheckoutSessionResponse(url=session.url)
+
+            except DeepStackError:
+                raise
+            except Exception as e:
+                logger.error(f"Error creating checkout session: {e}", exc_info=True)
+                raise DeepStackError(
+                    message="Failed to create checkout session",
+                    error_code="STRIPE_CHECKOUT_ERROR",
+                )
+
+        @self.app.post("/api/webhooks/stripe")
+        async def stripe_webhook(request: Request):
+            """
+            Handle Stripe webhook events for subscription lifecycle.
+
+            Events handled:
+            - checkout.session.completed: Create/upgrade subscription
+            - customer.subscription.updated: Update subscription status
+            - customer.subscription.deleted: Downgrade to free tier
+            - invoice.payment_failed: Mark subscription as past_due
+            """
+            try:
+                payload = await request.body()
+                sig_header = request.headers.get("stripe-signature")
+
+                stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+                webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+                if not webhook_secret:
+                    logger.error("Stripe webhook secret not configured")
+                    raise HTTPException(
+                        status_code=500, detail="Webhook not configured"
+                    )
+
+                # Verify webhook signature
+                try:
+                    event = stripe.Webhook.construct_event(
+                        payload, sig_header, webhook_secret
+                    )
+                except ValueError as e:
+                    logger.error(f"Invalid webhook payload: {e}")
+                    raise HTTPException(status_code=400, detail="Invalid payload")
+                except stripe.error.SignatureVerificationError as e:
+                    logger.error(f"Invalid webhook signature: {e}")
+                    raise HTTPException(status_code=400, detail="Invalid signature")
+
+                # Handle different event types
+                event_type = event["type"]
+                logger.info(f"Received Stripe webhook: {event_type}")
+
+                if event_type == "checkout.session.completed":
+                    session = event["data"]["object"]
+                    await self._handle_checkout_completed(session)
+
+                elif event_type == "customer.subscription.updated":
+                    subscription = event["data"]["object"]
+                    await self._handle_subscription_updated(subscription)
+
+                elif event_type == "customer.subscription.deleted":
+                    subscription = event["data"]["object"]
+                    await self._handle_subscription_deleted(subscription)
+
+                elif event_type == "invoice.payment_failed":
+                    invoice = event["data"]["object"]
+                    await self._handle_payment_failed(invoice)
+
+                return {"status": "success"}
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error handling Stripe webhook: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail="Webhook processing failed")
+
         # Include options router
         self.app.include_router(options_router)
+
+    async def _handle_checkout_completed(self, session: Dict[str, Any]):
+        """
+        Handle successful checkout completion.
+
+        Updates user profile with subscription data.
+        """
+        try:
+            from supabase import create_client
+
+            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+            if not supabase_url or not supabase_key:
+                logger.error("Supabase credentials not configured")
+                return
+
+            supabase = create_client(supabase_url, supabase_key)
+
+            user_id = session["metadata"]["user_id"]
+            tier = session["metadata"]["tier"]
+            customer_id = session["customer"]
+            subscription_id = session["subscription"]
+
+            # Update user profile
+            (
+                supabase.table("profiles")
+                .update(
+                    {
+                        "subscription_tier": tier,
+                        "stripe_customer_id": customer_id,
+                        "stripe_subscription_id": subscription_id,
+                        "subscription_status": "active",
+                        "subscription_starts_at": datetime.now(
+                            timezone.utc
+                        ).isoformat(),
+                    }
+                )
+                .eq("id", user_id)
+                .execute()
+            )
+
+            logger.info(f"Updated subscription for user {user_id} to {tier}")
+
+        except Exception as e:
+            logger.error(f"Error handling checkout completion: {e}", exc_info=True)
+
+    async def _handle_subscription_updated(self, subscription: Dict[str, Any]):
+        """Handle subscription updates."""
+        try:
+            from supabase import create_client
+
+            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+            if not supabase_url or not supabase_key:
+                return
+
+            supabase = create_client(supabase_url, supabase_key)
+
+            customer_id = subscription["customer"]
+            status = subscription["status"]
+
+            # Update subscription status
+            supabase.table("profiles").update({"subscription_status": status}).eq(
+                "stripe_customer_id", customer_id
+            ).execute()
+
+            logger.info(
+                f"Updated subscription status for customer {customer_id} to {status}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error handling subscription update: {e}", exc_info=True)
+
+    async def _handle_subscription_deleted(self, subscription: Dict[str, Any]):
+        """Handle subscription cancellation - downgrade to free."""
+        try:
+            from supabase import create_client
+
+            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+            if not supabase_url or not supabase_key:
+                return
+
+            supabase = create_client(supabase_url, supabase_key)
+
+            customer_id = subscription["customer"]
+
+            # Downgrade to free tier
+            (
+                supabase.table("profiles")
+                .update(
+                    {
+                        "subscription_tier": "free",
+                        "subscription_status": "canceled",
+                        "subscription_ends_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
+                .eq("stripe_customer_id", customer_id)
+                .execute()
+            )
+
+            logger.info(f"Downgraded customer {customer_id} to free tier")
+
+        except Exception as e:
+            logger.error(f"Error handling subscription deletion: {e}", exc_info=True)
+
+    async def _handle_payment_failed(self, invoice: Dict[str, Any]):
+        """Handle failed payment."""
+        try:
+            from supabase import create_client
+
+            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+            if not supabase_url or not supabase_key:
+                return
+
+            supabase = create_client(supabase_url, supabase_key)
+
+            customer_id = invoice["customer"]
+
+            # Mark subscription as past_due
+            supabase.table("profiles").update({"subscription_status": "past_due"}).eq(
+                "stripe_customer_id", customer_id
+            ).execute()
+
+            logger.warning(
+                f"Payment failed for customer {customer_id}, marked as past_due"
+            )
+
+        except Exception as e:
+            logger.error(f"Error handling payment failure: {e}", exc_info=True)
 
     def _setup_websocket(self):
         """Setup WebSocket endpoint for real-time updates."""
