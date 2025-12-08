@@ -38,7 +38,6 @@ export function EmotionalFirewallBanner({
     isSafe,
     cooldownRemaining,
     patterns,
-    reasons,
     stats,
   } = useEmotionalFirewall();
 
@@ -230,7 +229,7 @@ export function EmotionalFirewallBanner({
 
 // Compact version for embedding in other components
 export function EmotionalFirewallIndicator() {
-  const { isBlocked, isWarning, isSafe, loading } = useEmotionalFirewall();
+  const { isBlocked, isWarning, loading } = useEmotionalFirewall();
 
   if (loading) return null;
 

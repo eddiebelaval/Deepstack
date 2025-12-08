@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         theses.unshift(newThesis);
 
         return NextResponse.json({ thesis: newThesis }, { status: 201 });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to create thesis' }, { status: 400 });
     }
 }
@@ -112,7 +112,7 @@ export async function PUT(request: NextRequest) {
         };
 
         return NextResponse.json({ thesis: theses[index] });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to update thesis' }, { status: 400 });
     }
 }
@@ -130,7 +130,7 @@ export async function DELETE(request: NextRequest) {
         theses = theses.filter(t => t.id !== id);
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to delete thesis' }, { status: 400 });
     }
 }

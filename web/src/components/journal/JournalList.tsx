@@ -27,12 +27,9 @@ const EMOTION_EMOJIS: Record<string, string> = {
 
 export function JournalList() {
     const { entries, addEntry, updateEntry, deleteEntry, isLoading, isOnline, error } = useJournalSync();
-    const { theses, getActiveTheses, getThesisById } = useThesisSync();
+    const { theses, getThesisById } = useThesisSync();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | undefined>(undefined);
-
-    // Get all active theses plus any thesis that is already linked to an entry (even if no longer active)
-    const activeTheses = getActiveTheses();
 
     const handleEdit = (id: string) => {
         setEditingId(id);
@@ -44,13 +41,6 @@ export function JournalList() {
         setDialogOpen(true);
     };
 
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    };
 
     return (
         <div className="space-y-6">

@@ -88,7 +88,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               hr() {
                 return <hr className="my-8 border-border/20" />;
               },
-              code({ node, inline, className, children, ...props }: any) {
+              code({ inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');
                 return !inline && match ? (
                   <CodeBlock

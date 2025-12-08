@@ -4,7 +4,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
-import { Lightbulb, TrendingUp, TrendingDown, Target, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Lightbulb, Target, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ValidationScoreRing } from './ValidationScoreRing';
 import { getScoreColor } from '@/lib/thesis-validation';

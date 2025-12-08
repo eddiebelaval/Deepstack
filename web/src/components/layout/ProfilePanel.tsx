@@ -4,7 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { Button } from '@/components/ui/button';
-import { X, User, Mail, Shield, CreditCard, Bell } from 'lucide-react';
+import { X, User, Mail, Shield, CreditCard } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';

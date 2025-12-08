@@ -42,7 +42,6 @@ export function PortfolioSidebar() {
     refresh,
     refreshPrices,
     isConnected,
-    removeTrade,
   } = usePortfolio({ pollInterval: 30000 });
 
   // Loading state (only on initial load)

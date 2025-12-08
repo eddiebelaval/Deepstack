@@ -54,7 +54,7 @@ export function ThinkingBlock({ content, defaultExpanded = false }: ThinkingBloc
                             strong({ children }) {
                                 return <strong className="font-semibold text-foreground">{children}</strong>;
                             },
-                            code({ node, inline, className, children, ...props }: any) {
+                            code({ className, children, ...props }: any) {
                                 return (
                                     <code className={cn("bg-purple-500/10 px-1.5 py-0.5 rounded font-mono text-xs", className)} {...props}>
                                         {children}

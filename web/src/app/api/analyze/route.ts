@@ -57,8 +57,6 @@ function calculateTechnicals(bars: any[], currentPrice: number) {
   };
 
   // Simple Trend based on last vs first bar in range
-  const firstClose = bars[bars.length - 1].c; // bars are often returned newest first or handle appropriately.
-  // Let's assume bars are time descending or ascending.
   // The Market API usually returns bars time-ascending (oldest to newest) or descending.
   // We'll check timestamps if needed, but for simple stuff:
   // If we assume typical API format, let's just grab min and max of recent closes for sup/res.

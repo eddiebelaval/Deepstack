@@ -43,7 +43,6 @@ export function TradeWarningModal({
 
   const isBlocked = firewallResult?.blocked ?? false;
   const patterns = firewallResult?.patterns_detected ?? [];
-  const reasons = firewallResult?.reasons ?? [];
 
   const getPatternAdvice = (pattern: string): string => {
     const advice: Record<string, string> = {

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { useThesisStore } from '@/lib/stores/thesis-store';
-import { useJournalStore, type JournalEntry } from '@/lib/stores/journal-store';
+import { useJournalStore } from '@/lib/stores/journal-store';
 import { type Conversation } from '@/lib/stores/chat-store';
 import { fetchConversationById } from '@/lib/supabase/conversations';
 import {
@@ -142,7 +142,6 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
 
     // Use manual score if set, otherwise use auto-calculated
     const validationScore = thesis.validationScore ?? autoValidationResult.totalScore;
-    const scoreColors = getScoreColor(validationScore);
 
     // Price position relative to targets
     const getPricePosition = () => {

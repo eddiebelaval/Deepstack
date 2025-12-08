@@ -16,7 +16,6 @@ interface PayoffDiagramProps {
 
 export function PayoffDiagram({
   calculation,
-  underlyingPrice,
   className,
   showGreeks = false,
 }: PayoffDiagramProps) {

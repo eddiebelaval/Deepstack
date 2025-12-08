@@ -12,7 +12,7 @@ import { ThesisDashboard } from './ThesisDashboard';
 import { Plus, Lightbulb, Target, CheckCircle, XCircle, ArrowLeft, Loader2, Cloud, CloudOff } from 'lucide-react';
 
 export function ThesisList() {
-    const { theses, addThesis, updateThesis, deleteThesis, isLoading, isOnline, error } = useThesisSync();
+    const { theses, addThesis, updateThesis, isLoading, isOnline, error } = useThesisSync();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | undefined>(undefined);
     const [selectedThesis, setSelectedThesis] = useState<ThesisEntry | null>(null);

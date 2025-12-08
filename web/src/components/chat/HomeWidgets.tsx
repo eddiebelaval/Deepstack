@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useWatchlistStore } from '@/lib/stores/watchlist-store';
@@ -53,7 +51,7 @@ interface LegendCardProps {
     isCrypto?: boolean;
 }
 
-function LegendCard({ symbol, displayName, price, percentChange, color, isVisible, onClick, isCrypto }: LegendCardProps) {
+function LegendCard({ displayName, price, percentChange, color, isVisible, onClick, isCrypto }: LegendCardProps) {
     const isPositive = percentChange >= 0;
 
     return (

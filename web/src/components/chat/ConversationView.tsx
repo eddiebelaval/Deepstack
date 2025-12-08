@@ -25,7 +25,7 @@ import { OptionsScreenerPanel, OptionsStrategyBuilder } from '@/components/optio
 import { PresetGrid } from './PresetGrid';
 import { HomeWidgets } from './HomeWidgets';
 import { cn } from '@/lib/utils';
-import { Briefcase, LineChart, TrendingUp, Target, X, Maximize2, Minimize2, Square, RectangleHorizontal, Search, Loader2 } from 'lucide-react';
+import { LineChart, X, Maximize2, Minimize2, Square, RectangleHorizontal, Search, Loader2 } from 'lucide-react';
 
 // Simple message type for our use case
 type SimpleMessage = {
@@ -42,7 +42,7 @@ export function ConversationView() {
     const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
     const { isLoadingBars, bars } = useMarketDataStore();
-    const { isMobile, isTablet, isDesktop } = useIsMobile();
+    const { isMobile, isDesktop } = useIsMobile();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);

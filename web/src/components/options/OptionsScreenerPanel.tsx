@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,6 @@ import {
   ChevronDown,
   X,
   Plus,
-  ArrowUpDown,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
@@ -38,8 +37,6 @@ import {
   formatStrike,
   formatDelta,
   formatIV,
-  formatSpread,
-  getMoneyessLabel,
 } from '@/lib/types/options';
 
 export function OptionsScreenerPanel() {
@@ -55,7 +52,6 @@ export function OptionsScreenerPanel() {
     hasRun,
     error,
     selectedContracts,
-    setUnderlyingSymbols,
     addSymbol,
     removeSymbol,
     setOptionTypes,
@@ -67,11 +63,7 @@ export function OptionsScreenerPanel() {
     setMaxBidAskSpread,
     setMoneyness,
     setSortBy,
-    setSortOrder,
-    setLimit,
     runScreen,
-    selectContract,
-    deselectContract,
     clearSelection,
   } = useOptionsScreenerStore();
 

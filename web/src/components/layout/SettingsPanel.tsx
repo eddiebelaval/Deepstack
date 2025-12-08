@@ -14,7 +14,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export function SettingsPanel() {
     const { settingsOpen, toggleSettings, credits } = useUIStore();
-    const { theme, setTheme, resolvedTheme } = useTheme();
+    useTheme(); // Hook must be called but values not directly used (used by ThemeToggle)
 
     return (
         <AnimatePresence>

@@ -304,7 +304,7 @@ export function Header() {
                 <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
               </div>
             ) : displaySymbols.length === 0 ? (
-              <CommandEmpty>No symbols found for "{searchQuery}"</CommandEmpty>
+              <CommandEmpty>No symbols found for &quot;{searchQuery}&quot;</CommandEmpty>
             ) : (
               <CommandGroup heading={searchQuery ? `Results for "${searchQuery}"` : "Popular Symbols"}>
                 {displaySymbols.map((item) => (

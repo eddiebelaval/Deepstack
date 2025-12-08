@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         journalEntries.unshift(newEntry);
 
         return NextResponse.json({ entry: newEntry }, { status: 201 });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to create entry' }, { status: 400 });
     }
 }
@@ -87,7 +87,7 @@ export async function PUT(request: NextRequest) {
         };
 
         return NextResponse.json({ entry: journalEntries[index] });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to update entry' }, { status: 400 });
     }
 }
@@ -105,7 +105,7 @@ export async function DELETE(request: NextRequest) {
         journalEntries = journalEntries.filter(e => e.id !== id);
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to delete entry' }, { status: 400 });
     }
 }

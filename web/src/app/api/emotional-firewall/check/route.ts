@@ -87,8 +87,8 @@ function getCurrentStreak(): { type: 'win' | 'loss' | null; count: number } {
 }
 
 function checkFirewall(
-  symbol?: string,
-  positionSize?: number
+  _symbol?: string,
+  _positionSize?: number
 ): FirewallCheckResult {
   const now = new Date();
   const reasons: string[] = [];
