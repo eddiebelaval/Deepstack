@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+import yfinance as yf
 from fastapi import (
     Depends,
     FastAPI,
@@ -72,6 +73,7 @@ class QuoteResponse(BaseModel):
     last: Optional[float]
     volume: Optional[int]
     timestamp: datetime
+    source: Optional[str] = None  # Track data source
 
 
 class PositionResponse(BaseModel):
@@ -81,6 +83,20 @@ class PositionResponse(BaseModel):
     market_value: float
     unrealized_pnl: float
     realized_pnl: float
+
+
+class PositionItemResponse(BaseModel):
+    symbol: str
+    quantity: float
+    avg_cost: float
+    current_price: float
+    unrealized_pnl: float
+    market_value: float
+
+
+class PositionsListResponse(BaseModel):
+    positions: List[PositionItemResponse]
+    total_value: float
 
 
 class OrderRequest(BaseModel):
@@ -252,40 +268,89 @@ class DeepStackAPIServer:
 
         @self.app.get("/quote/{symbol}", response_model=QuoteResponse)
         async def get_quote(symbol: str):
-            """Get current quote for symbol."""
-            try:
-                quote = None
-                if self.ibkr_client and self.ibkr_client.connected:
-                    quote = await self.ibkr_client.get_quote(symbol)
-                elif self.paper_trader:
-                    price = await self.paper_trader._get_market_price(symbol)
-                    if price is not None:
-                        # Provide basic quote fields for paper mode
-                        quote = {
-                            "symbol": symbol,
-                            "bid": price - 0.02,
-                            "ask": price + 0.02,
-                            "last": price,
-                            "volume": 0,
-                            "timestamp": datetime.now(),
-                        }
+            """Get current quote for symbol with Yahoo Finance fallback."""
+            quote = None
+            source = None
 
+            try:
+                # Try IBKR first
+                if self.ibkr_client and self.ibkr_client.connected:
+                    try:
+                        quote = await self.ibkr_client.get_quote(symbol)
+                        if quote:
+                            source = "ibkr"
+                            logger.debug(f"Quote for {symbol} from IBKR")
+                    except Exception as e:
+                        logger.warning(f"IBKR quote failed for {symbol}: {e}")
+
+                # Try Alpaca via paper trader
+                if not quote and self.paper_trader:
+                    try:
+                        price = await self.paper_trader._get_market_price(symbol)
+                        if price is not None:
+                            quote = {
+                                "symbol": symbol,
+                                "bid": price - 0.02,
+                                "ask": price + 0.02,
+                                "last": price,
+                                "volume": 0,
+                                "timestamp": datetime.now(),
+                            }
+                            source = "alpaca"
+                            logger.debug(f"Quote for {symbol} from Alpaca")
+                    except Exception as e:
+                        logger.warning(f"Alpaca quote failed for {symbol}: {e}")
+
+                # Fallback to Yahoo Finance
+                if not quote:
+                    try:
+                        logger.info(f"Falling back to Yahoo Finance for {symbol}")
+                        ticker = yf.Ticker(symbol)
+                        info = ticker.info
+
+                        if info:
+                            # Get current price - try multiple fields
+                            current_price = (
+                                info.get("currentPrice")
+                                or info.get("regularMarketPrice")
+                                or info.get("previousClose")
+                            )
+
+                            if current_price:
+                                quote = {
+                                    "symbol": symbol,
+                                    "bid": info.get("bid"),
+                                    "ask": info.get("ask"),
+                                    "last": current_price,
+                                    "volume": info.get("regularMarketVolume")
+                                    or info.get("volume"),
+                                    "timestamp": datetime.now(),
+                                }
+                                source = "yahoo_finance"
+                                logger.info(
+                                    f"Yahoo quote {symbol}: ${current_price:.2f}"
+                                )
+                    except Exception as e:
+                        logger.error(f"Yahoo Finance quote failed for {symbol}: {e}")
+
+                # Return quote if we got one
                 if quote:
+                    quote["source"] = source
                     return QuoteResponse(**quote)
                 else:
                     raise QuoteUnavailableError(
-                        message=f"Quote not available for {symbol}", symbol=symbol
+                        message=f"Quote not available for {symbol} from any source",
+                        symbol=symbol,
                     )
+
             except DeepStackError:
                 raise  # Let exception handler handle it
             except HTTPException:
                 raise  # Let FastAPI handle HTTPException as-is
             except Exception as e:
-                logger.error(f"Error getting quote for {symbol}: {e}", exc_info=True)
-                raise QuoteUnavailableError(
-                    message=f"Unable to fetch quote for {symbol}", symbol=symbol
+                logger.error(
+                    f"Unexpected error getting quote for {symbol}: {e}", exc_info=True
                 )
-
                 raise QuoteUnavailableError(
                     message=f"Unable to fetch quote for {symbol}", symbol=symbol
                 )
@@ -611,6 +676,65 @@ class DeepStackAPIServer:
                 raise DeepStackError(
                     message="Failed to add manual position", error_code="POSITION_ERROR"
                 )
+
+        @self.app.get("/positions", response_model=PositionsListResponse)
+        async def get_all_positions(
+            user: AuthenticatedUser = Depends(get_current_user),
+        ):
+            """Get all current positions."""
+            try:
+                if not self.paper_trader:
+                    raise DeepStackError(
+                        message="Positions unavailable - paper trader not initialized",
+                        error_code="TRADER_NOT_INITIALIZED",
+                    )
+
+                # Get positions from paper trader
+                positions = self.paper_trader.get_positions()
+
+                if not positions:
+                    return PositionsListResponse(positions=[], total_value=0.0)
+
+                # Enrich position data with current prices
+                position_items = []
+                total_value = 0.0
+
+                for pos in positions:
+                    symbol = pos["symbol"]
+                    quantity = pos.get("quantity", 0)
+                    avg_cost = pos.get("avg_cost", 0.0)
+
+                    # Get current market price
+                    current_price = await self.paper_trader._get_market_price(symbol)
+                    if current_price is None:
+                        # Fallback to average cost if price unavailable
+                        current_price = avg_cost
+
+                    # Calculate values
+                    market_value = quantity * current_price
+                    unrealized_pnl = market_value - (quantity * avg_cost)
+                    total_value += market_value
+
+                    position_items.append(
+                        PositionItemResponse(
+                            symbol=symbol,
+                            quantity=quantity,
+                            avg_cost=avg_cost,
+                            current_price=current_price,
+                            unrealized_pnl=unrealized_pnl,
+                            market_value=market_value,
+                        )
+                    )
+
+                return PositionsListResponse(
+                    positions=position_items, total_value=total_value
+                )
+
+            except DeepStackError:
+                raise  # Let exception handler handle it
+            except Exception as e:
+                logger.error(f"Error getting positions: {e}", exc_info=True)
+                raise DataError(message="Unable to retrieve positions")
 
         # Include options router
         self.app.include_router(options_router)
