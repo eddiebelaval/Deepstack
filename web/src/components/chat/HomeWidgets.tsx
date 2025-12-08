@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useWatchlistStore } from '@/lib/stores/watchlist-store';
-import { MultiSeriesChart, type SeriesData } from '@/components/charts/MultiSeriesChart';
+import { LazyMultiSeriesChart } from '@/components/lazy';
+import { type SeriesData } from '@/components/charts/MultiSeriesChart';
 import { Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -295,7 +296,7 @@ export function HomeWidgets() {
 
                     {seriesData.length > 0 ? (
                         <>
-                            <MultiSeriesChart
+                            <LazyMultiSeriesChart
                                 series={displaySeries}
                                 logScale={isLogScale}
                             />

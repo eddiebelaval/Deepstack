@@ -20,6 +20,7 @@ import {
     Settings2
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 type WidgetType = 'watchlist' | 'quickStats' | 'marketStatus' | 'positions';
 
@@ -181,7 +182,9 @@ function WidgetCard({ config, onRemove }: { config: WidgetConfig; onRemove: () =
                 </Button>
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                {renderContent()}
+                <ErrorBoundary variant="inline">
+                    {renderContent()}
+                </ErrorBoundary>
             </CardContent>
         </Card>
     );

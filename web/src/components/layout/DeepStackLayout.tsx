@@ -11,6 +11,7 @@ import { MobileHeader } from './MobileHeader';
 import { MobileBottomNav } from './MobileBottomNav';
 import { EmotionalFirewallBanner } from '@/components/emotional-firewall';
 import { SymbolSearchDialog } from '@/components/search/SymbolSearchDialog';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useRealtimePositions } from '@/hooks/useRealtimePositions';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -56,17 +57,31 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
             )}
 
             {/* Left Sidebar - Chat History */}
-            <LeftSidebar />
+            <ErrorBoundary variant="panel">
+                <LeftSidebar />
+            </ErrorBoundary>
 
             {/* Slide-out Panels */}
-            <ProfilePanel />
-            <SettingsPanel />
+            <ErrorBoundary variant="panel">
+                <ProfilePanel />
+            </ErrorBoundary>
+            <ErrorBoundary variant="panel">
+                <SettingsPanel />
+            </ErrorBoundary>
 
             {/* Right Toolbar - Only on desktop */}
-            {isDesktop && <RightToolbar />}
+            {isDesktop && (
+                <ErrorBoundary variant="panel">
+                    <RightToolbar />
+                </ErrorBoundary>
+            )}
 
             {/* Right Widget Panel - Only on desktop */}
-            {isDesktop && <WidgetPanel />}
+            {isDesktop && (
+                <ErrorBoundary variant="panel">
+                    <WidgetPanel />
+                </ErrorBoundary>
+            )}
 
             {/* Main Content Area */}
             <main
@@ -94,7 +109,9 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                     "flex-1 flex flex-col min-h-0",
                     (isMobile || isTablet) && "pb-16" // Space for bottom nav
                 )}>
-                    {children}
+                    <ErrorBoundary variant="fullscreen">
+                        {children}
+                    </ErrorBoundary>
                 </div>
             </main>
 
