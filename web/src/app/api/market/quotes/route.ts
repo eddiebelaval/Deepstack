@@ -47,24 +47,62 @@ export async function GET(request: NextRequest) {
   const symbolList = symbols.split(',').map(s => s.trim().toUpperCase());
 
   try {
-    // Call the Python backend to get quotes
-    const response = await fetch(
-      `${API_BASE_URL}/api/market/quotes?symbols=${symbols}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Don't cache market data
-        cache: 'no-store',
-      }
-    );
+    // Backend uses /quote/{symbol} endpoint for individual quotes
+    // Fetch all symbols in parallel
+    const quotePromises = symbolList.map(async (symbol) => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/quote/${encodeURIComponent(symbol)}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            cache: 'no-store',
+          }
+        );
 
-    if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
+        if (!response.ok) {
+          return { symbol, error: true };
+        }
+
+        const data = await response.json();
+        return { symbol, data };
+      } catch {
+        return { symbol, error: true };
+      }
+    });
+
+    const results = await Promise.all(quotePromises);
+
+    // Build quotes object from results
+    const quotes: Record<string, object> = {};
+    let hasRealData = false;
+
+    for (const result of results) {
+      if (!result.error && result.data) {
+        hasRealData = true;
+        quotes[result.symbol] = {
+          symbol: result.symbol,
+          last: result.data.price ?? result.data.last ?? result.data.close,
+          open: result.data.open,
+          high: result.data.high,
+          low: result.data.low,
+          close: result.data.close,
+          volume: result.data.volume,
+          change: result.data.change,
+          changePercent: result.data.change_percent ?? result.data.changePercent,
+          bid: result.data.bid,
+          ask: result.data.ask,
+          timestamp: result.data.timestamp || new Date().toISOString(),
+        };
+      }
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    if (hasRealData) {
+      return NextResponse.json({ quotes, mock: false });
+    }
+
+    throw new Error('No real quotes available');
   } catch (error) {
     // Backend unavailable - return mock data so UI still works
     console.warn('Backend unavailable, returning mock quotes:', error);
