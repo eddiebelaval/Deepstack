@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RichTextEditor } from './RichTextEditor';
 import { type JournalEntry, type EmotionType } from '@/lib/stores/journal-store';
-import { Loader2 } from 'lucide-react';
+import { type ThesisEntry } from '@/lib/stores/thesis-store';
+import { Loader2, Link2, Unlink } from 'lucide-react';
 
 const EMOTIONS: { value: EmotionType; label: string; emoji: string }[] = [
     { value: 'confident', label: 'Confident', emoji: '💪' },
@@ -30,6 +31,7 @@ interface JournalEntryDialogProps {
     existingEntry?: JournalEntry;
     onAddEntry: (entry: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>) => Promise<JournalEntry>;
     onUpdateEntry: (id: string, updates: Partial<JournalEntry>) => Promise<void>;
+    activeTheses?: ThesisEntry[];
 }
 
 export function JournalEntryDialog({
@@ -39,6 +41,7 @@ export function JournalEntryDialog({
     existingEntry,
     onAddEntry,
     onUpdateEntry,
+    activeTheses = [],
 }: JournalEntryDialogProps) {
     const [isSaving, setIsSaving] = useState(false);
 
@@ -52,6 +55,15 @@ export function JournalEntryDialog({
     const [emotionAtExit, setEmotionAtExit] = useState<EmotionType | undefined>(existingEntry?.emotionAtExit);
     const [notes, setNotes] = useState(existingEntry?.notes || '');
     const [lessonsLearned, setLessonsLearned] = useState(existingEntry?.lessonsLearned || '');
+    const [thesisId, setThesisId] = useState<string | undefined>(existingEntry?.thesisId);
+
+    // Filter theses that match the current symbol (case-insensitive)
+    const matchingTheses = activeTheses.filter(
+        (t) => t.symbol.toUpperCase() === symbol.toUpperCase()
+    );
+
+    // All active theses for the dropdown
+    const availableTheses = activeTheses;
 
     const handleSubmit = async () => {
         setIsSaving(true);
@@ -67,6 +79,7 @@ export function JournalEntryDialog({
                 emotionAtExit,
                 notes,
                 lessonsLearned,
+                thesisId,
             };
 
             if (editingId) {
@@ -83,6 +96,7 @@ export function JournalEntryDialog({
             setQuantity('');
             setNotes('');
             setLessonsLearned('');
+            setThesisId(undefined);
         } finally {
             setIsSaving(false);
         }
@@ -199,6 +213,53 @@ export function JournalEntryDialog({
                             </Select>
                         </div>
                     </div>
+
+                    {/* Link to Thesis */}
+                    {availableTheses.length > 0 && (
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                                <Link2 className="h-4 w-4" />
+                                Link to Thesis (optional)
+                            </Label>
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    value={thesisId || ''}
+                                    onValueChange={(v) => setThesisId(v || undefined)}
+                                >
+                                    <SelectTrigger className="flex-1">
+                                        <SelectValue placeholder="Select a thesis..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableTheses.map((t) => (
+                                            <SelectItem key={t.id} value={t.id}>
+                                                <span className="flex items-center gap-2">
+                                                    <span className="font-medium">{t.symbol}</span>
+                                                    <span className="text-muted-foreground">-</span>
+                                                    <span className="truncate max-w-[200px]">{t.title}</span>
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {thesisId && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setThesisId(undefined)}
+                                        title="Unlink thesis"
+                                    >
+                                        <Unlink className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                            {matchingTheses.length > 0 && symbol && !thesisId && (
+                                <p className="text-xs text-muted-foreground">
+                                    {matchingTheses.length} thesis{matchingTheses.length > 1 ? 'es' : ''} found for {symbol.toUpperCase()}
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Notes */}
                     <div className="space-y-2">

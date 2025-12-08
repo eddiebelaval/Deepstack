@@ -29,6 +29,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useOptionsScreenerStore } from '@/lib/stores/options-screener-store';
 import { useOptionsStrategyStore } from '@/lib/stores/options-strategy-store';
@@ -91,6 +92,12 @@ export function OptionsScreenerPanel() {
 
   const handleAddToStrategy = (contract: OptionContract, action: 'buy' | 'sell') => {
     addLegFromContract(contract, action);
+    const actionLabel = action === 'buy' ? 'Buy' : 'Sell';
+    const typeLabel = contract.option_type === 'call' ? 'Call' : 'Put';
+    toast.success(`Added to Strategy Builder`, {
+      description: `${actionLabel} ${contract.underlying_symbol} ${formatStrike(contract.strike_price)} ${typeLabel}`,
+      duration: 3000,
+    });
   };
 
   return (

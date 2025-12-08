@@ -85,6 +85,9 @@ export interface StrategyCalculation {
   net_debit_credit: number;
   strategy_name: string;
   probability_of_profit?: number;
+  // Mock data indicator (when backend unavailable)
+  mock?: boolean;
+  warning?: string;
 }
 
 // Strategy templates

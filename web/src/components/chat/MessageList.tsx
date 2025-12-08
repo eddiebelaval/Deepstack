@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 type Message = any; // import { Message } from '@ai-sdk/react';
 import { MessageBubble } from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 
 type MessageListProps = {
   messages: Message[];
@@ -18,6 +18,20 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Check if the last message has tool invocations in progress
+  const lastMessage = messages[messages.length - 1];
+  const hasActiveTools = lastMessage?.toolInvocations?.some(
+    (t: any) => t.state === 'call' || t.state === 'partial-call'
+  );
+
+  // Determine streaming status message
+  const getStreamingMessage = () => {
+    if (hasActiveTools) {
+      return 'Executing tools...';
+    }
+    return 'Thinking...';
+  };
 
   if (messages.length === 0) {
     return (
@@ -46,9 +60,12 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
         ))}
 
         {isStreaming && (
-          <div className="flex items-center gap-2 text-muted-foreground mb-6">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Thinking...</span>
+          <div className="flex items-center gap-2 text-muted-foreground mb-6 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <div className="relative">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <Sparkles className="h-2 w-2 absolute -top-0.5 -right-0.5 text-primary animate-pulse" />
+            </div>
+            <span className="text-sm font-medium">{getStreamingMessage()}</span>
           </div>
         )}
 

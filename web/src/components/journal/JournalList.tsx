@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { type JournalEntry } from '@/lib/stores/journal-store';
+import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { useJournalSync } from '@/hooks/useJournalSync';
+import { useThesisSync } from '@/hooks/useThesisSync';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { JournalEntryDialog } from './JournalEntryDialog';
-import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const EMOTION_EMOJIS: Record<string, string> = {
@@ -25,8 +27,12 @@ const EMOTION_EMOJIS: Record<string, string> = {
 
 export function JournalList() {
     const { entries, addEntry, updateEntry, deleteEntry, isLoading, isOnline, error } = useJournalSync();
+    const { theses, getActiveTheses, getThesisById } = useThesisSync();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | undefined>(undefined);
+
+    // Get all active theses plus any thesis that is already linked to an entry (even if no longer active)
+    const activeTheses = getActiveTheses();
 
     const handleEdit = (id: string) => {
         setEditingId(id);
@@ -106,6 +112,7 @@ export function JournalList() {
                         <JournalEntryCard
                             key={entry.id}
                             entry={entry}
+                            linkedThesis={entry.thesisId ? getThesisById(entry.thesisId) : undefined}
                             onEdit={() => handleEdit(entry.id)}
                             onDelete={() => deleteEntry(entry.id)}
                         />
@@ -120,6 +127,7 @@ export function JournalList() {
                 existingEntry={editingId ? entries.find(e => e.id === editingId) : undefined}
                 onAddEntry={addEntry}
                 onUpdateEntry={updateEntry}
+                activeTheses={theses}
             />
         </div>
     );
@@ -127,11 +135,12 @@ export function JournalList() {
 
 interface JournalEntryCardProps {
     entry: JournalEntry;
+    linkedThesis?: ThesisEntry;
     onEdit: () => void;
     onDelete: () => void;
 }
 
-function JournalEntryCard({ entry, onEdit, onDelete }: JournalEntryCardProps) {
+function JournalEntryCard({ entry, linkedThesis, onEdit, onDelete }: JournalEntryCardProps) {
     const isProfit = entry.pnl && entry.pnl > 0;
     const isLoss = entry.pnl && entry.pnl < 0;
 
@@ -177,6 +186,18 @@ function JournalEntryCard({ entry, onEdit, onDelete }: JournalEntryCardProps) {
                             </span>
                         )}
                     </div>
+
+                    {/* Linked Thesis Badge */}
+                    {linkedThesis && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                <Link2 className="h-3 w-3" />
+                                <span className="font-medium">{linkedThesis.symbol}</span>
+                                <span className="text-muted-foreground">|</span>
+                                <span className="truncate max-w-[150px]">{linkedThesis.title}</span>
+                            </Badge>
+                        </div>
+                    )}
 
                     {/* Notes Preview */}
                     {entry.notes && (

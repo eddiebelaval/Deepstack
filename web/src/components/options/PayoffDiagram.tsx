@@ -160,7 +160,14 @@ export function PayoffDiagram({
     <Card className={cn('', className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{calculation.strategy_name}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">{calculation.strategy_name}</CardTitle>
+            {calculation.mock && (
+              <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500">
+                Simulated
+              </Badge>
+            )}
+          </div>
           <div className="flex gap-2 items-center text-xs">
             <div className="flex items-center gap-1">
               <div className="w-3 h-0.5 bg-green-500 rounded" />

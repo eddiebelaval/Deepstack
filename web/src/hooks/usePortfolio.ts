@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   calculatePositions,
   updatePositionsWithPrices,
@@ -26,10 +26,15 @@ interface UsePortfolioReturn {
   // Loading states
   isLoading: boolean;
   isRefreshing: boolean;
+  isPriceLoading: boolean;
   error: string | null;
+
+  // Timestamps
+  lastPriceUpdate: Date | null;
 
   // Actions
   refresh: () => Promise<void>; // Kept for interface compatibility, though sync handles it
+  refreshPrices: () => Promise<void>; // Force refresh prices
   placeTrade: (trade: {
     symbol: string;
     action: 'BUY' | 'SELL';
@@ -55,6 +60,11 @@ export function usePortfolio(options: UsePortfolioOptions = {}): UsePortfolioRet
 
   // Mock refresh since sync hook manages itself
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPriceLoading, setIsPriceLoading] = useState(false);
+  const [lastPriceUpdate, setLastPriceUpdate] = useState<Date | null>(null);
+
+  // Use ref to track position symbols for stable effect dependencies
+  const positionSymbolsRef = useRef<string[]>([]);
 
   // Market data store for live prices
   const quotes = useMarketDataStore((state) => state.quotes);
@@ -66,9 +76,12 @@ export function usePortfolio(options: UsePortfolioOptions = {}): UsePortfolioRet
     return calculatePositions(trades);
   }, [trades]);
 
-  // Get unique symbols from funds positions for price updates
+  // Get unique symbols from open positions for price updates
   const positionSymbols = useMemo(() => {
-    return positions.filter(p => p.quantity !== 0).map(p => p.symbol);
+    const symbols = positions.filter(p => p.quantity !== 0).map(p => p.symbol);
+    // Update ref for stable dependencies in callbacks
+    positionSymbolsRef.current = symbols;
+    return symbols;
   }, [positions]);
 
   // Build prices map from quotes store
@@ -124,24 +137,29 @@ export function usePortfolio(options: UsePortfolioOptions = {}): UsePortfolioRet
 
   // Fetch prices for position symbols
   const fetchPrices = useCallback(async () => {
-    if (positionSymbols.length === 0) return;
+    const symbols = positionSymbolsRef.current;
+    if (symbols.length === 0) return;
+
+    setIsPriceLoading(true);
 
     // Subscribe symbols to market data store
-    positionSymbols.forEach(symbol => subscribe(symbol));
+    symbols.forEach(symbol => subscribe(symbol));
 
     // Fetch current quotes
     try {
-      const quotePromises = positionSymbols.map(symbol =>
+      const quotePromises = symbols.map(symbol =>
         api.quote(symbol).catch(() => null)
       );
       const results = await Promise.all(quotePromises);
 
       // Update store with fetched quotes
       const updateQuote = useMarketDataStore.getState().updateQuote;
+      let hasUpdates = false;
       results.forEach((quote, idx) => {
         if (quote) {
-          updateQuote(positionSymbols[idx], {
-            symbol: positionSymbols[idx],
+          hasUpdates = true;
+          updateQuote(symbols[idx], {
+            symbol: symbols[idx],
             last: quote.last || 0,
             bid: quote.bid,
             ask: quote.ask,
@@ -150,10 +168,16 @@ export function usePortfolio(options: UsePortfolioOptions = {}): UsePortfolioRet
           });
         }
       });
+
+      if (hasUpdates) {
+        setLastPriceUpdate(new Date());
+      }
     } catch (err) {
       console.warn('Failed to fetch position prices:', err);
+    } finally {
+      setIsPriceLoading(false);
     }
-  }, [positionSymbols, subscribe]);
+  }, [subscribe]);
 
   // Price polling
   useEffect(() => {
@@ -174,8 +198,11 @@ export function usePortfolio(options: UsePortfolioOptions = {}): UsePortfolioRet
     summary,
     isLoading,
     isRefreshing,
+    isPriceLoading,
     error,
+    lastPriceUpdate,
     refresh,
+    refreshPrices: fetchPrices,
     placeTrade,
     removeTrade,
     isConnected: isOnline,

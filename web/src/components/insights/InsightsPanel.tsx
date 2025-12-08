@@ -5,10 +5,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { usePatternStore, type PatternInsight, type UserPattern } from '@/lib/stores/pattern-store';
 import { useJournalStore } from '@/lib/stores/journal-store';
-import { useInsightsData } from '@/hooks/useInsightsData';
+import { useInsightsData, type PersonalizedRecommendation } from '@/hooks/useInsightsData';
 import {
     Brain,
     TrendingUp,
@@ -23,7 +22,14 @@ import {
     BarChart3,
     ArrowLeft,
     Target,
-    Activity
+    Activity,
+    Calendar,
+    Clock,
+    Flame,
+    Timer,
+    CheckCircle2,
+    XCircle,
+    Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,11 +40,30 @@ const PATTERN_ICONS = {
     behavior: Brain,
 };
 
+const RECOMMENDATION_ICONS = {
+    emotion: Heart,
+    timing: Calendar,
+    behavior: Brain,
+    thesis: Target,
+    streak: Flame,
+};
+
+const PRIORITY_COLORS = {
+    high: 'border-l-red-500 bg-red-500/5',
+    medium: 'border-l-amber-500 bg-amber-500/5',
+    low: 'border-l-green-500 bg-green-500/5',
+};
+
+const PRIORITY_BADGE_COLORS = {
+    high: 'bg-red-500/20 text-red-500',
+    medium: 'bg-amber-500/20 text-amber-500',
+    low: 'bg-green-500/20 text-green-500',
+};
+
 export function InsightsPanel() {
-    const { stats, hasData } = useInsightsData();
+    const { stats, patterns, recommendations, hasData } = useInsightsData();
     const {
-        patterns,
-        insights,
+        patterns: aiPatterns,
         privacyConsent,
         lastAnalyzed,
         analyzeJournalPatterns,
@@ -177,6 +202,233 @@ export function InsightsPanel() {
                 </Card>
             )}
 
+            {/* Personalized Recommendations */}
+            {recommendations.length > 0 && (
+                <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <Zap className="h-4 w-4" />
+                        Personalized Recommendations
+                    </h3>
+                    <div className="grid gap-3">
+                        {recommendations.map(rec => (
+                            <RecommendationCard key={rec.id} recommendation={rec} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Pattern Analysis Section */}
+            {hasData && stats.totalTrades >= 2 && (
+                <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <Activity className="h-4 w-4" />
+                        Pattern Analysis
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Day of Week Pattern */}
+                        <Card className="p-4 bg-card/50">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                    <Calendar className="h-4 w-4 text-indigo-500" />
+                                </div>
+                                <span className="text-sm font-medium">Day of Week</span>
+                            </div>
+                            {patterns.dayOfWeek.best || patterns.dayOfWeek.worst ? (
+                                <div className="space-y-2">
+                                    {patterns.dayOfWeek.best && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="flex items-center gap-2">
+                                                <TrendingUp className="h-3 w-3 text-green-500" />
+                                                Best: {patterns.dayOfWeek.best.day}
+                                            </span>
+                                            <span className="text-green-500 font-medium">
+                                                {patterns.dayOfWeek.best.winRate.toFixed(0)}% WR
+                                            </span>
+                                        </div>
+                                    )}
+                                    {patterns.dayOfWeek.worst && patterns.dayOfWeek.worst !== patterns.dayOfWeek.best && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="flex items-center gap-2">
+                                                <TrendingDown className="h-3 w-3 text-red-500" />
+                                                Worst: {patterns.dayOfWeek.worst.day}
+                                            </span>
+                                            <span className="text-red-500 font-medium">
+                                                {patterns.dayOfWeek.worst.winRate.toFixed(0)}% WR
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Need more trades to analyze</p>
+                            )}
+                        </Card>
+
+                        {/* Time of Day Pattern */}
+                        <Card className="p-4 bg-card/50">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                                    <Clock className="h-4 w-4 text-cyan-500" />
+                                </div>
+                                <span className="text-sm font-medium">Time of Day</span>
+                            </div>
+                            {patterns.timeOfDay.best || patterns.timeOfDay.worst ? (
+                                <div className="space-y-2">
+                                    {patterns.timeOfDay.best && (
+                                        <div className="text-sm">
+                                            <span className="flex items-center gap-2">
+                                                <TrendingUp className="h-3 w-3 text-green-500" />
+                                                Best: {patterns.timeOfDay.best.period}
+                                            </span>
+                                            <span className="text-green-500 font-medium ml-5">
+                                                {patterns.timeOfDay.best.winRate.toFixed(0)}% WR
+                                            </span>
+                                        </div>
+                                    )}
+                                    {patterns.timeOfDay.worst && patterns.timeOfDay.worst !== patterns.timeOfDay.best && (
+                                        <div className="text-sm mt-2">
+                                            <span className="flex items-center gap-2">
+                                                <TrendingDown className="h-3 w-3 text-red-500" />
+                                                Worst: {patterns.timeOfDay.worst.period}
+                                            </span>
+                                            <span className="text-red-500 font-medium ml-5">
+                                                {patterns.timeOfDay.worst.winRate.toFixed(0)}% WR
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Need more trades to analyze</p>
+                            )}
+                        </Card>
+
+                        {/* Streak Info */}
+                        <Card className="p-4 bg-card/50">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className={cn(
+                                    "h-8 w-8 rounded-full flex items-center justify-center",
+                                    patterns.streaks.streakType === 'wins' ? "bg-green-500/20" :
+                                    patterns.streaks.streakType === 'losses' ? "bg-red-500/20" : "bg-slate-500/20"
+                                )}>
+                                    <Flame className={cn(
+                                        "h-4 w-4",
+                                        patterns.streaks.streakType === 'wins' ? "text-green-500" :
+                                        patterns.streaks.streakType === 'losses' ? "text-red-500" : "text-slate-500"
+                                    )} />
+                                </div>
+                                <span className="text-sm font-medium">Streaks</span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span>Current:</span>
+                                    <span className={cn(
+                                        "font-medium",
+                                        patterns.streaks.streakType === 'wins' ? "text-green-500" :
+                                        patterns.streaks.streakType === 'losses' ? "text-red-500" : "text-muted-foreground"
+                                    )}>
+                                        {patterns.streaks.currentStreak} {patterns.streaks.streakType !== 'none' ? patterns.streaks.streakType : '-'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                    <span>Best win streak:</span>
+                                    <span>{patterns.streaks.longestWinStreak}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                    <span>Worst loss streak:</span>
+                                    <span>{patterns.streaks.longestLossStreak}</span>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Hold Time Analysis */}
+                        <Card className="p-4 bg-card/50">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                    <Timer className="h-4 w-4 text-orange-500" />
+                                </div>
+                                <span className="text-sm font-medium">Hold Time</span>
+                            </div>
+                            {patterns.holdTime.avgWinnerHoldDays !== null || patterns.holdTime.avgLoserHoldDays !== null ? (
+                                <div className="space-y-2">
+                                    {patterns.holdTime.avgWinnerHoldDays !== null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="flex items-center gap-2">
+                                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                                Winners avg:
+                                            </span>
+                                            <span className="text-green-500 font-medium">
+                                                {patterns.holdTime.avgWinnerHoldDays.toFixed(1)} days
+                                            </span>
+                                        </div>
+                                    )}
+                                    {patterns.holdTime.avgLoserHoldDays !== null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="flex items-center gap-2">
+                                                <XCircle className="h-3 w-3 text-red-500" />
+                                                Losers avg:
+                                            </span>
+                                            <span className="text-red-500 font-medium">
+                                                {patterns.holdTime.avgLoserHoldDays.toFixed(1)} days
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Need closed trades with exit data</p>
+                            )}
+                        </Card>
+
+                        {/* Thesis Validation Rate */}
+                        <Card className="p-4 bg-card/50">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-violet-500/20 flex items-center justify-center">
+                                    <Target className="h-4 w-4 text-violet-500" />
+                                </div>
+                                <span className="text-sm font-medium">Thesis Validation</span>
+                            </div>
+                            {patterns.thesisValidationRate !== null ? (
+                                <div className="space-y-2">
+                                    <div className="text-2xl font-bold">
+                                        {patterns.thesisValidationRate.toFixed(0)}%
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        of resolved theses validated
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Validate or invalidate theses to see rate</p>
+                            )}
+                        </Card>
+
+                        {/* Emotion Correlations */}
+                        <Card className="p-4 bg-card/50">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-pink-500/20 flex items-center justify-center">
+                                    <Heart className="h-4 w-4 text-pink-500" />
+                                </div>
+                                <span className="text-sm font-medium">Emotion Impact</span>
+                            </div>
+                            {patterns.emotionCorrelations.length > 0 ? (
+                                <div className="space-y-1">
+                                    {patterns.emotionCorrelations.slice(0, 3).map(ec => (
+                                        <div key={ec.emotion} className="flex items-center justify-between text-sm">
+                                            <span className="capitalize">{ec.emotion}</span>
+                                            <span className={cn(
+                                                "font-medium",
+                                                ec.winRate >= 50 ? "text-green-500" : "text-red-500"
+                                            )}>
+                                                {ec.winRate.toFixed(0)}% ({ec.totalTrades})
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Track emotions on more trades</p>
+                            )}
+                        </Card>
+                    </div>
+                </div>
+            )}
+
             {/* Privacy Consent */}
             <Card className="p-4">
                 <div className="flex items-start gap-4">
@@ -184,9 +436,9 @@ export function InsightsPanel() {
                     <div className="flex-1">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="font-medium">Privacy Settings</h3>
+                                <h3 className="font-medium">AI Pattern Learning</h3>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Enable AI analysis of your journal to discover patterns. Your data stays private and is <strong>never shared or sold</strong>.
+                                    Enable AI analysis of your journal to discover deeper patterns. Your data stays private and is <strong>never shared or sold</strong>.
                                 </p>
                             </div>
                             <Switch
@@ -201,7 +453,7 @@ export function InsightsPanel() {
             {!privacyConsent ? (
                 <Card className="p-8 text-center text-muted-foreground">
                     <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Enable pattern learning above to get personalized insights</p>
+                    <p>Enable AI pattern learning above to get advanced behavioral insights</p>
                     <p className="text-xs mt-2">Your data stays on your device and is never shared</p>
                 </Card>
             ) : (
@@ -217,9 +469,9 @@ export function InsightsPanel() {
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={entries.length < 3}>
                                 <RefreshCw className="h-4 w-4 mr-2" />
-                                {patterns.length > 0 ? 'Re-analyze' : 'Analyze'}
+                                {aiPatterns.length > 0 ? 'Re-analyze' : 'Analyze'}
                             </Button>
-                            {patterns.length > 0 && (
+                            {aiPatterns.length > 0 && (
                                 <Button variant="ghost" size="sm" onClick={clearPatterns} className="text-destructive">
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Clear
@@ -235,7 +487,7 @@ export function InsightsPanel() {
                                 <div>
                                     <p className="text-sm font-medium">Need more data</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Add at least 3 journal entries to enable pattern analysis.
+                                        Add at least 3 journal entries to enable AI pattern analysis.
                                     </p>
                                 </div>
                             </div>
@@ -246,7 +498,7 @@ export function InsightsPanel() {
                     {activeInsights.length > 0 && (
                         <div className="space-y-3">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                                Actionable Insights
+                                AI-Detected Patterns
                             </h3>
                             {activeInsights.map(insight => (
                                 <InsightCard
@@ -259,28 +511,65 @@ export function InsightsPanel() {
                     )}
 
                     {/* All Patterns */}
-                    {patterns.length > 0 && (
+                    {aiPatterns.length > 0 && (
                         <div className="space-y-3">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                                 Discovered Patterns
                             </h3>
                             <div className="grid gap-3">
-                                {patterns.map(pattern => (
+                                {aiPatterns.map(pattern => (
                                     <PatternCard key={pattern.id} pattern={pattern} />
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {patterns.length === 0 && entries.length >= 3 && (
+                    {aiPatterns.length === 0 && entries.length >= 3 && (
                         <Card className="p-8 text-center text-muted-foreground">
                             <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Click &quot;Analyze&quot; to discover patterns in your trading</p>
+                            <p>Click &quot;Analyze&quot; to discover AI-powered patterns in your trading</p>
                         </Card>
                     )}
                 </>
             )}
         </div>
+    );
+}
+
+interface RecommendationCardProps {
+    recommendation: PersonalizedRecommendation;
+}
+
+function RecommendationCard({ recommendation }: RecommendationCardProps) {
+    const Icon = RECOMMENDATION_ICONS[recommendation.type];
+
+    return (
+        <Card className={cn("p-4 border-l-4", PRIORITY_COLORS[recommendation.priority])}>
+            <div className="flex gap-3">
+                <div className={cn(
+                    "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
+                    recommendation.priority === 'high' ? "bg-red-500/20" :
+                    recommendation.priority === 'medium' ? "bg-amber-500/20" : "bg-green-500/20"
+                )}>
+                    <Icon className={cn(
+                        "h-4 w-4",
+                        recommendation.priority === 'high' ? "text-red-500" :
+                        recommendation.priority === 'medium' ? "text-amber-500" : "text-green-500"
+                    )} />
+                </div>
+                <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                        <div>
+                            <p className="font-medium">{recommendation.message}</p>
+                            <p className="text-sm text-muted-foreground mt-1">{recommendation.actionable}</p>
+                        </div>
+                        <Badge className={cn("shrink-0 text-xs", PRIORITY_BADGE_COLORS[recommendation.priority])}>
+                            {recommendation.priority}
+                        </Badge>
+                    </div>
+                </div>
+            </div>
+        </Card>
     );
 }
 
@@ -290,8 +579,6 @@ interface InsightCardProps {
 }
 
 function InsightCard({ insight, onDismiss }: InsightCardProps) {
-    const Icon = PATTERN_ICONS[insight.pattern.type];
-
     return (
         <Card className="p-4 border-l-4 border-l-amber-500 bg-amber-500/5">
             <div className="flex gap-3">

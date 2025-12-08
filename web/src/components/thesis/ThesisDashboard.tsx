@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { useThesisStore } from '@/lib/stores/thesis-store';
+import { useJournalStore, type JournalEntry } from '@/lib/stores/journal-store';
 import {
     ArrowLeft,
     Edit,
@@ -16,7 +17,8 @@ import {
     TrendingUp,
     TrendingDown,
     RefreshCw,
-    AlertCircle
+    AlertCircle,
+    BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,9 +30,30 @@ interface ThesisDashboardProps {
 
 export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps) {
     const { updateThesis } = useThesisStore();
+    const journalEntries = useJournalStore((state) => state.entries);
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
     const [isMonitoring, setIsMonitoring] = useState(thesis.status === 'active');
     const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+    // Get journal entries linked to this thesis
+    const linkedJournalEntries = useMemo(() => {
+        return journalEntries.filter((entry) => entry.thesisId === thesis.id);
+    }, [journalEntries, thesis.id]);
+
+    // Calculate P&L from linked trades
+    const linkedTradesStats = useMemo(() => {
+        const entries = linkedJournalEntries;
+        const totalPnl = entries.reduce((sum, e) => sum + (e.pnl || 0), 0);
+        const winningTrades = entries.filter((e) => e.pnl && e.pnl > 0).length;
+        const losingTrades = entries.filter((e) => e.pnl && e.pnl < 0).length;
+        return {
+            count: entries.length,
+            totalPnl,
+            winningTrades,
+            losingTrades,
+            winRate: entries.length > 0 ? (winningTrades / entries.length) * 100 : 0,
+        };
+    }, [linkedJournalEntries]);
 
     // Simulated price fetch (would be real API in production)
     const fetchCurrentPrice = async () => {
@@ -310,6 +333,108 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
                             </div>
                         </Card>
                     )}
+
+                    {/* Linked Journal Entries */}
+                    <Card className="p-6">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2">
+                            <BookOpen className="h-4 w-4" />
+                            Linked Trades
+                        </h3>
+                        {linkedTradesStats.count === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                                No trades linked to this thesis yet.
+                                <br />
+                                <span className="text-xs">Link trades from the Journal.</span>
+                            </p>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* Stats Summary */}
+                                <div className="grid grid-cols-2 gap-2 text-center">
+                                    <div className="p-2 bg-muted/50 rounded-lg">
+                                        <div className="text-2xl font-bold">{linkedTradesStats.count}</div>
+                                        <div className="text-xs text-muted-foreground">Total Trades</div>
+                                    </div>
+                                    <div className={cn(
+                                        "p-2 rounded-lg",
+                                        linkedTradesStats.totalPnl >= 0 ? "bg-green-500/10" : "bg-red-500/10"
+                                    )}>
+                                        <div className={cn(
+                                            "text-2xl font-bold",
+                                            linkedTradesStats.totalPnl >= 0 ? "text-green-500" : "text-red-500"
+                                        )}>
+                                            {linkedTradesStats.totalPnl >= 0 ? '+' : ''}${linkedTradesStats.totalPnl.toFixed(2)}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">Total P&L</div>
+                                    </div>
+                                </div>
+
+                                {/* Win/Loss breakdown */}
+                                <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                                        <span>{linkedTradesStats.winningTrades} Wins</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                                        <span>{linkedTradesStats.losingTrades} Losses</span>
+                                    </div>
+                                </div>
+
+                                {/* Win Rate Bar */}
+                                <div>
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                                        <span>Win Rate</span>
+                                        <span>{linkedTradesStats.winRate.toFixed(0)}%</span>
+                                    </div>
+                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                        <div
+                                            className={cn(
+                                                "h-full transition-all",
+                                                linkedTradesStats.winRate >= 50 ? "bg-green-500" : "bg-amber-500"
+                                            )}
+                                            style={{ width: `${linkedTradesStats.winRate}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Recent Trades List */}
+                                <div className="space-y-2 mt-4">
+                                    <h4 className="text-xs font-medium text-muted-foreground">Recent Trades</h4>
+                                    {linkedJournalEntries.slice(0, 3).map((entry) => (
+                                        <div
+                                            key={entry.id}
+                                            className="flex items-center justify-between p-2 bg-muted/30 rounded-lg text-sm"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {entry.direction === 'long' ? (
+                                                    <TrendingUp className="h-3 w-3 text-green-500" />
+                                                ) : (
+                                                    <TrendingDown className="h-3 w-3 text-red-500" />
+                                                )}
+                                                <span className="font-medium">{entry.symbol}</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {new Date(entry.tradeDate).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            {entry.pnl !== undefined && (
+                                                <span className={cn(
+                                                    "font-medium",
+                                                    entry.pnl >= 0 ? "text-green-500" : "text-red-500"
+                                                )}>
+                                                    {entry.pnl >= 0 ? '+' : ''}${entry.pnl.toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {linkedJournalEntries.length > 3 && (
+                                        <p className="text-xs text-muted-foreground text-center pt-1">
+                                            +{linkedJournalEntries.length - 3} more trades
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </Card>
                 </div>
             </div>
         </div>

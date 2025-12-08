@@ -8,10 +8,23 @@ import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PositionCard } from './PositionCard';
 import { ManualPositionDialog } from './ManualPositionDialog';
-import { Loader2, RefreshCw, Cloud, CloudOff } from 'lucide-react';
+import { Loader2, RefreshCw, Cloud, CloudOff, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Format relative time for last update
+function formatRelativeTime(date: Date | null): string {
+  if (!date) return 'Never';
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 10) return 'Just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
 
 export function PortfolioSidebar() {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -21,8 +34,11 @@ export function PortfolioSidebar() {
     summary,
     isLoading,
     isRefreshing,
+    isPriceLoading,
     error,
+    lastPriceUpdate,
     refresh,
+    refreshPrices,
     isConnected,
     removeTrade,
   } = usePortfolio({ pollInterval: 30000 });
@@ -51,28 +67,43 @@ export function PortfolioSidebar() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="font-semibold">Portfolio</h2>
-          {isConnected ? (
-            <span title="Synced with cloud">
-              <Cloud className="h-3 w-3 text-green-500" />
-            </span>
-          ) : (
-            <span title="Using local storage">
-              <CloudOff className="h-3 w-3 text-yellow-500" />
-            </span>
-          )}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold">Portfolio</h2>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    {isConnected ? (
+                      <Cloud className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <CloudOff className="h-3 w-3 text-yellow-500" />
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isConnected ? 'Synced with cloud' : 'Using local storage'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={refreshPrices}
+            disabled={isRefreshing || isPriceLoading}
+            className="h-8 w-8"
+          >
+            <RefreshCw className={cn("h-4 w-4", (isRefreshing || isPriceLoading) && "animate-spin")} />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={refresh}
-          disabled={isRefreshing}
-          className="h-8 w-8"
-        >
-          <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-        </Button>
+        {/* Last price update indicator */}
+        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          <span>Prices updated: {formatRelativeTime(lastPriceUpdate)}</span>
+          {isPriceLoading && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
+        </div>
       </div>
 
       {/* Content */}
@@ -89,6 +120,19 @@ export function PortfolioSidebar() {
                     maximumFractionDigits: 2,
                   })}
                 </div>
+                {/* Total P&L percentage from starting cash */}
+                {(() => {
+                  const totalPnl = summary.unrealized_pnl + summary.realized_pnl;
+                  const pnlPercent = (totalPnl / 100000) * 100; // Starting cash is $100,000
+                  return (
+                    <div className={cn(
+                      "text-xs font-medium mt-1",
+                      totalPnl >= 0 ? 'text-profit' : 'text-loss'
+                    )}>
+                      {totalPnl >= 0 ? '+' : ''}{totalPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                    </div>
+                  );
+                })()}
               </div>
 
               <Separator />
@@ -110,25 +154,32 @@ export function PortfolioSidebar() {
 
               <Separator />
 
+              {/* P&L Section with enhanced visual styling */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className={cn(
+                  "p-2 rounded-md",
+                  summary.unrealized_pnl >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'
+                )}>
                   <div className="text-xs text-muted-foreground">Unrealized P&L</div>
                   <div className={cn(
                     "text-sm font-bold",
                     summary.unrealized_pnl >= 0 ? 'text-profit' : 'text-loss'
                   )}>
                     {summary.unrealized_pnl >= 0 ? '+' : ''}
-                    ${summary.unrealized_pnl.toFixed(2)}
+                    ${Math.abs(summary.unrealized_pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-                <div>
+                <div className={cn(
+                  "p-2 rounded-md",
+                  summary.realized_pnl >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'
+                )}>
                   <div className="text-xs text-muted-foreground">Realized P&L</div>
                   <div className={cn(
                     "text-sm font-bold",
                     summary.realized_pnl >= 0 ? 'text-profit' : 'text-loss'
                   )}>
                     {summary.realized_pnl >= 0 ? '+' : ''}
-                    ${summary.realized_pnl.toFixed(2)}
+                    ${Math.abs(summary.realized_pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>

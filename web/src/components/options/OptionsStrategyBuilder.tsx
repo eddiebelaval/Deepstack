@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +22,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOptionsStrategyStore, createLegsForTemplate } from '@/lib/stores/options-strategy-store';
@@ -33,6 +34,18 @@ import {
   getDirectionColor,
 } from '@/lib/types/options';
 import { PayoffDiagram } from './PayoffDiagram';
+
+// Get default expiration date (30 days from now, on a Friday)
+function getDefaultExpiration(): string {
+  const today = new Date();
+  const target = new Date(today);
+  target.setDate(today.getDate() + 30);
+  // Adjust to next Friday
+  const dayOfWeek = target.getDay();
+  const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+  target.setDate(target.getDate() + daysUntilFriday);
+  return target.toISOString().split('T')[0];
+}
 
 export function OptionsStrategyBuilder() {
   const {
@@ -58,6 +71,17 @@ export function OptionsStrategyBuilder() {
     reset,
   } = useOptionsStrategyStore();
 
+  // Track previous legs count for auto-calculate
+  const prevLegsRef = useRef<number>(legs.length);
+  const autoCalculateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Set default expiration on mount if not set
+  useEffect(() => {
+    if (!expirationDate) {
+      setExpirationDate(getDefaultExpiration());
+    }
+  }, [expirationDate, setExpirationDate]);
+
   // Fetch underlying price when symbol changes
   useEffect(() => {
     const fetchPrice = async () => {
@@ -78,12 +102,46 @@ export function OptionsStrategyBuilder() {
     fetchPrice();
   }, [symbol, setUnderlyingPrice]);
 
+  // Auto-calculate P&L when legs change (debounced)
+  const triggerAutoCalculate = useCallback(() => {
+    if (autoCalculateTimeoutRef.current) {
+      clearTimeout(autoCalculateTimeoutRef.current);
+    }
+    autoCalculateTimeoutRef.current = setTimeout(() => {
+      if (legs.length > 0 && underlyingPrice > 0 && expirationDate) {
+        calculate();
+      }
+    }, 500); // 500ms debounce
+  }, [legs.length, underlyingPrice, expirationDate, calculate]);
+
+  // Trigger auto-calculate when legs are added/removed
+  useEffect(() => {
+    if (legs.length !== prevLegsRef.current && legs.length > 0) {
+      triggerAutoCalculate();
+    }
+    prevLegsRef.current = legs.length;
+  }, [legs.length, triggerAutoCalculate]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoCalculateTimeoutRef.current) {
+        clearTimeout(autoCalculateTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleTemplateSelect = (template: StrategyTemplate) => {
     selectTemplate(template);
     if (template !== 'custom' && underlyingPrice > 0) {
-      const templateLegs = createLegsForTemplate(template, underlyingPrice, 5);
+      // Round strike to nearest $5
+      const roundedStrike = Math.round(underlyingPrice / 5) * 5;
+      // Estimate premium based on underlying price (roughly 1-2% ATM)
+      const estimatedPremium = underlyingPrice * 0.015;
+      const templateLegs = createLegsForTemplate(template, roundedStrike, estimatedPremium);
       clearLegs();
       templateLegs.forEach((leg) => addLeg(leg));
+      // Auto-calculate will trigger from legs change effect
     }
   };
 
@@ -113,7 +171,13 @@ export function OptionsStrategyBuilder() {
             Build and analyze options strategies
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {isCalculating && (
+            <Badge variant="secondary" className="gap-1 animate-pulse">
+              <Zap className="h-3 w-3" />
+              Auto-calculating...
+            </Badge>
+          )}
           <Button
             variant="outline"
             onClick={reset}
@@ -211,7 +275,14 @@ export function OptionsStrategyBuilder() {
           {/* Legs */}
           <Card className="flex-1 flex flex-col min-h-0">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm">Position Legs</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm">Position Legs</CardTitle>
+                {legs.length > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">
+                    {legs.length}
+                  </Badge>
+                )}
+              </div>
               <Button variant="outline" size="sm" onClick={handleAddLeg} className="h-7">
                 <Plus className="h-3 w-3 mr-1" />
                 Add Leg
