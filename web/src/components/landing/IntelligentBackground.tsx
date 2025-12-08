@@ -66,10 +66,10 @@ export function IntelligentBackground() {
                     baseY: y,
                     radius: 2 + Math.random() * 3,
                     pulsePhase: Math.random() * Math.PI * 2,
-                    pulseSpeed: 0.02 + Math.random() * 0.02,
+                    pulseSpeed: 0.04 + Math.random() * 0.04, // Doubled speed
                     connections: [],
-                    brightness: 0.2 + Math.random() * 0.3,
-                    targetBrightness: 0.2 + Math.random() * 0.3,
+                    brightness: 0.4 + Math.random() * 0.4, // Increased base brightness
+                    targetBrightness: 0.4 + Math.random() * 0.4, // Increased target brightness
                 });
             }
         }
@@ -174,7 +174,7 @@ export function IntelligentBackground() {
             }
 
             // Pulsing glow on contour lines
-            const pulse = 0.15 + Math.sin(time * 0.03 + contour.phase) * 0.1;
+            const pulse = 0.3 + Math.sin(time * 0.05 + contour.phase) * 0.2; // Stronger and faster pulse
             ctx.strokeStyle = `rgba(${AMBER_DIM.r}, ${AMBER_DIM.g}, ${AMBER_DIM.b}, ${pulse})`;
             ctx.lineWidth = 1.5;
             ctx.stroke();
@@ -190,7 +190,7 @@ export function IntelligentBackground() {
                 const dx = other.x - node.x;
                 const dy = other.y - node.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                const opacity = Math.max(0, 0.1 - dist / 2000) * (node.brightness + other.brightness) / 2;
+                const opacity = Math.max(0, 0.1 - dist / 2000) * (node.brightness + other.brightness); // Removed division by 2 for brighter lines
 
                 if (opacity > 0.01) {
                     ctx.beginPath();
@@ -211,8 +211,8 @@ export function IntelligentBackground() {
             node.y = node.baseY + Math.cos(time * 0.008 + node.pulsePhase) * 5;
 
             // Random activation (creates "thinking" effect)
-            if (Math.random() < 0.002) {
-                node.targetBrightness = 0.7 + Math.random() * 0.3;
+            if (Math.random() < 0.005) { // More frequent activation
+                node.targetBrightness = 0.8 + Math.random() * 0.2; // Brighter bursts
             }
             node.brightness += (node.targetBrightness - node.brightness) * 0.03;
             if (node.brightness > 0.5) {

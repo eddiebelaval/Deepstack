@@ -6,6 +6,7 @@ import { useUIStore } from '@/lib/stores/ui-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -43,6 +44,7 @@ export function ConversationView() {
     const { activeSymbol, setActiveSymbol } = useTradingStore();
     const { isLoadingBars, bars } = useMarketDataStore();
     const { isMobile, isDesktop } = useIsMobile();
+    const { requireAuth } = useRequireAuth();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -137,6 +139,9 @@ export function ConversationView() {
     }, [setActiveContent, setActiveSymbol]);
 
     const handleSend = useCallback(async (content: string) => {
+        // Require authentication to use AI Chat
+        if (!requireAuth('AI Chat')) return;
+
         detectIntent(content);
 
         const userMessage: SimpleMessage = {

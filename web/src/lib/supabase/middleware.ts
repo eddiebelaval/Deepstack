@@ -46,9 +46,8 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Define protected routes (require authentication)
-    // All main application routes now require authentication.
-    // Only public pages: /landing, /login, /terms, /privacy, /help
-    const publicRoutes = ['/landing', '/login', '/terms', '/privacy', '/help', '/api']
+    // Allow access to main app without auth - features are gated at component level
+    const publicRoutes = ['/', '/app', '/landing', '/login', '/terms', '/privacy', '/help', '/api']
     const isPublicRoute = publicRoutes.some(route =>
         request.nextUrl.pathname === route ||
         request.nextUrl.pathname.startsWith(route + '/')

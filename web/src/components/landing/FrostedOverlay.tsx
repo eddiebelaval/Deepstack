@@ -20,7 +20,7 @@ export function FrostedOverlay({ className, intensity = 'medium' }: FrostedOverl
         <div
             className={cn(
                 "absolute inset-0 z-10 w-full h-full pointer-events-none",
-                "bg-background/60", // Base transparency
+                "bg-background/10", // Base transparency - reduced to let glow show through
                 blurMap[intensity],
                 "border-b border-border/10",
                 // Add a subtle vignette/gradient to make it feel like glass

@@ -1,0 +1,143 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   DEEPSTACK QUOTE RETRIEVAL ARCHITECTURE                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+                        CLIENT REQUEST
+                              │
+                              ↓
+                    ┌─────────────────┐
+                    │  FastAPI Server │
+                    │  /quote/{symbol}│
+                    └────────┬────────┘
+                              │
+                              ↓
+             ╔════════════════════════════════╗
+             ║   TIER 1: IBKR Client         ║
+             ╠════════════════════════════════╣
+             ║ • Real-time quotes            ║
+             ║ • Most accurate               ║
+             ║ • Requires connection         ║
+             ║ • Source: "ibkr"              ║
+             ╚════════════════════════════════╝
+                              │
+                    ┌─────────┴─────────┐
+                    │   Connected?      │
+                    │   Available?      │
+                    └─────────┬─────────┘
+                              │
+                    ┌─────────┴─────────┐
+                    │                   │
+                  YES                  NO
+                    │                   │
+                    ↓                   ↓
+            ┌─────────────┐    ╔════════════════════════════════╗
+            │   SUCCESS   │    ║   TIER 2: Alpaca Client       ║
+            │             │    ╠════════════════════════════════╣
+            │   Return    │    ║ • Via PaperTrader             ║
+            │   Quote     │    ║ • Real-time for paper mode    ║
+            └─────────────┘    ║ • Source: "alpaca"            ║
+                               ╚════════════════════════════════╝
+                                           │
+                                 ┌─────────┴─────────┐
+                                 │   Available?      │
+                                 │   Price found?    │
+                                 └─────────┬─────────┘
+                                           │
+                                 ┌─────────┴─────────┐
+                                 │                   │
+                               YES                  NO
+                                 │                   │
+                                 ↓                   ↓
+                         ┌─────────────┐    ╔════════════════════════════════╗
+                         │   SUCCESS   │    ║   TIER 3: Yahoo Finance       ║
+                         │             │    ╠════════════════════════════════╣
+                         │   Return    │    ║ • Always available            ║
+                         │   Quote     │    ║ • Free, no API key            ║
+                         └─────────────┘    ║ • Delayed data (~15 min)      ║
+                                            ║ • Source: "yahoo_finance"     ║
+                                            ╚════════════════════════════════╝
+                                                        │
+                                              ┌─────────┴─────────┐
+                                              │   Symbol valid?   │
+                                              │   Data available? │
+                                              └─────────┬─────────┘
+                                                        │
+                                              ┌─────────┴─────────┐
+                                              │                   │
+                                            YES                  NO
+                                              │                   │
+                                              ↓                   ↓
+                                      ┌─────────────┐    ┌─────────────────┐
+                                      │   SUCCESS   │    │  ALL SOURCES    │
+                                      │             │    │     FAILED      │
+                                      │   Return    │    │                 │
+                                      │   Quote     │    │  Raise Error:   │
+                                      └─────────────┘    │ QuoteUnavailable│
+                                                         └─────────────────┘
+                                                                  │
+                                                                  ↓
+                                                         ┌─────────────────┐
+                                                         │  HTTP 404       │
+                                                         │  Error Response │
+                                                         └─────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                            RESPONSE STRUCTURE                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+    QuoteResponse {
+        symbol: str              ← Stock symbol (e.g., "AAPL")
+        bid: float | null        ← Bid price
+        ask: float | null        ← Ask price
+        last: float | null       ← Last trade price
+        volume: int | null       ← Trading volume
+        timestamp: datetime      ← Quote timestamp
+        source: str | null       ← NEW: "ibkr" | "alpaca" | "yahoo_finance"
+    }
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          LOGGING STRATEGY                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+    DEBUG   → "Quote for AAPL from IBKR"
+    DEBUG   → "Quote for AAPL from Alpaca"
+    INFO    → "Falling back to Yahoo Finance for AAPL"
+    INFO    → "Quote for AAPL from Yahoo Finance: $276.50"
+    WARNING → "IBKR quote failed for AAPL: Connection refused"
+    WARNING → "Alpaca quote failed for AAPL: Rate limit exceeded"
+    ERROR   → "Yahoo Finance quote failed for AAPL: Invalid symbol"
+    ERROR   → "Unexpected error getting quote for AAPL: ..."
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         PERFORMANCE METRICS                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+    Source          Latency     Accuracy    Availability    Cost
+    ─────────────────────────────────────────────────────────────
+    IBKR            50-100ms    Real-time   Conditional     Paid
+    Alpaca          100-200ms   Real-time   High            Free (limited)
+    Yahoo Finance   500-1000ms  ~15min lag  Very High       Free
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                      ERROR HANDLING SUMMARY                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+    Each tier has independent error handling:
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │  Tier 1 Fails  →  Log warning  →  Continue to Tier 2       │
+    │  Tier 2 Fails  →  Log warning  →  Continue to Tier 3       │
+    │  Tier 3 Fails  →  Log error    →  Raise QuoteUnavailable   │
+    └─────────────────────────────────────────────────────────────┘
+
+    Benefits:
+    ✓ Graceful degradation
+    ✓ High availability
+    ✓ Transparent source tracking
+    ✓ Detailed logging for debugging
