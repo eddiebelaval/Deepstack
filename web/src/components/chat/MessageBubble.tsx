@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { ToolUseCard } from './ToolUseCard';
 import { CodeBlock } from './CodeBlock';
 import { ThinkingBlock } from './ThinkingBlock';
+import { CalloutBlock, extractAlertType, type CalloutType } from './CalloutBlock';
 import { cn } from '@/lib/utils';
 
 type Message = any; // import { Message } from '@ai-sdk/react';
@@ -54,7 +55,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <ThinkingBlock content={message.thinking} defaultExpanded={false} />
         )}
 
-        <div className="text-foreground/90 text-[15px] leading-relaxed">
+        <div className="text-foreground/90 text-[15px] leading-relaxed prose prose-invert prose-sm max-w-none">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
@@ -67,14 +68,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               h3({ children }) {
                 return <h3 className="text-base font-medium mt-6 mb-3 text-foreground">{children}</h3>;
               },
+              h4({ children }) {
+                return <h4 className="text-sm font-medium mt-4 mb-2 text-foreground/90">{children}</h4>;
+              },
               p({ children }) {
                 return <p className="mb-4 leading-[1.75]">{children}</p>;
               },
               ul({ children }) {
-                return <ul className="my-4 ml-5 space-y-2 list-disc">{children}</ul>;
+                return <ul className="my-4 ml-5 space-y-2 list-disc marker:text-muted-foreground">{children}</ul>;
               },
               ol({ children }) {
-                return <ol className="my-4 ml-5 space-y-2 list-decimal">{children}</ol>;
+                return <ol className="my-4 ml-5 space-y-2 list-decimal marker:text-muted-foreground">{children}</ol>;
               },
               li({ children }) {
                 return <li className="leading-[1.7] pl-1">{children}</li>;
@@ -82,11 +86,24 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               strong({ children }) {
                 return <strong className="font-semibold text-foreground">{children}</strong>;
               },
+              em({ children }) {
+                return <em className="italic text-foreground/80">{children}</em>;
+              },
               blockquote({ children }) {
-                return <blockquote className="border-l-2 border-muted-foreground/30 pl-4 my-6 text-muted-foreground">{children}</blockquote>;
+                // Check for GitHub-style alerts: > [!NOTE], > [!TIP], etc.
+                const alertInfo = extractAlertType(children);
+                if (alertInfo) {
+                  return <CalloutBlock type={alertInfo.type}>{alertInfo.content}</CalloutBlock>;
+                }
+                // Regular blockquote
+                return (
+                  <blockquote className="border-l-3 border-muted-foreground/30 pl-4 my-6 text-muted-foreground italic">
+                    {children}
+                  </blockquote>
+                );
               },
               hr() {
-                return <hr className="my-8 border-border/20" />;
+                return <hr className="my-8 border-border/30" />;
               },
               code({ inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');
@@ -98,28 +115,71 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                     {...props}
                   />
                 ) : (
-                  <code className={cn("bg-muted px-1.5 py-0.5 rounded font-mono text-[13px]", className)} {...props}>
+                  <code
+                    className={cn(
+                      "bg-muted/70 px-1.5 py-0.5 rounded font-mono text-[13px] text-primary/90",
+                      className
+                    )}
+                    {...props}
+                  >
                     {children}
                   </code>
                 );
               },
               table({ children }) {
                 return (
-                  <div className="my-6 w-full overflow-y-auto scrollbar-hide rounded-lg border border-border/50 shadow-sm">
-                    <table className="w-full text-sm">
+                  <div className="my-6 w-full overflow-x-auto rounded-lg border border-border/50 shadow-sm bg-card/30">
+                    <table className="w-full text-sm border-collapse">
                       {children}
                     </table>
                   </div>
                 );
               },
               thead({ children }) {
-                return <thead className="bg-muted/50 text-muted-foreground font-medium">{children}</thead>;
+                return (
+                  <thead className="bg-muted/60 text-muted-foreground sticky top-0">
+                    {children}
+                  </thead>
+                );
+              },
+              tbody({ children }) {
+                return (
+                  <tbody className="[&>tr:nth-child(even)]:bg-muted/20 [&>tr:hover]:bg-muted/40 transition-colors">
+                    {children}
+                  </tbody>
+                );
+              },
+              tr({ children }) {
+                return (
+                  <tr className="border-b border-border/30 last:border-0">
+                    {children}
+                  </tr>
+                );
               },
               th({ children }) {
-                return <th className="px-4 py-3 text-left font-medium border-b border-border/50">{children}</th>;
+                return (
+                  <th className="px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider border-b border-border/50">
+                    {children}
+                  </th>
+                );
               },
               td({ children }) {
-                return <td className="px-4 py-3 border-b border-border/50 last:border-0">{children}</td>;
+                // Check if content looks like a number or percentage for special styling
+                const content = String(children);
+                const isPositive = /^\+/.test(content) || /^[0-9.]+%$/.test(content) && parseFloat(content) > 0;
+                const isNegative = /^-/.test(content);
+                const isNumeric = /^[+-]?[\d,$]+\.?\d*%?$/.test(content.replace(/,/g, ''));
+
+                return (
+                  <td className={cn(
+                    "px-4 py-3 border-b border-border/30 last:border-0",
+                    isNumeric && "font-mono tabular-nums text-right",
+                    isPositive && "text-green-500",
+                    isNegative && "text-red-500"
+                  )}>
+                    {children}
+                  </td>
+                );
               },
               a({ href, children }) {
                 return (
@@ -132,7 +192,22 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                     {children}
                   </a>
                 );
-              }
+              },
+              // Task list support (- [ ] or - [x])
+              input({ checked, ...props }) {
+                return (
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled
+                    className={cn(
+                      "mr-2 h-4 w-4 rounded border-border accent-primary pointer-events-none",
+                      checked && "bg-primary"
+                    )}
+                    {...props}
+                  />
+                );
+              },
             }}
           >
             {stripToolTags(message.content)}
