@@ -10,7 +10,15 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import (
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import Client, create_client
@@ -47,6 +55,9 @@ app.add_middleware(
 # Include Command Router
 from core.api.router import router as command_router
 
+# Use shared AlpacaClient for consistent data access
+from core.data.alpaca_client import AlpacaClient
+
 app.include_router(command_router)
 
 # Initialize Clients
@@ -60,11 +71,15 @@ supabase_key = os.getenv(
 if not api_key or not secret_key:
     logger.warning("Alpaca API keys not found - using demo mode")
     stock_client = None
+
     crypto_client = None
+    alpaca_client = None
 else:
     logger.info("Initializing Alpaca data clients...")
     stock_client = StockHistoricalDataClient(api_key=api_key, secret_key=secret_key)
     crypto_client = CryptoHistoricalDataClient(api_key=api_key, secret_key=secret_key)
+    # Initialize shared AlpacaClient wrapper
+    alpaca_client = AlpacaClient(api_key=api_key, secret_key=secret_key)
     logger.info("Alpaca clients initialized successfully")
 
 if not supabase_url or not supabase_key:
@@ -214,6 +229,25 @@ async def health():
         "alpaca_connected": stock_client is not None,
         "supabase_connected": supabase is not None,
     }
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time updates."""
+    await websocket.accept()
+    try:
+        while True:
+            # Keep connection alive and listen for messages
+            data = await websocket.receive_text()
+
+            # Simple heartbeat response
+            if "ping" in data:
+                await websocket.send_text('{"type":"heartbeat"}')
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
 
 
 @app.get("/api/market/assets")
@@ -482,48 +516,14 @@ async def get_news(
 ):
     """Get latest market news from Alpaca."""
 
+    if not alpaca_client:
+        logger.warning("Alpaca client not initialized - returning empty news")
+        return {"news": []}
+
     try:
-        import httpx
+        articles = await alpaca_client.get_news(symbol=symbol, limit=limit)
+        return {"news": articles}
 
-        headers = {
-            "APCA-API-KEY-ID": api_key,
-            "APCA-API-SECRET-KEY": secret_key,
-        }
-
-        params = {"limit": limit, "sort": "desc"}
-        if symbol:
-            params["symbols"] = symbol.upper()
-
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://data.alpaca.markets/v1beta1/news",
-                headers=headers,
-                params=params,
-                timeout=10.0,
-            )
-
-            if response.status_code != 200:
-                raise Exception(f"Alpaca API returned {response.status_code}")
-
-            data = response.json()
-            articles = []
-            for item in data.get("news", []):
-                articles.append(
-                    {
-                        "id": str(item.get("id", "")),
-                        "headline": item.get("headline", ""),
-                        "summary": item.get("summary", ""),
-                        "url": item.get("url", ""),
-                        "source": item.get("source", ""),
-                        "created_at": item.get("created_at", ""),
-                        "symbols": item.get("symbols", []),
-                    }
-                )
-
-            return {"news": articles}
-
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error fetching news: {e}")
         return {"news": [], "error": str(e)}
