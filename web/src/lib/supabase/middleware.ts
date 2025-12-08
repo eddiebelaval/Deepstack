@@ -46,14 +46,14 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Define protected routes (require authentication)
-    // We allow public access to '/' (dashboard) for demo mode.
-    // Authentication is only strictly enforced for settings/profile.
-    // Chat functionality will be gated at the UI level.
-    const protectedRoutes = ['/settings', '/profile']
-    const isProtectedRoute = protectedRoutes.some(route =>
+    // All main application routes now require authentication.
+    // Only public pages: /landing, /login, /terms, /privacy, /help
+    const publicRoutes = ['/landing', '/login', '/terms', '/privacy', '/help', '/api']
+    const isPublicRoute = publicRoutes.some(route =>
         request.nextUrl.pathname === route ||
         request.nextUrl.pathname.startsWith(route + '/')
     )
+    const isProtectedRoute = !isPublicRoute
 
     // Define auth routes (should redirect if already logged in)
     const authRoutes = ['/login']

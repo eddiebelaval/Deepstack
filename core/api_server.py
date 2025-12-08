@@ -10,11 +10,19 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from .api.auth import AuthenticatedUser, get_current_user
 from .api.options_router import router as options_router
 from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
@@ -361,7 +369,9 @@ class DeepStackAPIServer:
                 raise DataError(message="Unable to retrieve positions")
 
         @self.app.get("/account", response_model=AccountSummaryResponse)
-        async def get_account_summary():
+        async def get_account_summary(
+            user: AuthenticatedUser = Depends(get_current_user),
+        ):
             """Get account summary."""
             try:
                 summary = AccountSummaryResponse(
@@ -389,7 +399,10 @@ class DeepStackAPIServer:
                 raise DataError(message="Unable to retrieve account summary")
 
         @self.app.post("/orders", response_model=OrderResponse)
-        async def place_order(order: OrderRequest):
+        async def place_order(
+            order: OrderRequest,
+            user: AuthenticatedUser = Depends(get_current_user),
+        ):
             """Place an order."""
             try:
                 if not self.order_manager:
@@ -458,7 +471,10 @@ class DeepStackAPIServer:
                 )
 
         @self.app.delete("/orders/{order_id}")
-        async def cancel_order(order_id: str):
+        async def cancel_order(
+            order_id: str,
+            user: AuthenticatedUser = Depends(get_current_user),
+        ):
             """Cancel an order."""
             try:
                 if not self.order_manager:
@@ -522,7 +538,10 @@ class DeepStackAPIServer:
                 )
 
         @self.app.post("/positions/hedged/create")
-        async def create_hedged_position(request: HedgedPositionRequest):
+        async def create_hedged_position(
+            request: HedgedPositionRequest,
+            user: AuthenticatedUser = Depends(get_current_user),
+        ):
             """Create a new hedged position."""
             try:
                 if not self.hedged_position_manager:
@@ -569,7 +588,10 @@ class DeepStackAPIServer:
                 )
 
         @self.app.post("/positions/manual")
-        async def add_manual_position(request: ManualPositionRequest):
+        async def add_manual_position(
+            request: ManualPositionRequest,
+            user: AuthenticatedUser = Depends(get_current_user),
+        ):
             """Manually add a position."""
             try:
                 if not self.paper_trader:
