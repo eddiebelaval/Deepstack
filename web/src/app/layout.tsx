@@ -1,13 +1,27 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { ReactNode } from 'react'
+import { Analytics } from '@vercel/analytics/next'
 import Providers from '@/components/providers'
 import { PaywallModal } from '@/components/ui/paywall-modal'
 import { DisclaimerBanner } from '@/components/ui/disclaimer-banner'
 
 export const metadata: Metadata = {
   title: 'DeepStack',
-  description: 'Autonomous trading agent powered by Claude',
+  description: 'AI-powered trading assistant with emotional discipline frameworks',
+  keywords: ['trading', 'AI', 'stock analysis', 'portfolio tracker', 'options', 'emotional firewall'],
+  authors: [{ name: 'DeepStack' }],
+  openGraph: {
+    title: 'DeepStack',
+    description: 'AI-powered trading assistant with emotional discipline frameworks',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DeepStack',
+    description: 'AI-powered trading assistant with emotional discipline frameworks',
+  },
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -21,6 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </div>
           <DisclaimerBanner />
         </Providers>
+        <Analytics />
       </body>
     </html>
   )

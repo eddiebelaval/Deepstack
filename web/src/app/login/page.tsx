@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { Mail, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -174,8 +175,9 @@ export default function LoginPage() {
 
                 {/* Footer links */}
                 <div className="mt-8 text-center text-xs text-muted-foreground space-x-4">
-                    <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-                    <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+                    <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+                    <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+                    <Link href="/help" className="hover:text-foreground transition-colors">Help</Link>
                 </div>
             </div>
         </div>
