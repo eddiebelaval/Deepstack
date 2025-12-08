@@ -519,3 +519,63 @@
 .animate-ticker:hover {
   animation-play-state: paused;
 }
+
+/* Landing Page Animations */
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px var(--ds-glow-strong);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes text-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.text-gradient-shimmer {
+  background: linear-gradient(90deg,
+      var(--ds-claude) 0%,
+      var(--primary) 25%,
+      var(--ds-profit) 50%,
+      var(--primary) 75%,
+      var(--ds-claude) 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: text-shimmer 8s linear infinite;
+}
