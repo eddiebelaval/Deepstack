@@ -35,6 +35,10 @@ export function useProfile() {
         const fetchProfile = async () => {
             try {
                 const supabase = createClient();
+                if (!supabase) {
+                    setProfile(null);
+                    return;
+                }
                 const { data, error: fetchError } = await supabase
                     .from('profiles')
                     .select('*')
@@ -60,6 +64,8 @@ export function useProfile() {
 
         // Set up real-time subscription for profile changes
         const supabase = createClient();
+        if (!supabase) return;
+
         const channel = supabase
             .channel(`profile:${user.id}`)
             .on(

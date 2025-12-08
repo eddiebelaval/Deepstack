@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ValidationScoreModal } from './ValidationScoreModal';
 import { ValidationScoreRing } from './ValidationScoreRing';
+import { ThesisRelatedMarkets } from './ThesisRelatedMarkets';
 import { calculateValidationScore, getScoreColor } from '@/lib/thesis-validation';
 
 interface ThesisDashboardProps {
@@ -471,6 +472,13 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
                             )}
                         </Card>
                     )}
+
+                    {/* Related Prediction Markets */}
+                    <ThesisRelatedMarkets
+                        thesisId={thesis.id}
+                        symbol={thesis.symbol}
+                        hypothesis={thesis.hypothesis}
+                    />
 
                     {/* Linked Journal Entries */}
                     <Card className="p-6">

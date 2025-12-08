@@ -28,6 +28,10 @@ export function useChatLimit() {
         const fetchTodaysChats = async () => {
             try {
                 const supabase = createClient();
+                if (!supabase) {
+                    setChatsToday(0);
+                    return;
+                }
 
                 // Get start of today in user's timezone (UTC for simplicity)
                 const today = new Date();

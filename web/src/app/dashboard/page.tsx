@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api, AccountSummary } from '@/lib/api'
+import { PredictionMarketsWidget } from '@/components/prediction-markets/PredictionMarketsWidget'
 
 export default function HomePage() {
   const [account, setAccount] = useState<AccountSummary | null>(null)
@@ -78,6 +79,12 @@ export default function HomePage() {
       {status && (
         <div className="text-slate-400 text-sm">Cadence: {status.cadence_s}s {status.last_action ? `| Last: ${status.last_action}` : ''}</div>
       )}
+
+      {/* Widgets Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PredictionMarketsWidget />
+        {/* Add more widgets here */}
+      </div>
     </div>
   )
 }

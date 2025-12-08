@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { api } from '@/lib/api-extended';
 import { createTradeEntry } from '@/lib/supabase/trades';
+import { predictionMarketTools } from './prediction-market-tools';
 
 // Get the base URL for API calls - needed for edge runtime
 const getBaseUrl = () => {
@@ -608,4 +609,10 @@ export const tradingTools = {
       message: symbol ? `Showing options builder for ${symbol.toUpperCase()}` : 'Showing Options Strategy Builder',
     }),
   }),
+
+  // Prediction Market Tools
+  ...predictionMarketTools,
 };
+
+// Export all tools combined (for convenience)
+export const allTools = tradingTools;

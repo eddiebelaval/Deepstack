@@ -27,6 +27,7 @@ from pydantic import BaseModel
 
 from .api.auth import AuthenticatedUser, get_current_user
 from .api.options_router import router as options_router
+from .api.prediction_markets_router import router as prediction_markets_router
 from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
 from .broker.paper_trader import PaperTrader
@@ -889,6 +890,9 @@ class DeepStackAPIServer:
 
         # Include options router
         self.app.include_router(options_router)
+
+        # Include prediction markets router
+        self.app.include_router(prediction_markets_router)
 
     async def _handle_checkout_completed(self, session: Dict[str, Any]):
         """

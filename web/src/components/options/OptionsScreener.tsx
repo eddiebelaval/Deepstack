@@ -1,7 +1,7 @@
 'use client';
 
 import { OptionsScreenerPanel as OriginalOptionsScreener } from './OptionsScreenerPanel';
-import { useUser } from '@/hooks/use User';
+import { useUser } from '@/hooks/useUser';
 import { canAccess } from '@/lib/subscription';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 
