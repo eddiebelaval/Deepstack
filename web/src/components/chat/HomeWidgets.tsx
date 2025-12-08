@@ -162,8 +162,10 @@ export function HomeWidgets() {
                     const response = await fetch(`/api/market/bars?symbol=${encodeURIComponent(symbol)}&timeframe=${apiTimeframe}&limit=100`);
                     if (!response.ok) return null;
 
-                    const data = await response.json();
-                    const bars = data.bars || [];
+                    const json = await response.json();
+                    // Handle standardized API response format: { success, data: { bars }, meta }
+                    const responseData = json.data || json;
+                    const bars = responseData.bars || [];
 
                     if (bars.length === 0) {
                         console.warn(`No bars data for ${symbol}`);
@@ -173,14 +175,26 @@ export function HomeWidgets() {
                     return {
                         series: {
                             symbol,
-                            data: bars.map((d: any) => ({
-                                time: Math.floor(new Date(d.t || d.time).getTime() / 1000),
-                                value: d.c ?? d.close ?? 0
-                            })),
+                            data: bars.map((d: any) => {
+                                // Handle both formats:
+                                // - ISO string (d.t like "2024-01-15T00:00:00Z")
+                                // - Unix timestamp in seconds (d.time like 1607403600)
+                                let timestamp: number;
+                                if (d.t && typeof d.t === 'string') {
+                                    timestamp = Math.floor(new Date(d.t).getTime() / 1000);
+                                } else {
+                                    // time is already Unix timestamp in seconds
+                                    timestamp = d.time;
+                                }
+                                return {
+                                    time: timestamp,
+                                    value: d.c ?? d.close ?? 0
+                                };
+                            }),
                             color: SERIES_COLORS[index % SERIES_COLORS.length],
                             visible: true
                         },
-                        isMock: !!data.mock
+                        isMock: json.meta?.isMock || false
                     };
                 });
 
