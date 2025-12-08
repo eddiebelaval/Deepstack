@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { apiSuccess, apiError, MOCK_DATA_WARNING } from '@/lib/api-response';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -51,10 +52,7 @@ export async function GET(request: NextRequest) {
   const limit = searchParams.get('limit') || '100';
 
   if (!symbol) {
-    return NextResponse.json(
-      { error: 'Symbol is required' },
-      { status: 400 }
-    );
+    return apiError('INVALID_PARAMETERS', 'Symbol is required', { status: 400 });
   }
 
   try {
@@ -75,7 +73,8 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    // Wrap backend response in standard format
+    return apiSuccess({ bars: data.bars || data }, { isMock: data.mock || false });
   } catch (error) {
     // Backend unavailable - return mock data so UI still works
     console.warn('Backend unavailable for bars, returning mock data:', error);
@@ -83,10 +82,9 @@ export async function GET(request: NextRequest) {
     // Generate mock bars data
     const mockBars = generateMockBars(symbol, parseInt(limit));
 
-    return NextResponse.json({
-      bars: mockBars,
-      mock: true,
-      warning: 'Using simulated data - backend unavailable'
-    });
+    return apiSuccess(
+      { bars: mockBars },
+      { isMock: true, warning: MOCK_DATA_WARNING }
+    );
   }
 }

@@ -96,7 +96,12 @@ export function MarketDataProvider({
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const data = await response.json();
+      const json = await response.json();
+
+      // Handle both new standardized format and legacy format
+      // New format: { success: true, data: { bars: [...] }, meta: {...} }
+      // Legacy format: { bars: [...] } or just [...]
+      const data = json.data || json;
 
       // Transform backend data to OHLCVBar format
       const transformedBars: OHLCVBar[] = (data.bars || data || []).map(
