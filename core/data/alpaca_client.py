@@ -117,7 +117,83 @@ class AlpacaClient:
         self._cache_lock = asyncio.Lock()
         self._connection_lock = asyncio.Lock()
 
+        # Initialize News Client
+        from alpaca.data.historical.news import NewsClient
+
+        self.news_client = NewsClient(
+            api_key=api_key,
+            secret_key=secret_key,
+            url_override=(
+                base_url if "paper" not in base_url.lower() else None
+            ),  # News API doesn't use paper URL
+        )
+
         logger.info(f"AlpacaClient initialized with base_url: {base_url}")
+
+    async def get_news(
+        self,
+        symbol: Optional[str] = None,
+        limit: int = 10,
+        start_date: Optional[datetime] = None,
+        include_content: bool = False,
+    ) -> List[Dict]:
+        """
+        Get market news.
+
+        Args:
+            symbol: Optional symbol to filter by
+            limit: Max number of articles (default 10)
+            start_date: Optional start date filter
+            include_content: Whether to include full article content
+
+        Returns:
+            List of news articles
+        """
+        try:
+            from alpaca.data.requests import NewsRequest
+
+            params = NewsRequest(limit=limit, include_content=include_content)
+
+            if symbol:
+                params.symbols = symbol
+
+            if start_date:
+                params.start = start_date
+
+            # Run in executor since NewsClient is synchronous
+            news_set = await asyncio.get_event_loop().run_in_executor(
+                None, self.news_client.get_news, params
+            )
+
+            results = []
+            # NewsSet stores articles in "news" key
+            news_list = (
+                news_set.data.get("news", []) if hasattr(news_set, "data") else []
+            )
+            if not news_list and hasattr(news_set, "news"):
+                # Fallback if structure is different
+                news_list = news_set.news
+
+            for article in news_list:
+                results.append(
+                    {
+                        "id": str(article.id),
+                        "headline": article.headline,
+                        "summary": article.summary,
+                        "url": article.url,
+                        "source": article.source,
+                        "publishedAt": article.created_at.isoformat(),
+                        "symbols": article.symbols,
+                        "author": article.author,
+                        "sentiment": "neutral",  # Alpaca: no sentiment, infer on FE
+                    }
+                )
+
+            return results
+
+        except Exception as e:
+            logger.error(f"Error fetching news: {e}")
+            return []
 
     async def _check_rate_limit(self) -> None:
         """

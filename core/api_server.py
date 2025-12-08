@@ -20,6 +20,7 @@ from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
 from .broker.paper_trader import PaperTrader
 from .config import get_config
+from .data.alpaca_client import AlpacaClient
 from .data.alphavantage_client import AlphaVantageClient
 from .data.market_data import MarketDataManager
 from .exceptions import (
@@ -143,6 +144,7 @@ class DeepStackAPIServer:
         self.paper_trader: Optional[PaperTrader] = None
         self.order_manager: Optional[OrderManager] = None
         self.av_client: Optional[AlphaVantageClient] = None
+        self.alpaca_client: Optional[AlpacaClient] = None
         self.deep_value_strategy: Optional[DeepValueStrategy] = None
         self.hedged_position_manager: Optional[HedgedPositionManager] = None
         self.market_data_manager: Optional[MarketDataManager] = None
@@ -220,6 +222,26 @@ class DeepStackAPIServer:
             """Health check endpoint."""
             return HealthResponse(status="healthy", timestamp=datetime.now())
 
+        @self.app.get("/api/news")
+        async def get_news(symbol: Optional[str] = None, limit: int = 10):
+            """Get market news."""
+            try:
+                if not self.alpaca_client:
+                    logger.warning("Alpaca client not initialized")
+                    return {"news": []}
+
+                articles = await self.alpaca_client.get_news(symbol=symbol, limit=limit)
+                return {"news": articles}
+            except Exception as e:
+                logger.error(f"News error: {e}")
+                # Return empty list or error response properly
+                # For now returning error response structure compatible with
+                # frontend expectations
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Failed to fetch news", "details": str(e)},
+                )
+
         @self.app.get("/quote/{symbol}", response_model=QuoteResponse)
         async def get_quote(symbol: str):
             """Get current quote for symbol."""
@@ -268,15 +290,16 @@ class DeepStackAPIServer:
                     self.market_data_manager = MarketDataManager(self.config)
 
                 # Calculate start/end dates based on limit and timeframe
-                # For simplicity, we'll just ask for a wide range and let the manager handle it
-                # or we could calculate it.
+                # For simplicity, we'll ask for a wide range and let the manager
+                # handle it or we could calculate it.
                 # MarketDataManager.get_historical_data takes start_date, end_date.
 
                 # Calculate start date based on timeframe to ensure sufficient history
                 now = datetime.now()
 
                 # Map timeframe to yfinance-compatible interval
-                # yfinance expects: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo
+                # yfinance expects: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d,
+                # 1wk, 1mo, 3mo
                 yf_interval = timeframe
                 if timeframe in ["1w", "1W"]:
                     yf_interval = "1wk"
@@ -635,6 +658,13 @@ class DeepStackAPIServer:
                 or self.config.trading.mode == "paper"
             ):
                 self.ibkr_client = IBKRClient(self.config)
+
+            # Initialize Alpaca client
+            if self.config.alpaca_api_key and self.config.alpaca_secret_key:
+                self.alpaca_client = AlpacaClient(
+                    api_key=self.config.alpaca_api_key,
+                    secret_key=self.config.alpaca_secret_key,
+                )
 
             # Initialize paper trader
             if self.config.trading.mode == "paper":

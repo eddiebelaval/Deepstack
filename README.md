@@ -1,225 +1,285 @@
-# 🔥 DeepStack Trading System
+# 🔥 DeepStack Trading Platform
 
-**🌐 [deepstack.trade](https://deepstack.trade)**
+**🌐 Live: [deepstack.trade](https://deepstack.trade)** | **📦 Version: 2.0.0** | **📅 Updated: December 2024**
 
-**Autonomous AI-Powered Trading with Claude Integration**
+> **DISCLAIMER: RESEARCH ONLY. NOT FINANCIAL ADVICE.** DeepStack is a financial research and analysis platform providing data and AI-driven insights for informational purposes only. This platform does NOT execute trades on your behalf. Trading in financial markets involves significant risk.
 
-DeepStack is a sophisticated algorithmic trading system that combines deep value investing principles with modern AI analysis. Built for disciplined, systematic trading with comprehensive risk management.
+---
 
-> **Web App**: A modern conversational trading interface is available at [deepstack.trade](https://deepstack.trade)
+## 🎯 What is DeepStack?
 
-## 🎯 Key Features
+DeepStack is an **AI-powered trading research platform** that combines conversational AI with professional-grade market tools. Think of it as having a research analyst in your pocket – helping you develop, test, and track your trading ideas with discipline.
 
-- **🤖 AI-Powered Analysis**: Claude AI integration for market analysis and strategy execution
-- **🌐 Web Trading Interface**: Modern conversational UI at [deepstack.trade](https://deepstack.trade)
-- **📊 Multi-Strategy Framework**: Deep value investing + Short squeeze detection
-- **⚖️ Advanced Risk Management**: Kelly Criterion, portfolio heat tracking, stop losses
-- **🎛️ Beautiful CLI Interface**: Retro-futuristic PipBoy-inspired terminal interface
-- **📈 Live Market Data**: Real-time quotes and charts via Alpaca Markets
-- **🔗 Broker Integration**: Interactive Brokers + Alpaca + Paper trading
-- **📈 Performance Analytics**: Comprehensive reporting and trade journaling
-- **🛡️ Safety First**: Multiple risk layers, circuit breakers, emergency stops
+### ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🤖 **AI Research Chat** | Claude-powered analysis for market research, thesis development, and strategy backtesting |
+| 📊 **Professional Charts** | TradingView-style charts with advanced indicators and symbol search |
+| 💡 **Thesis Engine** | Develop, track, and validate trading hypotheses with live monitoring |
+| 📔 **Trade Journal** | Log trades with emotion tracking, P&L calculation, and rich notes |
+| 🧠 **AI Pattern Learning** | Discover patterns in your trading behavior (with privacy controls) |
+| 📈 **Real-time Data** | Live market data via Alpaca Markets (15m delayed on Free tier) |
+| 🔍 **Stock Screener** | Filter stocks by fundamentals, technicals, and custom criteria |
+| ⚡ **Options Analysis** | Options chains, Greeks, and strategy builders |
+| 🛡️ **Emotional Firewall** | AI-powered check before impulsive trades |
+
+---
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Use the Web App (Recommended)
+Visit **[deepstack.trade](https://deepstack.trade)** – no installation required!
 
-- Python 3.9+
-- Node.js 16+
-- Interactive Brokers account (for live trading)
-- Anthropic API key (for AI analysis)
+### Option 2: Run Locally
 
-### Installation
-
-1. **Clone and setup:**
 ```bash
-git clone <repository-url>
+# Clone the repo
+git clone https://github.com/eddiebe147/Deepstack.git
 cd deepstack
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\\Scripts\\activate
-```
 
-2. **Install Python dependencies:**
-```bash
+# Install backend
 pip install -r requirements.txt
-```
 
-3. **Install CLI dependencies:**
-```bash
-cd cli
-npm install
-npm run build
-npm link
-```
+# Install frontend
+cd web && npm install
 
-4. **Configure API keys:**
-```bash
-# Copy example environment file
+# Configure environment
 cp env.example .env
+# Edit .env with your API keys
 
-# Edit .env with your API keys:
-# IBKR_HOST=127.0.0.1
-# IBKR_PORT=7497
-# IBKR_CLIENT_ID=1
-# ANTHROPIC_API_KEY=your_key_here
+# Run development server
+npm run dev
 ```
 
-5. **Configure trading settings:**
-```bash
-# Edit config/config.yaml for your preferences
-# Set mode to "paper" for testing
-```
+### Required API Keys
+- **Alpaca Markets** – Market data (get free keys at [alpaca.markets](https://alpaca.markets))
+- **Anthropic Claude** – AI analysis (get at [console.anthropic.com](https://console.anthropic.com))
+- **Supabase** (optional) – User authentication
 
-### First Run
+---
 
-```bash
-# Start in paper trading mode (recommended)
-deepstack start --mode=paper
+## 💎 Product Tiers
 
-# In another terminal, open the dashboard
-deepstack dashboard
+### 🆓 Free Tier – *The Learning Hook*
+- ✅ 10 AI queries per 12 hours
+- ✅ 15-minute delayed market data
+- ✅ Basic charts
+- ✅ 5 watchlist symbols
+- ✅ 1 active Thesis Engine
+- ✅ Unlimited Journal entries (basic)
+- ✅ Basic Emotional Firewall
 
-# Screen for opportunities
-deepstack screen
+### 💰 Pro Tier – *The Serious Researcher*
+- ✅ Unlimited AI queries (including advanced reasoning)
+- ✅ Real-time market data
+- ✅ Advanced charts with all indicators
+- ✅ Unlimited watchlists
+- ✅ Full Screener + custom filters
+- ✅ Complete Options Suite
+- ✅ Unlimited Thesis Engines
+- ✅ Full Trade Journal with TipTap editor
+- ✅ AI Pattern Learning (personalized insights)
+- ✅ Priority support
 
-# Analyze a specific stock
-deepstack analyze AAPL
-
-# Place a paper trade
-deepstack buy AAPL 100
-```
-
-## 📚 Documentation
-
-- **[Phase 1 Guide](docs/01-PHASE-1-GUIDE.md)** - Complete setup and first trades
-- **[Master Hub](docs/01-MASTER-HUB.md)** - System overview and philosophy
-- **[Professional Execution](docs/03-PROFESSIONAL-EXECUTION.md)** - Advanced position sizing
-- **[Trading Systems](docs/04-ADVANCED-TRADING-SYSTEMS.md)** - Strategy details
-- **[Automation Layer](docs/05-AUTOMATION-LAYER.md)** - System automation
+---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                           DeepStack System                      │
-├─────────────────────────────────────────────────────────────────┤
-│  🤖 AI Agents          │  📊 CLI Interface    │  ⚙️  Backend    │
-│  ├── Base Agent        │  ├── Dashboard       │  ├── FastAPI    │
-│  ├── Strategy Agent    │  ├── Position Monitor│  ├── IBKR Client│
-│  └── Risk Agent        │  ├── Risk Display    │  └── Paper Trader│
-│                         │  └── Market Scanner  │                  │
-├─────────────────────────────────────────────────────────────────┤
-│  📈 Strategies         │  🛡️  Risk Management  │  💾 Data Layer   │
-│  ├── Deep Value        │  ├── Portfolio Risk  │  ├── SQLite     │
-│  ├── Squeeze Hunter    │  ├── Kelly Criterion │  ├── Market Data│
-│  └── Pairs Trading     │  └── Stop Losses     │  └── Analytics  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          DeepStack Architecture                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Frontend (Next.js 16 + React)                                              │
+│  ├── /chat          – AI conversation interface                             │
+│  ├── /journal       – Trade Journal with TipTap editor                      │
+│  ├── /thesis        – Thesis Engine with live monitoring                    │
+│  ├── /insights      – AI Pattern Learning dashboard                         │
+│  └── /dashboard     – Charts, Screener, News, Calendar                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  API Routes (Edge Runtime)                                                  │
+│  ├── /api/chat      – AI streaming with multi-provider support              │
+│  ├── /api/market/*  – Alpaca proxy (quotes, bars, assets)                   │
+│  ├── /api/journal   – CRUD for journal entries                              │
+│  ├── /api/thesis    – CRUD for thesis tracking                              │
+│  └── /api/options/* – Options chains and strategies                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Backend (Python FastAPI)                                                   │
+│  ├── market_api.py  – Alpaca integration                                    │
+│  ├── core/          – Trading strategies & risk management                  │
+│  └── cli/           – Terminal interface                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  State Management (Zustand + Persist)                                       │
+│  ├── chat-store     – Conversations & messages                              │
+│  ├── journal-store  – Trade journal entries                                 │
+│  ├── thesis-store   – Trading theses                                        │
+│  ├── pattern-store  – AI-discovered patterns                                │
+│  └── quota-store    – Tier limits & usage tracking                          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
-
-### Core Components
-
-- **AI Agents**: Claude-powered analysis and decision making
-- **Risk Management**: Multi-layer risk controls and position sizing
-- **CLI Interface**: Beautiful terminal interface for monitoring and control
-- **Broker Integration**: Live and paper trading through Interactive Brokers
-- **Data Layer**: Market data, trade history, and analytics storage
-
-## 🎯 Trading Philosophy
-
-DeepStack is built on proven trading principles:
-
-- **Deep Value Investing**: Find undervalued companies with strong fundamentals
-- **Short Squeeze Detection**: Identify stocks with high short interest and catalysts
-- **Risk Management**: Never risk more than you can afford to lose
-- **Systematic Approach**: Remove emotion from trading decisions
-- **Continuous Learning**: Every trade is a learning opportunity
-
-## 🛡️ Safety Features
-
-- **Multiple Risk Layers**: Position limits, portfolio heat, daily/weekly stops
-- **Circuit Breakers**: Automatic halts on extreme market conditions
-- **Emergency Stops**: One-command system shutdown
-- **Paper Trading First**: Test strategies before going live
-- **Audit Trail**: Complete logging of all decisions and actions
-
-## 🚦 Trading Modes
-
-### Paper Trading (Recommended for beginners)
-```bash
-deepstack start --mode=paper
-```
-- Risk-free testing environment
-- Realistic order simulation
-- Full strategy validation
-- No financial risk
-
-### Live Trading (Experienced traders only)
-```bash
-deepstack start --mode=live
-```
-- Real money trading
-- IBKR integration required
-- All safety features active
-- Comprehensive logging
-
-## 📊 Key Commands
-
-```bash
-# System Control
-deepstack start              # Start trading system
-deepstack stop               # Stop gracefully
-deepstack status             # Check system status
-deepstack dashboard          # Interactive dashboard
-
-# Analysis
-deepstack screen             # Screen for opportunities
-deepstack analyze AAPL       # Deep stock analysis
-deepstack risk               # Risk management report
-
-# Trading
-deepstack buy AAPL 100       # Place buy order
-deepstack sell AAPL 50       # Place sell order
-deepstack positions          # Show current positions
-
-# Performance
-deepstack performance today  # Today's P&L
-deepstack performance month  # Monthly summary
-```
-
-## 🔧 Configuration
-
-DeepStack uses YAML configuration files for easy customization:
-
-- **`config/config.yaml`**: Main trading configuration
-- **`config/risk_limits.yaml`**: Risk management settings
-- **`knowledge-base/trader_philosophies.yaml`**: Trading wisdom and principles
-
-## 🤝 Contributing
-
-DeepStack is designed to be extensible. Key areas for contribution:
-
-- **New Strategies**: Implement additional trading strategies
-- **Data Sources**: Add new market data providers
-- **Risk Models**: Enhance risk management algorithms
-- **UI Components**: Improve the CLI interface
-- **Analytics**: Add performance measurement tools
-
-## 📜 License
-
-MIT License - See LICENSE file for details.
-
-## ⚠️ Disclaimer
-
-**Trading involves substantial risk of loss and is not suitable for every investor.** Past performance does not guarantee future results. Only trade with money you can afford to lose. The developers of DeepStack are not responsible for any financial losses incurred through the use of this software.
-
-## 🙏 Acknowledgments
-
-DeepStack is inspired by:
-- **Master Traders**: Buffett, Munger, Livermore, O'Neil
-- **Risk Management**: Kelly Criterion, VaR models
-- **AI Integration**: Anthropic's Claude
-- **Terminal UI**: Fallout's PipBoy interface
 
 ---
 
-**Built with ❤️ for systematic, disciplined trading**
+## 📁 Project Structure
+
+```
+deepstack/
+├── web/                      # Next.js frontend
+│   ├── src/
+│   │   ├── app/              # App router pages
+│   │   │   ├── api/          # API routes
+│   │   │   ├── chat/         # Main chat interface
+│   │   │   ├── journal/      # Trade Journal
+│   │   │   ├── thesis/       # Thesis Engine
+│   │   │   └── insights/     # AI Insights
+│   │   ├── components/       # React components
+│   │   │   ├── chat/         # Chat UI components
+│   │   │   ├── charts/       # TradingView-style charts
+│   │   │   ├── journal/      # Journal components
+│   │   │   ├── thesis/       # Thesis components
+│   │   │   └── ui/           # Shadcn UI primitives
+│   │   └── lib/              # Utilities & stores
+│   │       ├── stores/       # Zustand state management
+│   │       └── llm/          # AI provider configs
+├── core/                     # Python trading core
+│   ├── broker/               # Broker integrations
+│   ├── risk/                 # Risk management
+│   └── strategies/           # Trading strategies
+├── cli/                      # Terminal interface
+├── docs/                     # Documentation
+└── tests/                    # Test suites
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | Next.js 16, React 19, TypeScript |
+| **Styling** | Tailwind CSS, Shadcn UI |
+| **Charts** | Recharts, custom MultiSeriesChart |
+| **Rich Text** | TipTap (ProseMirror) |
+| **State** | Zustand with persistence |
+| **AI** | Anthropic Claude, OpenAI, Google Gemini |
+| **Backend** | Python FastAPI |
+| **Data** | Alpaca Markets API |
+| **Auth** | Supabase |
+| **Hosting** | Vercel (frontend), Railway (backend) |
+
+---
+
+## 🔐 Environment Variables
+
+```bash
+# Required
+ALPACA_API_KEY=your_alpaca_key
+ALPACA_SECRET_KEY=your_alpaca_secret
+ANTHROPIC_API_KEY=your_claude_key
+
+# Optional
+OPENAI_API_KEY=your_openai_key
+GOOGLE_AI_API_KEY=your_gemini_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest tests/
+
+# Run with coverage
+pytest --cov=core tests/
+
+# Frontend type checking
+cd web && npm run build
+
+# E2E tests (requires running dev server)
+npm run test:e2e
+```
+
+---
+
+## 📊 Feature Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| AI Chat | ✅ Production | Multi-provider, streaming |
+| Charts | ✅ Production | Real-time, symbol search |
+| Trade Journal | ✅ Production | TipTap, emotions, P&L |
+| Thesis Engine | ✅ Production | Live monitoring, validation |
+| AI Insights | ✅ Production | Pattern analysis, privacy |
+| Options | ✅ Production | Chains, strategies |
+| Screener | ✅ Production | Real data via Alpaca |
+| News/Calendar | ✅ Production | Real data |
+| Auth | 🟡 Beta | Supabase integration |
+| Payments | 🔴 Planned | Stripe integration |
+
+---
+
+## 🛡️ Safety & Compliance
+
+- **Disclaimer Banner**: Persistent "Not Financial Advice" warning on every page
+- **Emotional Firewall**: AI-powered pause before impulsive trades
+- **Privacy First**: Pattern data never shared or sold
+- **No Trade Execution**: Research only – we never execute trades
+- **Circuit Breakers**: Automatic halts on extreme conditions
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+- Use TypeScript strict mode
+- Follow existing component patterns
+- Add tests for new features
+- Update documentation
+
+---
+
+## 📜 License
+
+MIT License – See [LICENSE](LICENSE) file.
+
+---
+
+## ⚠️ Full Disclaimer
+
+**DISCLAIMER: RESEARCH ONLY. NOT FINANCIAL ADVICE.**
+
+DeepStack is a financial research and analysis platform providing data and AI-driven insights for **informational purposes only**.
+
+- **No Trade Execution**: This platform does NOT execute trades on your behalf.
+- **Risk Warning**: Trading in financial markets involves significant risk. You may lose some or all of your investment.
+- **Not a Recommendation**: Nothing on this platform constitutes a recommendation to buy, sell, or hold any security.
+- **Seek Professional Advice**: Consult a qualified financial advisor before making any investment decisions.
+- **AI Limitations**: AI can hallucinate. Verify all data independently.
+
+The developers of DeepStack are not responsible for any financial losses incurred through the use of this software.
+
+---
+
+## 🙏 Acknowledgments
+
+Built with:
+- [Anthropic Claude](https://anthropic.com) – AI reasoning
+- [Alpaca Markets](https://alpaca.markets) – Market data
+- [Vercel](https://vercel.com) – Hosting
+- [Shadcn UI](https://ui.shadcn.com) – Components
+- [TipTap](https://tiptap.dev) – Rich text editor
+
+---
+
+**Built with ❤️ for disciplined traders who want an edge**
+
+*Last updated: December 7, 2024*
