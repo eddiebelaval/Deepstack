@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RichTextEditor } from './RichTextEditor';
+import { LazyRichTextEditor } from '@/components/lazy';
 import { ScreenshotUploader } from './ScreenshotUploader';
 import { type JournalEntry, type EmotionType } from '@/lib/stores/journal-store';
 import { type ThesisEntry } from '@/lib/stores/thesis-store';
@@ -268,7 +268,7 @@ export function JournalEntryDialog({
                     {/* Notes */}
                     <div className="space-y-2">
                         <Label>Trade Notes</Label>
-                        <RichTextEditor
+                        <LazyRichTextEditor
                             content={notes}
                             onChange={setNotes}
                             placeholder="What was your reasoning for this trade? What were the market conditions?"
@@ -278,7 +278,7 @@ export function JournalEntryDialog({
                     {/* Lessons Learned */}
                     <div className="space-y-2">
                         <Label>Lessons Learned</Label>
-                        <RichTextEditor
+                        <LazyRichTextEditor
                             content={lessonsLearned}
                             onChange={setLessonsLearned}
                             placeholder="What did you learn from this trade? What would you do differently?"
