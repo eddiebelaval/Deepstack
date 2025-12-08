@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import Providers from '@/components/providers'
 import { PaywallModal } from '@/components/ui/paywall-modal'
 import { DisclaimerBanner } from '@/components/ui/disclaimer-banner'
+import { WelcomeModal } from '@/components/onboarding'
 
 export const metadata: Metadata = {
   title: 'DeepStack',
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased">
         <Providers>
+          <WelcomeModal />
           <PaywallModal />
           <div className="pb-24">
             {children}
