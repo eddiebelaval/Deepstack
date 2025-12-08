@@ -19,7 +19,8 @@ import {
     Shield,
     Trash2,
     Heart,
-    BarChart3
+    BarChart3,
+    ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -56,7 +57,10 @@ export function InsightsPanel() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
                     <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
                         <Brain className="h-5 w-5 text-purple-500" />
                     </div>

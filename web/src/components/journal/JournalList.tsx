@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { JournalEntryDialog } from './JournalEntryDialog';
-import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const EMOTION_EMOJIS: Record<string, string> = {
@@ -49,9 +49,14 @@ export function JournalList() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Trade Journal</h1>
-                    <p className="text-muted-foreground text-sm">Track your trades and learn from your patterns</p>
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold">Trade Journal</h1>
+                        <p className="text-muted-foreground text-sm">Track your trades and learn from your patterns</p>
+                    </div>
                 </div>
                 <Button onClick={handleNew}>
                     <Plus className="h-4 w-4 mr-2" />

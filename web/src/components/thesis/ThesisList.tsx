@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThesisCard } from './ThesisCard';
 import { ThesisDialog } from './ThesisDialog';
 import { ThesisDashboard } from './ThesisDashboard';
-import { Plus, Lightbulb, Target, CheckCircle, XCircle, Archive } from 'lucide-react';
+import { Plus, Lightbulb, Target, CheckCircle, XCircle, Archive, ArrowLeft } from 'lucide-react';
 
 export function ThesisList() {
     const { theses, deleteThesis } = useThesisStore();
@@ -62,12 +62,17 @@ export function ThesisList() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Lightbulb className="h-6 w-6 text-amber-500" />
-                        Thesis Engine
-                    </h1>
-                    <p className="text-muted-foreground text-sm">Stress-test your trading ideas before risking capital</p>
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold flex items-center gap-2">
+                            <Lightbulb className="h-6 w-6 text-amber-500" />
+                            Thesis Engine
+                        </h1>
+                        <p className="text-muted-foreground text-sm">Stress-test your trading ideas before risking capital</p>
+                    </div>
                 </div>
                 <Button onClick={handleNew}>
                     <Plus className="h-4 w-4 mr-2" />
