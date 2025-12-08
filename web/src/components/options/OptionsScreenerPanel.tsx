@@ -354,8 +354,22 @@ export function OptionsScreenerPanel() {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive text-sm">
-          {error}
+        <div className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-md">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-destructive font-medium text-sm mb-1">Screening Failed</p>
+              <p className="text-destructive/80 text-sm">{error}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => runScreen()}
+              disabled={isLoading}
+              className="shrink-0"
+            >
+              Retry
+            </Button>
+          </div>
         </div>
       )}
 

@@ -8,6 +8,41 @@ import { useTradingStore } from "@/lib/stores/trading-store";
 // Default ticker symbols for the LED ticker
 const TICKER_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIX', 'NVDA', 'AAPL', 'TSLA', 'AMD', 'MSFT'];
 
+// Types for API responses
+type ApiBarData = {
+  t?: string;
+  time?: number;
+  timestamp?: string;
+  o?: number;
+  open?: number;
+  h?: number;
+  high?: number;
+  l?: number;
+  low?: number;
+  c?: number;
+  close?: number;
+  v?: number;
+  volume?: number;
+};
+
+type ApiQuoteData = {
+  bid?: number;
+  bp?: number;
+  ask?: number;
+  ap?: number;
+  last?: number;
+  price?: number;
+  close?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  volume?: number;
+  change?: number;
+  changePercent?: number;
+  change_percent?: number;
+  timestamp?: string;
+};
+
 type MarketDataContextType = {
   connect: () => void;
   disconnect: () => void;
@@ -65,7 +100,7 @@ export function MarketDataProvider({
 
       // Transform backend data to OHLCVBar format
       const transformedBars: OHLCVBar[] = (data.bars || data || []).map(
-        (bar: { t?: string; time?: number; timestamp?: string; o?: number; open?: number; h?: number; high?: number; l?: number; low?: number; c?: number; close?: number; v?: number; volume?: number }) => ({
+        (bar: ApiBarData) => ({
           time: bar.time || Math.floor(new Date(bar.t || bar.timestamp || 0).getTime() / 1000),
           open: bar.o ?? bar.open ?? 0,
           high: bar.h ?? bar.high ?? 0,
@@ -101,20 +136,23 @@ export function MarketDataProvider({
 
       // Transform to QuoteData format
       const quotes: QuoteData[] = Object.entries(data.quotes || data || {}).map(
-        ([symbol, quote]: [string, any]) => ({
-          symbol,
-          bid: quote.bid ?? quote.bp,
-          ask: quote.ask ?? quote.ap,
-          last: quote.last ?? quote.price ?? quote.close ?? 0,
-          open: quote.open,
-          high: quote.high,
-          low: quote.low,
-          close: quote.close,
-          volume: quote.volume,
-          change: quote.change,
-          changePercent: quote.changePercent ?? quote.change_percent,
-          timestamp: quote.timestamp || new Date().toISOString(),
-        })
+        ([symbol, quote]) => {
+          const q = quote as ApiQuoteData;
+          return {
+            symbol,
+            bid: q.bid ?? q.bp,
+            ask: q.ask ?? q.ap,
+            last: q.last ?? q.price ?? q.close ?? 0,
+            open: q.open,
+            high: q.high,
+            low: q.low,
+            close: q.close,
+            volume: q.volume,
+            change: q.change,
+            changePercent: q.changePercent ?? q.change_percent,
+            timestamp: q.timestamp || new Date().toISOString(),
+          };
+        }
       );
 
       updateQuotes(quotes);

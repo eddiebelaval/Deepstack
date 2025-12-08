@@ -134,19 +134,31 @@ export async function POST(req: NextRequest) {
             if ((filters.min_delta === undefined || greeks.delta >= filters.min_delta) &&
               (filters.max_delta === undefined || greeks.delta <= filters.max_delta)) {
 
-              const intrinsicValue = Math.max(0, underlyingPrice - strike);
-              const timeValue = underlyingPrice * 0.05 * Math.sqrt(t);
-              const theoreticalPrice = intrinsicValue + timeValue;
+              // Filter by IV range
+              if ((filters.min_iv === undefined || iv >= filters.min_iv) &&
+                (filters.max_iv === undefined || iv <= filters.max_iv)) {
 
-              const bid = theoreticalPrice * 0.98;
-              const ask = theoreticalPrice * 1.02;
-              const mid = (bid + ask) / 2;
+                const intrinsicValue = Math.max(0, underlyingPrice - strike);
+                const timeValue = underlyingPrice * 0.05 * Math.sqrt(t);
+                const theoreticalPrice = intrinsicValue + timeValue;
 
-              const volume = Math.floor(random(10, 10000) * Math.exp(-Math.abs(i) / 3));
-              const oi = Math.floor(volume * random(2, 10));
+                const bid = theoreticalPrice * 0.98;
+                const ask = theoreticalPrice * 1.02;
+                const mid = (bid + ask) / 2;
+                const spread_pct = ((ask - bid) / bid * 100);
 
-              // Apply Volume/OI filters
-              if (volume >= filters.min_volume && oi >= filters.min_open_interest) {
+                // Filter by bid-ask spread
+                if (filters.max_bid_ask_spread_pct === undefined || spread_pct <= filters.max_bid_ask_spread_pct) {
+
+                  const volume = Math.floor(random(10, 10000) * Math.exp(-Math.abs(i) / 3));
+                  const oi = Math.floor(volume * random(2, 10));
+
+                  const moneyness = underlyingPrice > strike ? 'itm' : (Math.abs(underlyingPrice - strike) / underlyingPrice < 0.01 ? 'atm' : 'otm') as 'itm' | 'atm' | 'otm';
+
+                  // Apply Volume/OI and Moneyness filters
+                  if (volume >= filters.min_volume &&
+                      oi >= filters.min_open_interest &&
+                      (!filters.moneyness || filters.moneyness.includes(moneyness))) {
                 results.push({
                   symbol: `${symbol}${formatDate(expirationDate).replace(/-/g, '').slice(2)}C${Math.floor(strike * 1000).toString().padStart(8, '0')}`,
                   underlying_symbol: symbol,
@@ -165,10 +177,12 @@ export async function POST(req: NextRequest) {
                   vega: Number(greeks.vega.toFixed(4)),
                   implied_volatility: Number(iv.toFixed(4)),
                   bid_ask_spread: Number((ask - bid).toFixed(2)),
-                  bid_ask_spread_pct: Number(((ask - bid) / bid * 100).toFixed(2)),
-                  moneyness: underlyingPrice > strike ? 'itm' : (Math.abs(underlyingPrice - strike) / underlyingPrice < 0.01 ? 'atm' : 'otm'),
+                  bid_ask_spread_pct: Number(spread_pct.toFixed(2)),
+                  moneyness: moneyness,
                   underlying_price: underlyingPrice
                 });
+                  }
+                }
               }
             }
           }
@@ -187,18 +201,31 @@ export async function POST(req: NextRequest) {
             if ((filters.min_delta === undefined || greeks.delta >= filters.min_delta) &&
               (filters.max_delta === undefined || greeks.delta <= filters.max_delta)) {
 
-              const intrinsicValue = Math.max(0, strike - underlyingPrice);
-              const timeValue = underlyingPrice * 0.05 * Math.sqrt(t);
-              const theoreticalPrice = intrinsicValue + timeValue;
+              // Filter by IV range
+              if ((filters.min_iv === undefined || iv >= filters.min_iv) &&
+                (filters.max_iv === undefined || iv <= filters.max_iv)) {
 
-              const bid = theoreticalPrice * 0.98;
-              const ask = theoreticalPrice * 1.02;
-              const mid = (bid + ask) / 2;
+                const intrinsicValue = Math.max(0, strike - underlyingPrice);
+                const timeValue = underlyingPrice * 0.05 * Math.sqrt(t);
+                const theoreticalPrice = intrinsicValue + timeValue;
 
-              const volume = Math.floor(random(10, 10000) * Math.exp(-Math.abs(i) / 3));
-              const oi = Math.floor(volume * random(2, 10));
+                const bid = theoreticalPrice * 0.98;
+                const ask = theoreticalPrice * 1.02;
+                const mid = (bid + ask) / 2;
+                const spread_pct = ((ask - bid) / bid * 100);
 
-              if (volume >= filters.min_volume && oi >= filters.min_open_interest) {
+                // Filter by bid-ask spread
+                if (filters.max_bid_ask_spread_pct === undefined || spread_pct <= filters.max_bid_ask_spread_pct) {
+
+                  const volume = Math.floor(random(10, 10000) * Math.exp(-Math.abs(i) / 3));
+                  const oi = Math.floor(volume * random(2, 10));
+
+                  const moneyness = underlyingPrice < strike ? 'itm' : (Math.abs(underlyingPrice - strike) / underlyingPrice < 0.01 ? 'atm' : 'otm') as 'itm' | 'atm' | 'otm';
+
+                  // Apply Volume/OI and Moneyness filters
+                  if (volume >= filters.min_volume &&
+                      oi >= filters.min_open_interest &&
+                      (!filters.moneyness || filters.moneyness.includes(moneyness))) {
                 results.push({
                   symbol: `${symbol}${formatDate(expirationDate).replace(/-/g, '').slice(2)}P${Math.floor(strike * 1000).toString().padStart(8, '0')}`,
                   underlying_symbol: symbol,
@@ -217,10 +244,12 @@ export async function POST(req: NextRequest) {
                   vega: Number(greeks.vega.toFixed(4)),
                   implied_volatility: Number(iv.toFixed(4)),
                   bid_ask_spread: Number((ask - bid).toFixed(2)),
-                  bid_ask_spread_pct: Number(((ask - bid) / bid * 100).toFixed(2)),
-                  moneyness: underlyingPrice < strike ? 'itm' : (Math.abs(underlyingPrice - strike) / underlyingPrice < 0.01 ? 'atm' : 'otm'),
+                  bid_ask_spread_pct: Number(spread_pct.toFixed(2)),
+                  moneyness: moneyness,
                   underlying_price: underlyingPrice
                 });
+                  }
+                }
               }
             }
           }

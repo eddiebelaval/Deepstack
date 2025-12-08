@@ -5,9 +5,9 @@
 
 ---
 
-## Current Stage: 5 - Feature Blocks
+## Current Stage: 6 - Integration Pass
 
-**Next Checkpoint Question:** "Does this feature work completely, right now?"
+**Next Checkpoint Question:** "Do all the pieces talk to each other?"
 
 ---
 
@@ -19,8 +19,8 @@
 | 2. Scope Fence | ✅ Cleared | 2025-12-05 | Chat + Market Data + Portfolio + Options (v1) |
 | 3. Architecture Sketch | ✅ Cleared | 2025-12-05 | Next.js + Python backend + Supabase |
 | 4. Foundation Pour | ✅ Cleared | 2025-12-05 | Deployed to Vercel, DB connected |
-| 5. Feature Blocks | 🔄 In Progress | - | Building trading features |
-| 6. Integration Pass | ⬜ Pending | - | |
+| 5. Feature Blocks | ✅ Cleared | 2025-12-08 | All 8 features at 100% |
+| 6. Integration Pass | 🔄 In Progress | - | Connect features + deploy backend |
 | 7. Polish & Harden | ⬜ Pending | - | |
 | 8. Launch Prep | ⬜ Pending | - | |
 | 9. Ship | ⬜ Pending | - | |
@@ -128,13 +128,13 @@
 | Feature | Status | Complete E2E | Notes |
 |---------|--------|--------------|-------|
 | AI Chat Interface | ✅ 100% | ✅ Yes | All 19 tools tested, mock fallbacks, tool-specific loading indicators |
-| Market Data Display | ✅ 95% | ✅ Yes | Connection status indicator, crypto symbols fixed, all timeframes |
+| Market Data Display | ✅ 100% | ✅ Yes | LRU cache (10 symbols), TypeScript types, connection status indicator |
 | Portfolio Tracker | ✅ 100% | ✅ Yes | Position history with date filtering, aggregate stats, tabs UI |
-| Options Screener | ✅ 95% | ✅ Yes | Auto-calculate with debounce, toast notifications, payoff diagram |
+| Options Screener | ✅ 100% | ✅ Yes | Auto-calculate with debounce, toast notifications, payoff diagram |
 | Emotional Firewall | ✅ 100% | ✅ Yes | Banner + Modal + API + Chat integration complete |
 | **Trade Journal** | ✅ 100% | ✅ Yes | Screenshot upload, thesis linking dropdown, badge display |
 | **Thesis Engine** | ✅ 100% | ✅ Yes | Validation scoring, AI conversation linking, linked trades stats |
-| **AI Insights** | ✅ 95% | ✅ Yes | Pattern analysis (day/time/streaks/hold), personalized recommendations |
+| **AI Insights** | ✅ 100% | ✅ Yes | Privacy policy link, toast notifications, loading skeleton, analyze spinner |
 
 ### Stage 5 Task Breakdown
 
@@ -144,11 +144,12 @@
 - [x] Test all 19 tools end-to-end with mock fallbacks (2025-12-08)
 - [x] Add tool-specific loading indicators with icons (2025-12-08)
 
-#### 5.2 Market Data Display (80% → 100%)
+#### 5.2 Market Data Display (80% → 100%) ✅ COMPLETE
 - [x] Add connection status indicator (green/yellow dot) (2025-12-08)
 - [x] Fix crypto symbol handling (BTC/USD encoding) (2025-12-08)
 - [x] Test all timeframes (1h, 4h, 1d, 1w, 1mo) (2025-12-08)
-- [ ] Commit pending format fixes
+- [x] Remove `any` types, add ApiBarData and ApiQuoteData types (2025-12-08)
+- [x] Verify LRU cache eviction works (MAX_CACHED_SYMBOLS = 10) (2025-12-08)
 
 #### 5.3 Portfolio Tracker (20% → 100%) ✅ COMPLETE
 - [x] Create trades-store.ts with Zustand persistence (2025-12-08)
@@ -208,7 +209,7 @@
 - [x] Apply `004_create_journal_entries.sql` migration
 - [x] Verify all 9 tables exist with RLS policies (verified 2025-12-07)
 
-**Cleared:** [ ] Yes / Date: ___
+**Cleared:** [x] Yes / Date: 2025-12-08
 
 ---
 
@@ -421,3 +422,4 @@
 | 2025-12-07 | Added thesis + journal_entries tables | New features (Trade Journal, Thesis Engine) require database support | 5 |
 | 2025-12-07 | Consolidated duplicate migration files | Removed 3 duplicate migration files, created clean 003/004 migrations | 5 |
 | 2025-12-08 | Parallel agent feature completion sprint | 5 agents ran concurrently to push all Stage 5 features to 95%+ | 5 |
+| 2025-12-08 | Stage 5 cleared - all features at 100% | Final 5% gaps fixed (types, retry buttons, toasts, loading states) | 5 |

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { toast } from 'sonner';
 import {
   ScreenerFilters,
   OptionContract,
@@ -186,6 +187,12 @@ export const useOptionsScreenerStore = create<OptionsScreenerState>()(
             hasRun: true,
             isLoading: false,
             error: null,
+          });
+
+          // Show success toast
+          toast.success('Screening Complete', {
+            description: `Found ${data.total_count} contract${data.total_count !== 1 ? 's' : ''} matching your criteria`,
+            duration: 3000,
           });
         } catch (error) {
           console.error('Options screen failed:', error);

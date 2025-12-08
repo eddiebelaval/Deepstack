@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { usePatternStore, type PatternInsight, type UserPattern } from '@/lib/stores/pattern-store';
 import { useJournalStore } from '@/lib/stores/journal-store';
 import { useInsightsData, type PersonalizedRecommendation } from '@/hooks/useInsightsData';
+import { toast } from 'sonner';
 import {
     Brain,
     TrendingUp,
@@ -30,8 +31,10 @@ import {
     CheckCircle2,
     XCircle,
     Zap,
+    Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 const PATTERN_ICONS = {
     emotion: Heart,
@@ -75,10 +78,25 @@ export function InsightsPanel() {
 
     const { entries } = useJournalStore();
     const activeInsights = getActiveInsights();
+    const [isAnalyzing, setIsAnalyzing] = React.useState(false);
 
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
         if (privacyConsent) {
-            analyzeJournalPatterns();
+            setIsAnalyzing(true);
+            try {
+                await analyzeJournalPatterns();
+            } finally {
+                setIsAnalyzing(false);
+            }
+        }
+    };
+
+    const handlePrivacyConsentChange = (checked: boolean) => {
+        setPrivacyConsent(checked);
+        if (checked) {
+            toast.success('Privacy preferences saved');
+        } else {
+            toast.info('AI analysis disabled');
         }
     };
 
@@ -438,12 +456,16 @@ export function InsightsPanel() {
                             <div>
                                 <h3 className="font-medium">AI Pattern Learning</h3>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Enable AI analysis of your journal to discover deeper patterns. Your data stays private and is <strong>never shared or sold</strong>.
+                                    Enable AI analysis of your journal to discover deeper patterns. Your data stays private and is <strong>never shared or sold</strong>. See our{' '}
+                                    <Link href="/privacy" className="text-primary hover:underline">
+                                        Privacy Policy
+                                    </Link>
+                                    .
                                 </p>
                             </div>
                             <Switch
                                 checked={privacyConsent}
-                                onCheckedChange={setPrivacyConsent}
+                                onCheckedChange={handlePrivacyConsentChange}
                             />
                         </div>
                     </div>
@@ -467,12 +489,21 @@ export function InsightsPanel() {
                             }
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={entries.length < 3}>
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                {aiPatterns.length > 0 ? 'Re-analyze' : 'Analyze'}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleAnalyze}
+                                disabled={entries.length < 3 || isAnalyzing}
+                            >
+                                {isAnalyzing ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                )}
+                                {isAnalyzing ? 'Analyzing...' : (aiPatterns.length > 0 ? 'Re-analyze' : 'Analyze My Journal')}
                             </Button>
                             {aiPatterns.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={clearPatterns} className="text-destructive">
+                                <Button variant="ghost" size="sm" onClick={clearPatterns} className="text-destructive" disabled={isAnalyzing}>
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Clear
                                 </Button>
@@ -494,8 +525,31 @@ export function InsightsPanel() {
                         </Card>
                     )}
 
+                    {/* Loading Skeleton */}
+                    {isAnalyzing && (
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Analyzing patterns...
+                            </h3>
+                            <div className="grid gap-3">
+                                {[1, 2, 3].map((i) => (
+                                    <Card key={i} className="p-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse shrink-0" />
+                                            <div className="flex-1 space-y-2">
+                                                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-3/4" />
+                                                <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full" />
+                                            </div>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Active Insights */}
-                    {activeInsights.length > 0 && (
+                    {!isAnalyzing && activeInsights.length > 0 && (
                         <div className="space-y-3">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                                 AI-Detected Patterns
@@ -511,7 +565,7 @@ export function InsightsPanel() {
                     )}
 
                     {/* All Patterns */}
-                    {aiPatterns.length > 0 && (
+                    {!isAnalyzing && aiPatterns.length > 0 && (
                         <div className="space-y-3">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                                 Discovered Patterns
@@ -524,10 +578,10 @@ export function InsightsPanel() {
                         </div>
                     )}
 
-                    {aiPatterns.length === 0 && entries.length >= 3 && (
+                    {!isAnalyzing && aiPatterns.length === 0 && entries.length >= 3 && (
                         <Card className="p-8 text-center text-muted-foreground">
                             <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Click &quot;Analyze&quot; to discover AI-powered patterns in your trading</p>
+                            <p>Click &quot;Analyze My Journal&quot; to discover AI-powered patterns in your trading</p>
                         </Card>
                     )}
                 </>
