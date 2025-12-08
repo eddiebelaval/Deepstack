@@ -19,6 +19,28 @@ from ..config import Config
 logger = logging.getLogger(__name__)
 
 
+def _normalize_symbol_for_yfinance(symbol: str) -> str:
+    """
+    Normalize symbol format for Yahoo Finance.
+
+    Yahoo Finance uses different formats for certain assets:
+    - Crypto: BTC-USD (not BTC/USD)
+    - Forex: EURUSD=X
+    - Indices: ^GSPC (S&P 500)
+
+    Args:
+        symbol: Input symbol (may use BTC/USD format)
+
+    Returns:
+        Symbol in Yahoo Finance compatible format
+    """
+    # Handle crypto symbols: BTC/USD -> BTC-USD
+    if "/" in symbol:
+        # Replace slash with hyphen for crypto pairs
+        return symbol.replace("/", "-")
+    return symbol
+
+
 @dataclass
 class Quote:
     """Real-time quote data."""
@@ -172,7 +194,9 @@ class MarketDataManager:
     async def _get_yfinance_quote(self, symbol: str) -> Optional[Quote]:
         """Get quote from Yahoo Finance."""
         try:
-            ticker = yf.Ticker(symbol)
+            # Normalize symbol for yfinance (BTC/USD -> BTC-USD)
+            yf_symbol = _normalize_symbol_for_yfinance(symbol)
+            ticker = yf.Ticker(yf_symbol)
             info = ticker.info
 
             if not info:
@@ -236,7 +260,9 @@ class MarketDataManager:
     ) -> List[MarketData]:
         """Get historical data from Yahoo Finance."""
         try:
-            ticker = yf.Ticker(symbol)
+            # Normalize symbol for yfinance (BTC/USD -> BTC-USD)
+            yf_symbol = _normalize_symbol_for_yfinance(symbol)
+            ticker = yf.Ticker(yf_symbol)
             hist = ticker.history(start=start_date, end=end_date, interval=interval)
 
             if hist.empty:
@@ -269,7 +295,9 @@ class MarketDataManager:
     ) -> List[MarketData]:
         """Get cached historical data."""
         try:
-            cache_key = f"{symbol}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}_{interval}"
+            start_fmt = start_date.strftime("%Y%m%d")
+            end_fmt = end_date.strftime("%Y%m%d")
+            cache_key = f"{symbol}_{start_fmt}_{end_fmt}_{interval}"
             cache_file = self.cache_dir / f"historical_{cache_key}.json"
 
             if not cache_file.exists():
@@ -335,7 +363,9 @@ class MarketDataManager:
             start_date = min(d.timestamp for d in data)
             end_date = max(d.timestamp for d in data)
 
-            cache_key = f"{symbol}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}_{interval}"
+            start_fmt = start_date.strftime("%Y%m%d")
+            end_fmt = end_date.strftime("%Y%m%d")
+            cache_key = f"{symbol}_{start_fmt}_{end_fmt}_{interval}"
             cache_file = self.cache_dir / f"historical_{cache_key}.json"
 
             serialized_data = []
