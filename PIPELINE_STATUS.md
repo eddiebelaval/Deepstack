@@ -5,9 +5,9 @@
 
 ---
 
-## Current Stage: 6 - Integration Pass
+## Current Stage: 7 - Polish & Harden
 
-**Next Checkpoint Question:** "Do all the pieces talk to each other?"
+**Next Checkpoint Question:** "What breaks if I do something stupid?"
 
 ---
 
@@ -20,7 +20,7 @@
 | 3. Architecture Sketch | ✅ Cleared | 2025-12-05 | Next.js + Python backend + Supabase |
 | 4. Foundation Pour | ✅ Cleared | 2025-12-05 | Deployed to Vercel, DB connected |
 | 5. Feature Blocks | ✅ Cleared | 2025-12-08 | All 8 features at 100% |
-| 6. Integration Pass | 🔄 In Progress | - | Connect features + deploy backend |
+| 6. Integration Pass | ✅ Cleared | 2025-12-08 | Backend on Railway, all integrations complete |
 | 7. Polish & Harden | ⬜ Pending | - | |
 | 8. Launch Prep | ⬜ Pending | - | |
 | 9. Ship | ⬜ Pending | - | |
@@ -216,17 +216,25 @@
 ## Stage 6: Integration Pass
 
 - [x] State stores connected to Supabase (5/5 sync hooks complete)
-- [ ] Data flows correctly between components
-- [ ] Backend deployed to production
-- [ ] No orphaned functionality
+- [x] Data flows correctly between components
+- [x] Backend deployed to production (Railway)
+- [x] No orphaned functionality
 
 ### Stage 6 Task Breakdown
 
-#### 6.1 Backend Deployment
-- [ ] Deploy Python FastAPI backend to Railway/Render/Fly.io
-- [ ] Configure production environment variables
-- [ ] Set up health checks and monitoring
-- [ ] Connect frontend to deployed backend URL
+#### 6.1 Backend Deployment ✅ COMPLETE
+- [x] Deploy Python FastAPI backend to Railway (2025-12-08)
+- [x] Configure production environment variables (Alpaca API keys)
+- [x] Set up health checks and monitoring (/health endpoint)
+- [x] Connect frontend to deployed backend URL
+
+**Backend URL:** https://deepstack-api-production.up.railway.app
+**Endpoints verified:**
+- `/health` ✅ Working
+- `/api/market/bars` ✅ Real Alpaca historical data
+- `/quote/{symbol}` ⚠️ Requires Alpaca subscription (falls back to mock)
+- `/api/news` ✅ Working
+- `/api/options/*` ✅ Working
 
 #### 6.2 State Store Integration ✅ COMPLETE
 - [x] Audit all 13 Zustand stores for data source connections (2025-12-08)
@@ -257,10 +265,13 @@
 - [x] Connection status indicators in panels (Cloud/CloudOff icons)
 
 **Integration notes:**
-> Only remaining gap: Python backend deployment to Railway (pending login)
-> All frontend integration is complete: sync hooks, real-time subscriptions, cross-feature data flows, standardized API responses
+> ✅ All Stage 6 tasks complete!
+> - Backend deployed to Railway (https://deepstack-api-production.up.railway.app)
+> - Frontend connected to backend via NEXT_PUBLIC_API_URL
+> - All sync hooks, real-time subscriptions, and cross-feature flows working
+> - API response format standardized across all routes
 
-**Cleared:** [ ] Yes / Date: ___ (blocked on Railway deployment)
+**Cleared:** [x] Yes / Date: 2025-12-08
 
 ---
 
