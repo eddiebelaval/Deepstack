@@ -26,11 +26,14 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAlertsStore, AlertCondition, PriceAlert } from '@/lib/stores/alerts-store';
+import { useAlertsSync } from '@/hooks/useAlertsSync';
+import { AlertCondition, PriceAlert } from '@/lib/stores/alerts-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
+import { Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function AlertsPanel() {
-  const { alerts, addAlert, removeAlert, clearTriggered } = useAlertsStore();
+  const { alerts, addAlert, removeAlert, clearTriggered, isLoading, isOnline, error } = useAlertsSync();
   const { activeSymbol } = useTradingStore();
 
   const [newSymbol, setNewSymbol] = useState(activeSymbol || '');
@@ -79,6 +82,15 @@ export function AlertsPanel() {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col p-4 gap-4">
       {/* Header */}
@@ -86,11 +98,34 @@ export function AlertsPanel() {
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">Price Alerts</h2>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  {isOnline ? (
+                    <Cloud className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <CloudOff className="h-3 w-3 text-yellow-500" />
+                  )}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isOnline ? 'Synced with cloud' : 'Using local storage'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <Badge variant="outline" className="text-xs">
           {activeAlerts.length} active
         </Badge>
       </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="text-xs text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded">
+          {error}
+        </div>
+      )}
 
       {/* Create Alert Form */}
       <Card className="flex-shrink-0">

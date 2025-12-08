@@ -40,14 +40,15 @@ USER deepstack
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV API_HOST=0.0.0.0
-ENV API_PORT=8000
+# PORT is provided by Railway at runtime, default to 8000 for local dev
+ENV PORT=8000
 
-# Expose port
+# Expose port (Railway will override with its own port)
 EXPOSE 8000
 
-# Health check
+# Health check - uses $PORT for flexibility
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/health')" || exit 1
 
-# Run the server
-CMD ["uvicorn", "core.api_server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the server - use shell form so $PORT gets expanded
+CMD uvicorn core.api_server:app --host 0.0.0.0 --port ${PORT}

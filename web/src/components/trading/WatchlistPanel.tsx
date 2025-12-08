@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useWatchlistStore } from "@/lib/stores/watchlist-store";
+import { useWatchlistSync } from "@/hooks/useWatchlistSync";
 import { useTradingStore } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,12 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronDown,
+  Loader2,
+  Cloud,
+  CloudOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function WatchlistPanel() {
   const [isAdding, setIsAdding] = useState(false);
@@ -36,12 +40,23 @@ export function WatchlistPanel() {
     addSymbol,
     removeSymbol,
     getActiveWatchlist,
-  } = useWatchlistStore();
+    isLoading,
+    isOnline,
+  } = useWatchlistSync();
 
   const { activeSymbol, setActiveSymbol } = useTradingStore();
   const { quotes } = useMarketDataStore();
 
   const activeWatchlist = getActiveWatchlist();
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const handleAddSymbol = () => {
     if (newSymbol.trim() && activeWatchlistId) {
@@ -64,16 +79,17 @@ export function WatchlistPanel() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-3 border-b border-border">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-between font-semibold"
-            >
-              {activeWatchlist?.name || "Watchlist"}
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="flex-1 justify-between font-semibold"
+              >
+                {activeWatchlist?.name || "Watchlist"}
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
             {watchlists.map((wl) => (
               <DropdownMenuItem
@@ -96,6 +112,23 @@ export function WatchlistPanel() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  {isOnline ? (
+                    <Cloud className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <CloudOff className="h-3 w-3 text-yellow-500" />
+                  )}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isOnline ? 'Synced with cloud' : 'Using local storage'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       {/* Symbol List */}
