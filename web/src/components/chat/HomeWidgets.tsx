@@ -37,7 +37,7 @@ const INDEX_NAMES: Record<string, string> = {
 
 const MARKET_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM'];
 const CRYPTO_SYMBOLS = ['BTC/USD', 'ETH/USD', 'DOGE/USD', 'XRP/USD'];
-const TIMEFRAMES = ['1H', '4H', '1D', '1W', '1M'];
+const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1MO'];
 
 // Compact Legend Card Component (Webull-style)
 interface LegendCardProps {
@@ -152,12 +152,19 @@ export function HomeWidgets() {
             setIsLoading(true);
             try {
                 const promises = symbols.map(async (symbol, index) => {
-                    let apiTimeframe = '1d';
-                    if (timeframe === '1H') apiTimeframe = '1h';
-                    if (timeframe === '4H') apiTimeframe = '4h';
-                    if (timeframe === '1D') apiTimeframe = '1d';
-                    if (timeframe === '1W') apiTimeframe = '1w';
-                    if (timeframe === '1M') apiTimeframe = '1mo';
+                    // Map UI timeframe to API timeframe
+                    const timeframeMap: Record<string, string> = {
+                        '1m': '1min',
+                        '5m': '5min',
+                        '15m': '15min',
+                        '30m': '30min',
+                        '1H': '1h',
+                        '4H': '4h',
+                        '1D': '1d',
+                        '1W': '1w',
+                        '1MO': '1mo'
+                    };
+                    const apiTimeframe = timeframeMap[timeframe] || '1d';
 
                     const response = await fetch(`/api/market/bars?symbol=${encodeURIComponent(symbol)}&timeframe=${apiTimeframe}&limit=100`);
                     if (!response.ok) return null;
