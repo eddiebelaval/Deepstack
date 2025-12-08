@@ -24,6 +24,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write your no
             }),
         ],
         content,
+        immediatelyRender: false, // Prevent SSR hydration issues
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
         },
