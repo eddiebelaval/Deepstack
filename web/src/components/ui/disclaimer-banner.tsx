@@ -1,10 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import Link from 'next/link';
+
+const DISCLAIMER_DISMISSED_KEY = 'deepstack_disclaimer_dismissed';
 
 export function DisclaimerBanner() {
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        // Check if user has previously dismissed
+        const dismissed = localStorage.getItem(DISCLAIMER_DISMISSED_KEY);
+        if (!dismissed) {
+            setIsVisible(true);
+        }
+    }, []);
+
+    const handleDismiss = () => {
+        setIsVisible(false);
+        localStorage.setItem(DISCLAIMER_DISMISSED_KEY, 'true');
+    };
 
     if (!isVisible) return null;
 
@@ -19,10 +35,14 @@ export function DisclaimerBanner() {
                         DeepStack is a financial research and analysis platform providing data and AI-driven insights for informational purposes only.
                         <strong> This platform does NOT execute trades on your behalf.</strong> Trading in financial markets involves significant risk.
                         You should consult a qualified financial advisor before making any investment decisions.
+                        {' '}
+                        <Link href="/terms" className="underline hover:text-amber-100">Terms</Link>
+                        {' '}&middot;{' '}
+                        <Link href="/privacy" className="underline hover:text-amber-100">Privacy</Link>
                     </p>
                 </div>
                 <button
-                    onClick={() => setIsVisible(false)}
+                    onClick={handleDismiss}
                     className="text-amber-300 hover:text-amber-100 transition-colors p-1"
                     aria-label="Dismiss disclaimer"
                 >
