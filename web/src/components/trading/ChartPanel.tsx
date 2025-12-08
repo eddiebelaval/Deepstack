@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useTradingStore, type Timeframe, type ChartType, type IndicatorType } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TradingChart } from "@/components/charts/TradingChart";
 import { IndicatorPanel } from "@/components/charts/IndicatorPanel";
+import { ChartContextMenu } from "@/components/charts/ChartContextMenu";
 
 const TIMEFRAMES: { value: Timeframe; label: string }[] = [
   { value: "1m", label: "1m" },
@@ -72,6 +73,10 @@ export function ChartPanel() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Crosshair price tracking for context menu alerts
+  const crosshairPriceRef = useRef<number | null>(null);
+  const getPriceAtCursor = useCallback(() => crosshairPriceRef.current, []);
 
   // Focus input when search opens
   useEffect(() => {
@@ -305,7 +310,11 @@ export function ChartPanel() {
               </div>
             </div>
           ) : (
-            <TradingChart className="h-full" />
+            <ChartContextMenu onPriceAtCursor={getPriceAtCursor}>
+              <div className="h-full">
+                <TradingChart className="h-full" crosshairPriceRef={crosshairPriceRef} />
+              </div>
+            </ChartContextMenu>
           )}
         </div>
 

@@ -35,11 +35,18 @@ const CHART_THEME = {
 
 type TradingChartProps = {
   className?: string;
+  /** Callback fired when crosshair moves, providing the price at cursor */
+  onCrosshairPriceChange?: (price: number | null) => void;
+  /** Ref to get the current crosshair price (for context menu) */
+  crosshairPriceRef?: React.MutableRefObject<number | null>;
 };
 
-export function TradingChart({ className }: TradingChartProps) {
+export function TradingChart({ className, onCrosshairPriceChange, crosshairPriceRef: externalPriceRef }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const internalPriceRef = useRef<number | null>(null);
+  // Use external ref if provided, otherwise use internal
+  const crosshairPriceRef = externalPriceRef || internalPriceRef;
   const mainSeriesRef = useRef<ISeriesApi<"Candlestick" | "Line" | "Area"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const indicatorSeriesRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
@@ -145,6 +152,24 @@ export function TradingChart({ className }: TradingChartProps) {
 
     resizeObserverRef.current.observe(chartContainerRef.current);
 
+    // Subscribe to crosshair movement to track price at cursor
+    chart.subscribeCrosshairMove((param) => {
+      if (!param || !param.point || !mainSeriesRef.current) {
+        crosshairPriceRef.current = null;
+        onCrosshairPriceChange?.(null);
+        return;
+      }
+
+      // Get price from the series data at the crosshair position
+      const seriesData = param.seriesData.get(mainSeriesRef.current);
+      if (seriesData) {
+        // For candlestick, use close price; for line/area, use value
+        const price = 'close' in seriesData ? seriesData.close : ('value' in seriesData ? seriesData.value : null);
+        crosshairPriceRef.current = price as number | null;
+        onCrosshairPriceChange?.(price as number | null);
+      }
+    });
+
     // Cleanup
     return () => {
       resizeObserverRef.current?.disconnect();
@@ -153,8 +178,9 @@ export function TradingChart({ className }: TradingChartProps) {
       mainSeriesRef.current = null;
       volumeSeriesRef.current = null;
       indicatorSeriesRef.current.clear();
+      crosshairPriceRef.current = null;
     };
-  }, []); // Only run once on mount
+  }, [onCrosshairPriceChange]); // Include callback in deps
 
   // Handle chart type changes
   useEffect(() => {
