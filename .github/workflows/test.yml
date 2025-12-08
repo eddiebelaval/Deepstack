@@ -39,7 +39,7 @@ jobs:
           --junit-xml=test-results/unit-tests.xml
 
     - name: Upload unit test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: unit-test-results
@@ -82,7 +82,7 @@ jobs:
           --junit-xml=test-results/integration-tests.xml
 
     - name: Upload integration test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-test-results
@@ -125,7 +125,7 @@ jobs:
           --junit-xml=test-results/e2e-tests.xml
 
     - name: Upload E2E test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: e2e-test-results
@@ -169,13 +169,13 @@ jobs:
           --junit-xml=test-results/all-tests.xml
 
     - name: Upload HTML coverage report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-html-report
         path: htmlcov/
 
     - name: Upload combined test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: all-test-results
@@ -203,7 +203,7 @@ jobs:
 
     steps:
     - name: Download all test results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: test-results
 
@@ -284,7 +284,7 @@ jobs:
         pytest tests/ -m benchmark --benchmark-only || echo "No benchmark tests found"
 
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: benchmark-results
@@ -317,7 +317,7 @@ jobs:
         bandit -r core/ -f json -o bandit-report.json || echo "Security issues found"
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports
