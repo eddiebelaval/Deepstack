@@ -30,20 +30,8 @@ export function UserMenu({
     profileOpen,
     settingsOpen
 }: UserMenuProps) {
-    const { user, loading, signOut } = useAuth()
-
-    if (loading) {
-        return (
-            <div className={cn(
-                "flex items-center justify-center h-11",
-                expanded ? "px-3" : "px-0"
-            )}>
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-        )
-    }
-
     const router = useRouter()
+    const { user, loading, signOut } = useAuth()
 
     if (loading) {
         return (

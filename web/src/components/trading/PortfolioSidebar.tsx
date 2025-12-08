@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PositionCard } from './PositionCard';
 import { ManualPositionDialog } from './ManualPositionDialog';
-import { Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, RefreshCw, Cloud, CloudOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function PortfolioSidebar() {
@@ -55,9 +55,13 @@ export function PortfolioSidebar() {
         <div className="flex items-center gap-2">
           <h2 className="font-semibold">Portfolio</h2>
           {isConnected ? (
-            <Wifi className="h-3 w-3 text-profit" />
+            <span title="Synced with cloud">
+              <Cloud className="h-3 w-3 text-green-500" />
+            </span>
           ) : (
-            <WifiOff className="h-3 w-3 text-muted-foreground" />
+            <span title="Using local storage">
+              <CloudOff className="h-3 w-3 text-yellow-500" />
+            </span>
           )}
         </div>
         <Button

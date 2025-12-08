@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useThesisStore, type ThesisEntry } from '@/lib/stores/thesis-store';
+import { type ThesisEntry } from '@/lib/stores/thesis-store';
+import { useThesisSync } from '@/hooks/useThesisSync';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThesisCard } from './ThesisCard';
 import { ThesisDialog } from './ThesisDialog';
 import { ThesisDashboard } from './ThesisDashboard';
-import { Plus, Lightbulb, Target, CheckCircle, XCircle, Archive, ArrowLeft } from 'lucide-react';
+import { Plus, Lightbulb, Target, CheckCircle, XCircle, ArrowLeft, Loader2, Cloud, CloudOff } from 'lucide-react';
 
 export function ThesisList() {
-    const { theses, deleteThesis } = useThesisStore();
+    const { theses, addThesis, updateThesis, deleteThesis, isLoading, isOnline, error } = useThesisSync();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | undefined>(undefined);
     const [selectedThesis, setSelectedThesis] = useState<ThesisEntry | null>(null);
@@ -71,14 +72,36 @@ export function ThesisList() {
                             <Lightbulb className="h-6 w-6 text-amber-500" />
                             Thesis Engine
                         </h1>
-                        <p className="text-muted-foreground text-sm">Stress-test your trading ideas before risking capital</p>
+                        <p className="text-muted-foreground text-sm flex items-center gap-2">
+                            Stress-test your trading ideas before risking capital
+                            {isOnline ? (
+                                <span title="Synced with cloud">
+                                    <Cloud className="h-4 w-4 text-green-500" />
+                                </span>
+                            ) : (
+                                <span title="Using local storage">
+                                    <CloudOff className="h-4 w-4 text-yellow-500" />
+                                </span>
+                            )}
+                        </p>
                     </div>
                 </div>
-                <Button onClick={handleNew}>
-                    <Plus className="h-4 w-4 mr-2" />
+                <Button onClick={handleNew} disabled={isLoading}>
+                    {isLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                    )}
                     New Thesis
                 </Button>
             </div>
+
+            {/* Error banner */}
+            {error && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-yellow-500 text-sm">
+                    {error}
+                </div>
+            )}
 
             {/* Stats Row */}
             <div className="grid grid-cols-4 gap-4">
@@ -154,6 +177,9 @@ export function ThesisList() {
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
                 editingId={editingId}
+                existingThesis={editingId ? theses.find(t => t.id === editingId) : undefined}
+                onAddThesis={addThesis}
+                onUpdateThesis={updateThesis}
             />
         </div>
     );

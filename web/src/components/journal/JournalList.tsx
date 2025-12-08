@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useJournalStore, type JournalEntry } from '@/lib/stores/journal-store';
+import { type JournalEntry } from '@/lib/stores/journal-store';
+import { useJournalSync } from '@/hooks/useJournalSync';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { JournalEntryDialog } from './JournalEntryDialog';
-import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const EMOTION_EMOJIS: Record<string, string> = {
@@ -23,7 +24,7 @@ const EMOTION_EMOJIS: Record<string, string> = {
 };
 
 export function JournalList() {
-    const { entries, deleteEntry } = useJournalStore();
+    const { entries, addEntry, updateEntry, deleteEntry, isLoading, isOnline, error } = useJournalSync();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | undefined>(undefined);
 
@@ -55,14 +56,36 @@ export function JournalList() {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold">Trade Journal</h1>
-                        <p className="text-muted-foreground text-sm">Track your trades and learn from your patterns</p>
+                        <p className="text-muted-foreground text-sm flex items-center gap-2">
+                            Track your trades and learn from your patterns
+                            {isOnline ? (
+                                <span title="Synced with cloud">
+                                    <Cloud className="h-4 w-4 text-green-500" />
+                                </span>
+                            ) : (
+                                <span title="Using local storage">
+                                    <CloudOff className="h-4 w-4 text-yellow-500" />
+                                </span>
+                            )}
+                        </p>
                     </div>
                 </div>
-                <Button onClick={handleNew}>
-                    <Plus className="h-4 w-4 mr-2" />
+                <Button onClick={handleNew} disabled={isLoading}>
+                    {isLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                    )}
                     New Entry
                 </Button>
             </div>
+
+            {/* Error banner */}
+            {error && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-yellow-500 text-sm">
+                    {error}
+                </div>
+            )}
 
             {/* Entry List */}
             {entries.length === 0 ? (
@@ -94,6 +117,9 @@ export function JournalList() {
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
                 editingId={editingId}
+                existingEntry={editingId ? entries.find(e => e.id === editingId) : undefined}
+                onAddEntry={addEntry}
+                onUpdateEntry={updateEntry}
             />
         </div>
     );

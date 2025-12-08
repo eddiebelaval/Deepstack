@@ -2,9 +2,13 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { create } from 'zustand';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
+
+const supabase = createClient();
+
+const isSupabaseConfigured = () => !!supabase;
 
 interface SessionState {
   session: Session | null;

@@ -1,7 +1,7 @@
 # Pipeline Status: DeepStack
 
 > Created: 2025-12-05
-> Last Updated: 2025-12-05
+> Last Updated: 2025-12-07
 
 ---
 
@@ -123,39 +123,47 @@
 
 ## Stage 5: Feature Blocks
 
+> **Database Ready:** All 9 tables created with RLS policies (2025-12-07). Proceeding to integration.
+
 | Feature | Status | Complete E2E | Notes |
 |---------|--------|--------------|-------|
-| AI Chat Interface | 🔄 85% | ⚠️ Partial | Streaming works, 20+ tools, needs analyze_stock endpoint |
-| Market Data Display | 🔄 80% | ⚠️ Partial | Quotes/bars working, format issues fixed, mock fallback |
-| Portfolio Tracker | ⬜ 20% | ❌ No | DB schema ready, UI exists, not connected |
-| Options Screener | 🔄 70% | ⚠️ Partial | UI + API routes built, needs full backend integration |
+| AI Chat Interface | 🔄 95% | ⚠️ Partial | /api/analyze endpoint added, mock fallback works |
+| Market Data Display | ✅ 95% | ✅ Yes | Connection status indicator, crypto symbols fixed, all timeframes |
+| Portfolio Tracker | 🔄 75% | ⚠️ Partial | Supabase integration done, cloud sync indicator added |
+| Options Screener | 🔄 90% | ⚠️ Partial | Backend integration complete, realistic Greeks calculation |
 | Emotional Firewall | ✅ 100% | ✅ Yes | Banner + Modal + API + Chat integration complete |
+| **Trade Journal** | 🔄 80% | ⚠️ Partial | UI wired to Supabase, needs thesis linking + screenshots |
+| **Thesis Engine** | 🔄 75% | ⚠️ Partial | UI wired to Supabase, needs AI linking + validation scoring |
+| **AI Insights** | 🔄 70% | ⚠️ Partial | Real data integration done, shows journal/thesis stats |
 
 ### Stage 5 Task Breakdown
 
 #### 5.1 AI Chat Interface (85% → 100%)
-- [ ] Implement `/api/analyze` endpoint for analyze_stock tool
-- [ ] Add error handling for tool failures
+- [x] Implement `/api/analyze` endpoint for analyze_stock tool (2025-12-08)
+- [x] Add error handling with mock fallback (2025-12-08)
 - [ ] Test all 20+ tools end-to-end
 - [ ] Add loading indicators during tool execution
 
 #### 5.2 Market Data Display (80% → 100%)
-- [ ] Commit pending format fixes (HomeWidgets, bars route)
-- [ ] Test all timeframes (1h, 4h, 1d, 1w, 1mo)
-- [ ] Verify crypto symbol handling (BTC/USD)
-- [ ] Add connection status indicator
+- [x] Add connection status indicator (green/yellow dot) (2025-12-08)
+- [x] Fix crypto symbol handling (BTC/USD encoding) (2025-12-08)
+- [x] Test all timeframes (1h, 4h, 1d, 1w, 1mo) (2025-12-08)
+- [ ] Commit pending format fixes
 
 #### 5.3 Portfolio Tracker (20% → 100%)
-- [ ] Connect PortfolioSidebar to trade_journal table
-- [ ] Implement position fetching from Supabase
-- [ ] Add paper trade recording
+- [x] Create trades-store.ts with Zustand persistence (2025-12-08)
+- [x] Create supabase/trades.ts CRUD layer (2025-12-08)
+- [x] Create useTradesSync hook (2025-12-08)
+- [x] Connect PortfolioSidebar with cloud status indicator (2025-12-08)
+- [x] Update ManualPositionDialog to use sync hook (2025-12-08)
 - [ ] Calculate real-time P&L from live prices
 - [ ] Show position history
 
 #### 5.4 Options Module (70% → 100%)
-- [ ] Wire OptionsScreenerPanel to /api/options/screen
+- [x] Wire OptionsScreenerPanel to /api/options/screen (2025-12-08)
+- [x] Implement Black-Scholes Greeks calculation (2025-12-08)
+- [x] Add loading state and error handling (2025-12-08)
 - [ ] Connect strategy builder to P&L calculator
-- [ ] Add Greeks display to option chains
 - [ ] Test multi-leg strategy creation
 
 #### 5.5 Emotional Firewall (90% → 100%) ✅ COMPLETE
@@ -164,6 +172,40 @@
 - [x] Add warning modals before risky trades
 - [x] Show cooldown timers when blocked
 - [x] Display win/loss streak notifications
+
+#### 5.6 Trade Journal (40% → 100%)
+- [x] TipTap rich text editor component
+- [x] Emotion tracking UI (10 emotion types)
+- [x] **Apply journal_entries migration to Supabase** (done 2025-12-07)
+- [x] Connect journal-store to Supabase table (created `supabase/journal.ts`)
+- [x] **Wire JournalList + JournalEntryDialog to useJournalSync hook** (done 2025-12-08)
+- [ ] Link journal entries to thesis records
+- [ ] Add screenshot upload capability
+
+#### 5.7 Thesis Engine (35% → 100%)
+- [x] Thesis Dashboard UI component
+- [x] Status lifecycle (drafting → active → validated/invalidated → archived)
+- [x] **Apply thesis migration to Supabase** (done 2025-12-07)
+- [x] Connect thesis-store to Supabase table (created `supabase/thesis.ts`)
+- [x] **Wire ThesisList + ThesisDialog to useThesisSync hook** (done 2025-12-08)
+- [ ] Link thesis to AI conversations
+- [ ] Add validation scoring
+
+#### 5.8 AI Insights (25% → 100%)
+- [x] Insights page shell
+- [x] Create useInsightsData hook (2025-12-08)
+- [x] Calculate win rate, top symbols, emotional edge from journal (2025-12-08)
+- [x] Show active thesis count (2025-12-08)
+- [ ] Add deeper AI pattern analysis
+- [ ] Generate personalized recommendations
+
+#### 5.9 Database Setup (CRITICAL) ✅ COMPLETE
+- [x] Fix Supabase MCP configuration (was pointing to wrong project)
+- [x] Apply `001_create_chat_tables.sql` migration
+- [x] Apply `002_create_trading_tables.sql` migration
+- [x] Apply `003_create_thesis_table.sql` migration
+- [x] Apply `004_create_journal_entries.sql` migration
+- [x] Verify all 9 tables exist with RLS policies (verified 2025-12-07)
 
 **Cleared:** [ ] Yes / Date: ___
 
@@ -189,6 +231,8 @@
 - [ ] Connect `trading-store` to Supabase trade_journal
 - [ ] Connect `watchlist-store` to Supabase watchlists table
 - [ ] Connect `alerts-store` to Supabase price_alerts table
+- [ ] Connect `journal-store` to Supabase journal_entries table
+- [ ] Connect `thesis-store` to Supabase thesis table
 - [ ] Sync `market-data-store` with real-time price feeds
 
 #### 6.3 Cross-Feature Data Flows
@@ -372,3 +416,6 @@
 | Date | Decision | Reasoning | Stage |
 |------|----------|-----------|-------|
 | 2025-12-05 | Retroactive pipeline assessment | Project already in development, assessed current state | 5 |
+| 2025-12-07 | Fixed Supabase MCP configuration | MCP was pointing to ARC Generator project; updated to DeepStack project ID | 5 |
+| 2025-12-07 | Added thesis + journal_entries tables | New features (Trade Journal, Thesis Engine) require database support | 5 |
+| 2025-12-07 | Consolidated duplicate migration files | Removed 3 duplicate migration files, created clean 003/004 migrations | 5 |

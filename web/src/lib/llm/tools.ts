@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { api } from '@/lib/api-extended';
-import { recordTrade } from '@/lib/supabase/portfolio';
+import { createTradeEntry } from '@/lib/supabase/trades';
 
 export const tradingTools = {
   get_quote: tool({
@@ -176,12 +176,12 @@ export const tradingTools = {
         }
 
         // Record trade in Supabase
-        const trade = await recordTrade({
+        const trade = await createTradeEntry({
           symbol: params.symbol.toUpperCase(),
           action: params.action,
           quantity: params.quantity,
           price: executionPrice,
-          order_type: params.order_type,
+          orderType: params.order_type,
           notes: params.notes || `Chat trade: ${params.action} ${params.quantity} shares`,
         });
 

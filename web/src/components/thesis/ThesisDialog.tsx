@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useThesisStore, type ThesisEntry } from '@/lib/stores/thesis-store';
-import { X, Plus } from 'lucide-react';
+import { type ThesisEntry } from '@/lib/stores/thesis-store';
+import { X, Plus, Loader2 } from 'lucide-react';
 
 const TIMEFRAMES = ['Intraday', '1-3 Days', '1 Week', '2-4 Weeks', '1-3 Months', '3+ Months'];
 
@@ -17,11 +17,20 @@ interface ThesisDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     editingId?: string;
+    existingThesis?: ThesisEntry;
+    onAddThesis: (thesis: Omit<ThesisEntry, 'id' | 'createdAt' | 'updatedAt'>) => Promise<ThesisEntry>;
+    onUpdateThesis: (id: string, updates: Partial<ThesisEntry>) => Promise<void>;
 }
 
-export function ThesisDialog({ open, onOpenChange, editingId }: ThesisDialogProps) {
-    const { addThesis, updateThesis, getThesisById } = useThesisStore();
-    const existingThesis = editingId ? getThesisById(editingId) : undefined;
+export function ThesisDialog({
+    open,
+    onOpenChange,
+    editingId,
+    existingThesis,
+    onAddThesis,
+    onUpdateThesis,
+}: ThesisDialogProps) {
+    const [isSaving, setIsSaving] = useState(false);
 
     const [title, setTitle] = useState(existingThesis?.title || '');
     const [symbol, setSymbol] = useState(existingThesis?.symbol || '');
@@ -44,35 +53,40 @@ export function ThesisDialog({ open, onOpenChange, editingId }: ThesisDialogProp
         setKeyConditions(keyConditions.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
-        const thesis = {
-            title: title || `${symbol} Thesis`,
-            symbol: symbol.toUpperCase(),
-            hypothesis,
-            timeframe,
-            entryTarget: entryTarget ? parseFloat(entryTarget) : undefined,
-            exitTarget: exitTarget ? parseFloat(exitTarget) : undefined,
-            stopLoss: stopLoss ? parseFloat(stopLoss) : undefined,
-            keyConditions,
-            status: 'drafting' as const,
-        };
+    const handleSubmit = async () => {
+        setIsSaving(true);
+        try {
+            const thesis = {
+                title: title || `${symbol} Thesis`,
+                symbol: symbol.toUpperCase(),
+                hypothesis,
+                timeframe,
+                entryTarget: entryTarget ? parseFloat(entryTarget) : undefined,
+                exitTarget: exitTarget ? parseFloat(exitTarget) : undefined,
+                stopLoss: stopLoss ? parseFloat(stopLoss) : undefined,
+                keyConditions,
+                status: 'drafting' as const,
+            };
 
-        if (editingId) {
-            updateThesis(editingId, thesis);
-        } else {
-            addThesis(thesis);
+            if (editingId) {
+                await onUpdateThesis(editingId, thesis);
+            } else {
+                await onAddThesis(thesis);
+            }
+
+            onOpenChange(false);
+            // Reset form
+            setTitle('');
+            setSymbol('');
+            setHypothesis('');
+            setTimeframe('');
+            setEntryTarget('');
+            setExitTarget('');
+            setStopLoss('');
+            setKeyConditions([]);
+        } finally {
+            setIsSaving(false);
         }
-
-        onOpenChange(false);
-        // Reset form
-        setTitle('');
-        setSymbol('');
-        setHypothesis('');
-        setTimeframe('');
-        setEntryTarget('');
-        setExitTarget('');
-        setStopLoss('');
-        setKeyConditions([]);
     };
 
     return (
@@ -204,11 +218,18 @@ export function ThesisDialog({ open, onOpenChange, editingId }: ThesisDialogProp
 
                     {/* Actions */}
                     <div className="flex justify-end gap-3 pt-4 border-t">
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>
+                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSubmit} disabled={!symbol || !hypothesis}>
-                            {editingId ? 'Update' : 'Create'} Thesis
+                        <Button onClick={handleSubmit} disabled={!symbol || !hypothesis || isSaving}>
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>{editingId ? 'Update' : 'Create'} Thesis</>
+                            )}
                         </Button>
                     </div>
                 </div>

@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RichTextEditor } from './RichTextEditor';
-import { useJournalStore, type EmotionType } from '@/lib/stores/journal-store';
+import { type JournalEntry, type EmotionType } from '@/lib/stores/journal-store';
+import { Loader2 } from 'lucide-react';
 
 const EMOTIONS: { value: EmotionType; label: string; emoji: string }[] = [
     { value: 'confident', label: 'Confident', emoji: '💪' },
@@ -26,11 +27,20 @@ interface JournalEntryDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     editingId?: string;
+    existingEntry?: JournalEntry;
+    onAddEntry: (entry: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>) => Promise<JournalEntry>;
+    onUpdateEntry: (id: string, updates: Partial<JournalEntry>) => Promise<void>;
 }
 
-export function JournalEntryDialog({ open, onOpenChange, editingId }: JournalEntryDialogProps) {
-    const { addEntry, updateEntry, getEntryById } = useJournalStore();
-    const existingEntry = editingId ? getEntryById(editingId) : undefined;
+export function JournalEntryDialog({
+    open,
+    onOpenChange,
+    editingId,
+    existingEntry,
+    onAddEntry,
+    onUpdateEntry,
+}: JournalEntryDialogProps) {
+    const [isSaving, setIsSaving] = useState(false);
 
     const [symbol, setSymbol] = useState(existingEntry?.symbol || '');
     const [tradeDate, setTradeDate] = useState(existingEntry?.tradeDate?.split('T')[0] || new Date().toISOString().split('T')[0]);
@@ -43,34 +53,39 @@ export function JournalEntryDialog({ open, onOpenChange, editingId }: JournalEnt
     const [notes, setNotes] = useState(existingEntry?.notes || '');
     const [lessonsLearned, setLessonsLearned] = useState(existingEntry?.lessonsLearned || '');
 
-    const handleSubmit = () => {
-        const entry = {
-            symbol: symbol.toUpperCase(),
-            tradeDate,
-            direction,
-            entryPrice: parseFloat(entryPrice) || 0,
-            exitPrice: exitPrice ? parseFloat(exitPrice) : undefined,
-            quantity: parseFloat(quantity) || 0,
-            emotionAtEntry,
-            emotionAtExit,
-            notes,
-            lessonsLearned,
-        };
+    const handleSubmit = async () => {
+        setIsSaving(true);
+        try {
+            const entry = {
+                symbol: symbol.toUpperCase(),
+                tradeDate,
+                direction,
+                entryPrice: parseFloat(entryPrice) || 0,
+                exitPrice: exitPrice ? parseFloat(exitPrice) : undefined,
+                quantity: parseFloat(quantity) || 0,
+                emotionAtEntry,
+                emotionAtExit,
+                notes,
+                lessonsLearned,
+            };
 
-        if (editingId) {
-            updateEntry(editingId, entry);
-        } else {
-            addEntry(entry);
+            if (editingId) {
+                await onUpdateEntry(editingId, entry);
+            } else {
+                await onAddEntry(entry);
+            }
+
+            onOpenChange(false);
+            // Reset form
+            setSymbol('');
+            setEntryPrice('');
+            setExitPrice('');
+            setQuantity('');
+            setNotes('');
+            setLessonsLearned('');
+        } finally {
+            setIsSaving(false);
         }
-
-        onOpenChange(false);
-        // Reset form
-        setSymbol('');
-        setEntryPrice('');
-        setExitPrice('');
-        setQuantity('');
-        setNotes('');
-        setLessonsLearned('');
     };
 
     return (
@@ -207,11 +222,18 @@ export function JournalEntryDialog({ open, onOpenChange, editingId }: JournalEnt
 
                     {/* Actions */}
                     <div className="flex justify-end gap-3 pt-4 border-t">
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>
+                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSubmit} disabled={!symbol || !entryPrice}>
-                            {editingId ? 'Update' : 'Save'} Entry
+                        <Button onClick={handleSubmit} disabled={!symbol || !entryPrice || isSaving}>
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>{editingId ? 'Update' : 'Save'} Entry</>
+                            )}
                         </Button>
                     </div>
                 </div>

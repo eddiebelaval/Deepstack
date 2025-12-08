@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
   try {
     // Call the Python backend to get historical bars
     const response = await fetch(
-      `${API_BASE_URL}/api/market/bars?symbol=${symbol}&timeframe=${timeframe}&limit=${limit}`,
+      `${API_BASE_URL}/api/market/bars?symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}&limit=${limit}`,
       {
         headers: {
           'Content-Type': 'application/json',

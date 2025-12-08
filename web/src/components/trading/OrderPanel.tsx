@@ -96,7 +96,7 @@ export function OrderPanel() {
       action: side === "buy" ? "BUY" : "SELL",
       quantity: qty,
       price: executionPrice,
-      order_type: orderType,
+      orderType: orderType,
       notes: `${orderType} order via Order Panel`,
     });
 
@@ -127,149 +127,149 @@ export function OrderPanel() {
       <div className="flex-1 relative overflow-hidden">
         <ScrollArea className="h-full" viewportRef={scrollRef} hideScrollbar>
           <form onSubmit={handleSubmit} className="p-3 space-y-4">
-          {/* Buy/Sell Tabs */}
-          <Tabs
-            value={side}
-            onValueChange={(v) => setSide(v as OrderSide)}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger
-                value="buy"
-                className={cn(
-                  "data-[state=active]:bg-profit data-[state=active]:text-white"
-                )}
-              >
-                Buy
-              </TabsTrigger>
-              <TabsTrigger
-                value="sell"
-                className={cn(
-                  "data-[state=active]:bg-loss data-[state=active]:text-white"
-                )}
-              >
-                Sell
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Order Type */}
-          <div className="space-y-2">
-            <Label>Order Type</Label>
-            <Select
-              value={orderType}
-              onValueChange={(v) => setOrderType(v as OrderType)}
+            {/* Buy/Sell Tabs */}
+            <Tabs
+              value={side}
+              onValueChange={(v) => setSide(v as OrderSide)}
+              className="w-full"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="MKT">Market</SelectItem>
-                <SelectItem value="LMT">Limit</SelectItem>
-                <SelectItem value="STP">Stop</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger
+                  value="buy"
+                  className={cn(
+                    "data-[state=active]:bg-profit data-[state=active]:text-white"
+                  )}
+                >
+                  Buy
+                </TabsTrigger>
+                <TabsTrigger
+                  value="sell"
+                  className={cn(
+                    "data-[state=active]:bg-loss data-[state=active]:text-white"
+                  )}
+                >
+                  Sell
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-          {/* Quantity */}
-          <div className="space-y-2">
-            <Label>Quantity</Label>
-            <Input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Enter quantity"
-            />
-            <Slider
-              value={[qty]}
-              onValueChange={([v]) => setQuantity(v.toString())}
-              max={100}
-              min={1}
-              step={1}
-              className="mt-2"
-            />
-          </div>
-
-          {/* Limit Price (for LMT orders) */}
-          {orderType === "LMT" && (
+            {/* Order Type */}
             <div className="space-y-2">
-              <Label>Limit Price</Label>
+              <Label>Order Type</Label>
+              <Select
+                value={orderType}
+                onValueChange={(v) => setOrderType(v as OrderType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MKT">Market</SelectItem>
+                  <SelectItem value="LMT">Limit</SelectItem>
+                  <SelectItem value="STP">Stop</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Quantity */}
+            <div className="space-y-2">
+              <Label>Quantity</Label>
               <Input
                 type="number"
-                step="0.01"
-                value={limitPrice}
-                onChange={(e) => setLimitPrice(e.target.value)}
-                placeholder={`Current: $${currentPrice.toFixed(2)}`}
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="Enter quantity"
+              />
+              <Slider
+                value={[qty]}
+                onValueChange={([v]) => setQuantity(v.toString())}
+                max={100}
+                min={1}
+                step={1}
+                className="mt-2"
               />
             </div>
-          )}
 
-          {/* Stop Price (for STP orders) */}
-          {orderType === "STP" && (
-            <div className="space-y-2">
-              <Label>Stop Price</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={stopPrice}
-                onChange={(e) => setStopPrice(e.target.value)}
-                placeholder={`Current: $${currentPrice.toFixed(2)}`}
-              />
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Firewall Warning */}
-          {firewallWarning && (
-            <div className="flex items-start gap-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
-              <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-              <p className="text-xs text-yellow-500">{firewallWarning}</p>
-            </div>
-          )}
-
-          {/* Order Summary */}
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Current Price</span>
-              <span>${currentPrice.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Quantity</span>
-              <span>{qty} shares</span>
-            </div>
-            <div className="flex justify-between font-medium">
-              <span>Estimated Value</span>
-              <span>${estimatedValue.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className={cn(
-              "w-full",
-              side === "buy"
-                ? "bg-profit hover:bg-profit/90"
-                : "bg-loss hover:bg-loss/90"
+            {/* Limit Price (for LMT orders) */}
+            {orderType === "LMT" && (
+              <div className="space-y-2">
+                <Label>Limit Price</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={limitPrice}
+                  onChange={(e) => setLimitPrice(e.target.value)}
+                  placeholder={`Current: $${currentPrice.toFixed(2)}`}
+                />
+              </div>
             )}
-            disabled={qty <= 0 || isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                {side === "buy" ? "Buy" : "Sell"} {activeSymbol}
-              </>
-            )}
-          </Button>
-        </form>
 
-        {/* Positions Section */}
+            {/* Stop Price (for STP orders) */}
+            {orderType === "STP" && (
+              <div className="space-y-2">
+                <Label>Stop Price</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={stopPrice}
+                  onChange={(e) => setStopPrice(e.target.value)}
+                  placeholder={`Current: $${currentPrice.toFixed(2)}`}
+                />
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Firewall Warning */}
+            {firewallWarning && (
+              <div className="flex items-start gap-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+                <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-yellow-500">{firewallWarning}</p>
+              </div>
+            )}
+
+            {/* Order Summary */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Current Price</span>
+                <span>${currentPrice.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Quantity</span>
+                <span>{qty} shares</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Estimated Value</span>
+                <span>${estimatedValue.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className={cn(
+                "w-full",
+                side === "buy"
+                  ? "bg-profit hover:bg-profit/90"
+                  : "bg-loss hover:bg-loss/90"
+              )}
+              disabled={qty <= 0 || isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  {side === "buy" ? "Buy" : "Sell"} {activeSymbol}
+                </>
+              )}
+            </Button>
+          </form>
+
+          {/* Positions Section */}
           <div className="p-3 border-t border-border">
             <h4 className="font-medium mb-2">Open Positions</h4>
             <div className="text-sm text-muted-foreground text-center py-4">

@@ -293,6 +293,13 @@ export function LeftSidebar() {
                         profileOpen={profileOpen}
                         settingsOpen={settingsOpen}
                     />
+                    {showExpanded && (
+                        <div className="mt-2 text-center">
+                            <span className="text-[10px] text-muted-foreground/40 font-mono">
+                                v{process.env.NEXT_PUBLIC_APP_VERSION}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </aside>
         </TooltipProvider>

@@ -1,19 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../supabase';
-
-// Types matching the trade_journal table
-export interface TradeJournalEntry {
-  id: string;
-  user_id: string;
-  symbol: string;
-  action: 'BUY' | 'SELL';
-  quantity: number;
-  price: number;
-  order_type: 'MKT' | 'LMT' | 'STP';
-  notes?: string;
-  tags?: string[];
-  pnl?: number;
-  created_at: string;
-}
+import { TradeEntry } from '../stores/trades-store';
 
 // Calculated position from trade history
 export interface Position {
@@ -26,7 +11,7 @@ export interface Position {
   unrealized_pnl?: number;
   unrealized_pnl_pct?: number;
   realized_pnl: number;
-  trades: TradeJournalEntry[];
+  trades: TradeEntry[];
   first_trade_at: string;
   last_trade_at: string;
 }
@@ -46,105 +31,13 @@ export interface PortfolioSummary {
 const STARTING_CASH = 100000;
 
 /**
- * Fetch all trade journal entries for the current user
- */
-export async function fetchTrades(): Promise<TradeJournalEntry[]> {
-  if (!isSupabaseConfigured() || !supabase) {
-    console.warn('Supabase not configured, returning empty trades');
-    return [];
-  }
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    console.warn('No authenticated user');
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from('trade_journal')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching trades:', error);
-    throw error;
-  }
-
-  return data || [];
-}
-
-/**
- * Record a new trade to the journal
- */
-export async function recordTrade(trade: {
-  symbol: string;
-  action: 'BUY' | 'SELL';
-  quantity: number;
-  price: number;
-  order_type: 'MKT' | 'LMT' | 'STP';
-  notes?: string;
-  tags?: string[];
-}): Promise<TradeJournalEntry> {
-  if (!isSupabaseConfigured() || !supabase) {
-    throw new Error('Supabase not configured');
-  }
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('No authenticated user');
-  }
-
-  const { data, error } = await supabase
-    .from('trade_journal')
-    .insert({
-      user_id: user.id,
-      symbol: trade.symbol.toUpperCase(),
-      action: trade.action,
-      quantity: trade.quantity,
-      price: trade.price,
-      order_type: trade.order_type,
-      notes: trade.notes,
-      tags: trade.tags,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error recording trade:', error);
-    throw error;
-  }
-
-  return data;
-}
-
-/**
- * Delete a trade from the journal
- */
-export async function deleteTrade(tradeId: string): Promise<void> {
-  if (!isSupabaseConfigured() || !supabase) {
-    throw new Error('Supabase not configured');
-  }
-
-  const { error } = await supabase
-    .from('trade_journal')
-    .delete()
-    .eq('id', tradeId);
-
-  if (error) {
-    console.error('Error deleting trade:', error);
-    throw error;
-  }
-}
-
-/**
  * Calculate positions from trade history using FIFO method
  */
-export function calculatePositions(trades: TradeJournalEntry[]): Position[] {
+export function calculatePositions(trades: TradeEntry[]): Position[] {
   const positionMap = new Map<string, {
     lots: Array<{ quantity: number; price: number; date: string }>;
     realized_pnl: number;
-    trades: TradeJournalEntry[];
+    trades: TradeEntry[];
   }>();
 
   // Process trades in chronological order
@@ -163,7 +56,7 @@ export function calculatePositions(trades: TradeJournalEntry[]): Position[] {
       position.lots.push({
         quantity: trade.quantity,
         price: trade.price,
-        date: trade.created_at,
+        date: trade.createdAt,
       });
     } else {
       // SELL - close lots using FIFO
@@ -204,7 +97,7 @@ export function calculatePositions(trades: TradeJournalEntry[]): Position[] {
     const avgCost = totalQty > 0 ? totalCost / totalQty : 0;
 
     const sortedTrades = [...data.trades].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
 
     positions.push({
@@ -214,8 +107,8 @@ export function calculatePositions(trades: TradeJournalEntry[]): Position[] {
       total_cost: totalCost,
       realized_pnl: data.realized_pnl,
       trades: sortedTrades,
-      first_trade_at: sortedTrades[0]?.created_at || '',
-      last_trade_at: sortedTrades[sortedTrades.length - 1]?.created_at || '',
+      first_trade_at: sortedTrades[0]?.createdAt || '',
+      last_trade_at: sortedTrades[sortedTrades.length - 1]?.createdAt || '',
     });
   }
 
@@ -294,48 +187,5 @@ export function calculatePortfolioSummary(
     realized_pnl: realizedPnl,
     day_pnl: dayPnl,
     positions_count: positions.filter((p) => p.quantity !== 0).length,
-  };
-}
-
-/**
- * Subscribe to real-time trade journal updates
- */
-export function subscribeToTrades(
-  onInsert: (trade: TradeJournalEntry) => void,
-  onDelete: (tradeId: string) => void
-) {
-  if (!isSupabaseConfigured() || !supabase) {
-    console.warn('Supabase not configured, skipping subscription');
-    return () => {};
-  }
-
-  const channel = supabase
-    .channel('trade_journal_changes')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'trade_journal',
-      },
-      (payload) => {
-        onInsert(payload.new as TradeJournalEntry);
-      }
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'trade_journal',
-      },
-      (payload) => {
-        onDelete((payload.old as { id: string }).id);
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase!.removeChannel(channel);
   };
 }

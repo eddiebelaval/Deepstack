@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { recordTrade } from '@/lib/supabase/portfolio';
+import { usePlacePaperTrade } from '@/hooks/usePortfolio';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -40,7 +40,7 @@ const formSchema = z.object({
     action: z.enum(['BUY', 'SELL']),
     quantity: z.coerce.number().int().positive('Quantity must be positive'),
     price: z.coerce.number().positive('Price must be positive'),
-    order_type: z.enum(['MKT', 'LMT', 'STP']).default('MKT'),
+    orderType: z.enum(['MKT', 'LMT', 'STP']).default('MKT'),
     notes: z.string().optional(),
 });
 
@@ -50,7 +50,9 @@ interface ManualPositionDialogProps {
 
 export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
     const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
+
+    // Use the hook for placing trades
+    const { execute, isSubmitting } = usePlacePaperTrade();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema) as any,
@@ -59,34 +61,31 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
             action: 'BUY',
             quantity: 1,
             price: 0,
-            order_type: 'MKT',
+            orderType: 'MKT',
             notes: '',
         },
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        setLoading(true);
-        try {
-            await recordTrade({
-                symbol: values.symbol.toUpperCase(),
-                action: values.action,
-                quantity: values.quantity,
-                price: values.price,
-                order_type: values.order_type,
-                notes: values.notes || undefined,
-            });
+        const trade = await execute({
+            symbol: values.symbol.toUpperCase(),
+            action: values.action,
+            quantity: values.quantity,
+            price: values.price,
+            orderType: values.orderType,
+            notes: values.notes || undefined,
+        });
+
+        if (trade) {
             toast.success('Trade Recorded', {
                 description: `${values.action} ${values.quantity} ${values.symbol.toUpperCase()} @ $${values.price.toFixed(2)}`,
             });
             setOpen(false);
             form.reset();
             onSuccess();
-        } catch (error) {
-            toast.error('Failed to record trade', {
-                description: error instanceof Error ? error.message : 'Unknown error',
-            });
-        } finally {
-            setLoading(false);
+        } else {
+            // Error is handled by the hook but we can show a toast here if we want or rely on hook's error state
+            toast.error('Failed to record trade');
         }
     };
 
@@ -153,7 +152,7 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
                             />
                             <FormField
                                 control={form.control}
-                                name="order_type"
+                                name="orderType"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Order Type</FormLabel>
@@ -226,8 +225,8 @@ export function ManualPositionDialog({ onSuccess }: ManualPositionDialogProps) {
                         />
 
                         <DialogFooter>
-                            <Button type="submit" disabled={loading}>
-                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Record Trade
                             </Button>
                         </DialogFooter>

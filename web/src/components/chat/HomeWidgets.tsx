@@ -119,6 +119,7 @@ export function HomeWidgets() {
     const [displayMode, setDisplayMode] = useState<'$' | '%'>('%'); // Default to % like Webull
     const [isLoading, setIsLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [isMockData, setIsMockData] = useState(false);
 
     // State for series data
     const [seriesData, setSeriesData] = useState<SeriesData[]>([]);
@@ -159,7 +160,7 @@ export function HomeWidgets() {
                     if (timeframe === '1W') apiTimeframe = '1w';
                     if (timeframe === '1M') apiTimeframe = '1mo';
 
-                    const response = await fetch(`/api/market/bars?symbol=${symbol}&timeframe=${apiTimeframe}&limit=100`);
+                    const response = await fetch(`/api/market/bars?symbol=${encodeURIComponent(symbol)}&timeframe=${apiTimeframe}&limit=100`);
                     if (!response.ok) return null;
 
                     const data = await response.json();
@@ -171,19 +172,24 @@ export function HomeWidgets() {
                     }
 
                     return {
-                        symbol,
-                        data: bars.map((d: any) => ({
-                            time: Math.floor(new Date(d.t || d.time).getTime() / 1000),
-                            value: d.c ?? d.close ?? 0
-                        })),
-                        color: SERIES_COLORS[index % SERIES_COLORS.length],
-                        visible: true
+                        series: {
+                            symbol,
+                            data: bars.map((d: any) => ({
+                                time: Math.floor(new Date(d.t || d.time).getTime() / 1000),
+                                value: d.c ?? d.close ?? 0
+                            })),
+                            color: SERIES_COLORS[index % SERIES_COLORS.length],
+                            visible: true
+                        },
+                        isMock: !!data.mock
                     };
                 });
 
                 const results = await Promise.all(promises);
-                const validResults = results.filter(Boolean) as SeriesData[];
-                setSeriesData(validResults);
+                const validResults = results.filter(Boolean);
+
+                setIsMockData(validResults.some(r => r?.isMock));
+                setSeriesData(validResults.map(r => r!.series));
                 setLastUpdated(new Date());
             } catch (error) {
                 console.error("Failed to fetch chart data", error);
@@ -384,9 +390,15 @@ export function HomeWidgets() {
 
                 {/* Footer with timestamp and See All */}
                 <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-                    <span>
-                        {lastUpdated ? formatTimeAgo(lastUpdated) : 'Loading...'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <div
+                            className={cn("h-2 w-2 rounded-full", isMockData ? "bg-yellow-500" : "bg-green-500")}
+                            title={isMockData ? "Using simulated data" : "Live data connection"}
+                        />
+                        <span>
+                            {lastUpdated ? formatTimeAgo(lastUpdated) : 'Loading...'}
+                        </span>
+                    </div>
                     <button className="flex items-center gap-0.5 hover:text-foreground transition-colors">
                         See All <ChevronRight className="h-3 w-3" />
                     </button>

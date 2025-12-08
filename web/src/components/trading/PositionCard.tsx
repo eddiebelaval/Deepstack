@@ -170,7 +170,7 @@ export function PositionCard({ position, onClose }: PositionCardProps) {
                         </span>
                       </div>
                       <span className="text-muted-foreground">
-                        {formatDate(trade.created_at)}
+                        {formatDate(trade.createdAt)}
                       </span>
                     </div>
                   ))}

@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { usePatternStore, type PatternInsight, type UserPattern } from '@/lib/stores/pattern-store';
 import { useJournalStore } from '@/lib/stores/journal-store';
+import { useInsightsData } from '@/hooks/useInsightsData';
 import {
     Brain,
     TrendingUp,
@@ -20,7 +21,9 @@ import {
     Trash2,
     Heart,
     BarChart3,
-    ArrowLeft
+    ArrowLeft,
+    Target,
+    Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +35,7 @@ const PATTERN_ICONS = {
 };
 
 export function InsightsPanel() {
+    const { stats, hasData } = useInsightsData();
     const {
         patterns,
         insights,
@@ -65,11 +69,113 @@ export function InsightsPanel() {
                         <Brain className="h-5 w-5 text-purple-500" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold">Pattern Learning</h2>
-                        <p className="text-sm text-muted-foreground">AI-powered insights from your trading journal</p>
+                        <h2 className="text-xl font-bold">Trading Insights</h2>
+                        <p className="text-sm text-muted-foreground">Performance analysis and AI pattern recognition</p>
                     </div>
                 </div>
             </div>
+
+            {/* Performance Overview */}
+            {hasData ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="p-4 bg-card/50">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <TrendingUp className="h-4 w-4 text-green-500" />
+                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">Win Rate</span>
+                        </div>
+                        <div className="text-2xl font-bold">
+                            {stats.winRate.toFixed(1)}%
+                        </div>
+                        <div className={cn(
+                            "text-xs font-medium mt-1",
+                            stats.totalPnL >= 0 ? "text-green-500" : "text-red-500"
+                        )}>
+                            {stats.totalPnL >= 0 ? '+' : ''}${stats.totalPnL.toFixed(2)} Net P&L
+                        </div>
+                    </Card>
+
+                    <Card className="p-4 bg-card/50">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                <BarChart3 className="h-4 w-4 text-blue-500" />
+                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">Top Symbols</span>
+                        </div>
+                        <div className="space-y-1">
+                            {stats.topSymbols.length > 0 ? (
+                                stats.topSymbols.map(s => (
+                                    <div key={s.symbol} className="flex justify-between text-sm">
+                                        <span className="font-medium">{s.symbol}</span>
+                                        <span className="text-muted-foreground">
+                                            {s.winRate.toFixed(0)}% WR ({s.count})
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <span className="text-sm text-muted-foreground">No data yet</span>
+                            )}
+                        </div>
+                    </Card>
+
+                    <Card className="p-4 bg-card/50">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-8 w-8 rounded-full bg-pink-500/20 flex items-center justify-center">
+                                <Heart className="h-4 w-4 text-pink-500" />
+                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">Emotional Edge</span>
+                        </div>
+                        {stats.emotionalEdge.bestEmotion ? (
+                            <div>
+                                <div className="text-sm">
+                                    <span className="font-medium text-green-500">Best:</span>{' '}
+                                    <span className="capitalize">{stats.emotionalEdge.bestEmotion.emotion}</span>
+                                    <span className="text-muted-foreground ml-1">
+                                        ({stats.emotionalEdge.bestEmotion.winRate.toFixed(0)}%)
+                                    </span>
+                                </div>
+                                {stats.emotionalEdge.worstEmotion && (
+                                    <div className="text-sm mt-1">
+                                        <span className="font-medium text-red-500">Worst:</span>{' '}
+                                        <span className="capitalize">{stats.emotionalEdge.worstEmotion.emotion}</span>
+                                        <span className="text-muted-foreground ml-1">
+                                            ({stats.emotionalEdge.worstEmotion.winRate.toFixed(0)}%)
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <span className="text-sm text-muted-foreground">Track emotions to see data</span>
+                        )}
+                    </Card>
+
+                    <Card className="p-4 bg-card/50">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-8 w-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <Target className="h-4 w-4 text-amber-500" />
+                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">Active Theses</span>
+                        </div>
+                        <div className="text-2xl font-bold">
+                            {stats.activeTheses}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                            Ideas currently in play
+                        </div>
+                    </Card>
+                </div>
+            ) : (
+                <Card className="p-6 border-dashed">
+                    <div className="flex flex-col items-center justify-center text-center">
+                        <Activity className="h-8 w-8 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium">No Trading Data Yet</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                            Start logging your trades in the Journal and creating Theses to see your performance analytics here.
+                        </p>
+                    </div>
+                </Card>
+            )}
 
             {/* Privacy Consent */}
             <Card className="p-4">
@@ -169,7 +275,7 @@ export function InsightsPanel() {
                     {patterns.length === 0 && entries.length >= 3 && (
                         <Card className="p-8 text-center text-muted-foreground">
                             <Lightbulb className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Click "Analyze" to discover patterns in your trading</p>
+                            <p>Click &quot;Analyze&quot; to discover patterns in your trading</p>
                         </Card>
                     )}
                 </>

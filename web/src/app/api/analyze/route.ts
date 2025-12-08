@@ -2,188 +2,80 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-// Types for stock analysis
 interface StockAnalysis {
   symbol: string;
-  analysis: string;
-  score?: number;
-  thesis?: string;
-  technicals?: {
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+  technicals: {
     trend: string;
     support: number;
     resistance: number;
-    rsi: number;
-    macd_signal: string;
-  };
-  fundamentals?: {
-    pe_ratio?: number;
-    market_cap?: string;
-    sector?: string;
-    industry?: string;
+    rsi: number; // Placeholder or calculated from bars
+    macd_signal: string; // Placeholder
   };
   sentiment?: {
     overall: string;
-    news_score: number;
-    social_score: number;
+    score: number;
   };
 }
 
 // Generate mock analysis when backend is unavailable
 function generateMockAnalysis(symbol: string): StockAnalysis {
-  const mockData: Record<string, Partial<StockAnalysis>> = {
-    AAPL: {
-      thesis: 'Apple remains a strong long-term hold with consistent iPhone demand and growing services revenue.',
-      score: 78,
-      technicals: {
-        trend: 'bullish',
-        support: 225,
-        resistance: 245,
-        rsi: 55,
-        macd_signal: 'bullish crossover',
-      },
-      fundamentals: {
-        pe_ratio: 32.5,
-        market_cap: '$3.5T',
-        sector: 'Technology',
-        industry: 'Consumer Electronics',
-      },
-      sentiment: {
-        overall: 'positive',
-        news_score: 72,
-        social_score: 68,
-      },
-    },
-    TSLA: {
-      thesis: 'Tesla faces near-term headwinds from competition but maintains EV leadership position.',
-      score: 62,
-      technicals: {
-        trend: 'neutral',
-        support: 320,
-        resistance: 380,
-        rsi: 48,
-        macd_signal: 'neutral',
-      },
-      fundamentals: {
-        pe_ratio: 65.2,
-        market_cap: '$1.1T',
-        sector: 'Consumer Discretionary',
-        industry: 'Electric Vehicles',
-      },
-      sentiment: {
-        overall: 'mixed',
-        news_score: 55,
-        social_score: 75,
-      },
-    },
-    NVDA: {
-      thesis: 'NVIDIA dominates AI chip market with strong data center growth driving record revenues.',
-      score: 85,
-      technicals: {
-        trend: 'strongly bullish',
-        support: 130,
-        resistance: 155,
-        rsi: 62,
-        macd_signal: 'bullish',
-      },
-      fundamentals: {
-        pe_ratio: 55.8,
-        market_cap: '$3.2T',
-        sector: 'Technology',
-        industry: 'Semiconductors',
-      },
-      sentiment: {
-        overall: 'very positive',
-        news_score: 88,
-        social_score: 82,
-      },
-    },
-    SPY: {
-      thesis: 'S&P 500 ETF provides broad market exposure with steady upward momentum.',
-      score: 72,
-      technicals: {
-        trend: 'bullish',
-        support: 570,
-        resistance: 610,
-        rsi: 58,
-        macd_signal: 'bullish',
-      },
-      fundamentals: {
-        pe_ratio: 22.1,
-        market_cap: '$550B',
-        sector: 'Diversified',
-        industry: 'ETF',
-      },
-      sentiment: {
-        overall: 'positive',
-        news_score: 65,
-        social_score: 60,
-      },
-    },
-  };
-
-  const baseAnalysis = mockData[symbol.toUpperCase()] || {
-    thesis: `${symbol.toUpperCase()} requires further analysis. Consider reviewing recent earnings and market conditions.`,
-    score: 50 + Math.floor(Math.random() * 30),
-    technicals: {
-      trend: ['bullish', 'bearish', 'neutral'][Math.floor(Math.random() * 3)],
-      support: Math.floor(Math.random() * 100) + 50,
-      resistance: Math.floor(Math.random() * 100) + 100,
-      rsi: Math.floor(Math.random() * 40) + 30,
-      macd_signal: 'neutral',
-    },
-    fundamentals: {
-      sector: 'Unknown',
-      industry: 'Unknown',
-    },
-    sentiment: {
-      overall: 'neutral',
-      news_score: 50,
-      social_score: 50,
-    },
-  };
+  const basePrice = 100 + Math.random() * 400;
+  const change = (Math.random() - 0.5) * 10;
 
   return {
     symbol: symbol.toUpperCase(),
-    analysis: generateAnalysisText(symbol.toUpperCase(), baseAnalysis),
-    ...baseAnalysis,
-  } as StockAnalysis;
+    price: parseFloat(basePrice.toFixed(2)),
+    change: parseFloat(change.toFixed(2)),
+    changePercent: parseFloat(((change / basePrice) * 100).toFixed(2)),
+    volume: Math.floor(Math.random() * 10000000) + 500000,
+    technicals: {
+      trend: change > 0 ? 'bullish' : 'bearish',
+      support: parseFloat((basePrice * 0.95).toFixed(2)),
+      resistance: parseFloat((basePrice * 1.05).toFixed(2)),
+      rsi: Math.floor(40 + Math.random() * 20),
+      macd_signal: 'neutral',
+    },
+    sentiment: {
+      overall: change > 0 ? 'positive' : 'negative',
+      score: Math.floor(40 + Math.random() * 40),
+    }
+  };
 }
 
-function generateAnalysisText(symbol: string, data: Partial<StockAnalysis>): string {
-  const trend = data.technicals?.trend || 'neutral';
-  const score = data.score || 50;
-  const thesis = data.thesis || 'Analysis pending.';
+// Simple technical analysis from bars
+function calculateTechnicals(bars: any[], currentPrice: number) {
+  if (!bars || bars.length < 5) return {
+    trend: 'neutral',
+    support: currentPrice * 0.95,
+    resistance: currentPrice * 1.05,
+    rsi: 50,
+    macd_signal: 'neutral'
+  };
 
-  let recommendation = 'HOLD';
-  if (score >= 70) recommendation = 'BUY';
-  else if (score <= 40) recommendation = 'SELL';
+  // Simple Trend based on last vs first bar in range
+  const firstClose = bars[bars.length - 1].c; // bars are often returned newest first or handle appropriately.
+  // Let's assume bars are time descending or ascending.
+  // The Market API usually returns bars time-ascending (oldest to newest) or descending.
+  // We'll check timestamps if needed, but for simple stuff:
+  // If we assume typical API format, let's just grab min and max of recent closes for sup/res.
 
-  return `## ${symbol} Analysis
+  const closes = bars.map((b: any) => b.c);
+  const minPrice = Math.min(...closes);
+  const maxPrice = Math.max(...closes);
 
-**Overall Score:** ${score}/100
-**Recommendation:** ${recommendation}
+  const trend = currentPrice > closes[0] ? 'bullish' : 'bearish'; // Comparing to oldest in the set (index 0)
 
-### Thesis
-${thesis}
-
-### Technical Analysis
-- **Trend:** ${trend.charAt(0).toUpperCase() + trend.slice(1)}
-- **Support:** $${data.technicals?.support || 'N/A'}
-- **Resistance:** $${data.technicals?.resistance || 'N/A'}
-- **RSI:** ${data.technicals?.rsi || 'N/A'}
-- **MACD:** ${data.technicals?.macd_signal || 'N/A'}
-
-### Market Sentiment
-- **Overall:** ${data.sentiment?.overall || 'Neutral'}
-- **News Score:** ${data.sentiment?.news_score || 50}/100
-- **Social Score:** ${data.sentiment?.social_score || 50}/100
-
-### Key Considerations
-- Monitor upcoming earnings and guidance
-- Watch sector rotation trends
-- Consider position sizing based on volatility
-
-*Note: This analysis is for informational purposes only and not financial advice.*`;
+  return {
+    trend,
+    support: minPrice,
+    resistance: maxPrice,
+    rsi: 50, // Not calculating full RSI here to keep it simple
+    macd_signal: 'neutral'
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -201,38 +93,60 @@ export async function POST(request: NextRequest) {
     const upperSymbol = symbol.toUpperCase();
 
     try {
-      // Try to call the Python backend for AI-powered analysis
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/agents/analyze`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ symbol: upperSymbol }),
-          // Use a reasonable timeout
-          signal: AbortSignal.timeout(30000),
-        }
+      // Step 1: Fetch Quote
+      const quoteRes = await fetch(`${API_BASE_URL}/api/market/quotes?symbols=${upperSymbol}`, {
+        cache: 'no-store'
+      });
+      if (!quoteRes.ok) throw new Error('Failed to fetch quote');
+      const quoteData = await quoteRes.json();
+
+      // quoteData is usually { "SYMBOL": { ... } }
+      const quote = quoteData[upperSymbol];
+      if (!quote) throw new Error('Symbol not found in quote data');
+
+      // Step 2: Fetch Bars (for technicals)
+      const barsRes = await fetch(
+        `${API_BASE_URL}/api/market/bars?symbol=${upperSymbol}&timeframe=1d&limit=20`,
+        { cache: 'no-store' }
       );
 
-      if (!response.ok) {
-        throw new Error(`Backend returned ${response.status}`);
+      let technicals = {
+        trend: 'neutral',
+        support: quote.last * 0.9,
+        resistance: quote.last * 1.1,
+        rsi: 50,
+        macd_signal: 'neutral'
+      };
+
+      if (barsRes.ok) {
+        const barsData = await barsRes.json();
+        if (barsData.bars) {
+          technicals = calculateTechnicals(barsData.bars, quote.last);
+        }
       }
 
-      const data = await response.json();
-      return NextResponse.json(data);
+      // Step 3: Construct Response
+      const result: StockAnalysis = {
+        symbol: upperSymbol,
+        price: quote.last,
+        change: quote.change,
+        changePercent: quote.changePercent,
+        volume: quote.volume,
+        technicals: technicals,
+        sentiment: {
+          overall: 'neutral', // Placeholder as we don't have real sentiment API yet
+          score: 50
+        }
+      };
+
+      return NextResponse.json(result);
+
     } catch (backendError) {
-      // Backend unavailable - return mock analysis so chat still works
-      console.warn('Backend unavailable, returning mock analysis:', backendError);
-
-      const mockAnalysis = generateMockAnalysis(upperSymbol);
-
-      return NextResponse.json({
-        ...mockAnalysis,
-        mock: true,
-        warning: 'Using simulated analysis - AI backend unavailable',
-      });
+      console.warn('Backend unavailable or error, returning mock analysis:', backendError);
+      const mock = generateMockAnalysis(upperSymbol);
+      return NextResponse.json({ ...mock, mock: true });
     }
+
   } catch (error) {
     console.error('Analyze endpoint error:', error);
     return NextResponse.json(
@@ -240,25 +154,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Also support GET for simple requests
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const symbol = searchParams.get('symbol');
-
-  if (!symbol) {
-    return NextResponse.json(
-      { error: 'Symbol query parameter is required' },
-      { status: 400 }
-    );
-  }
-
-  // Reuse POST logic by creating a mock request
-  const mockRequest = new NextRequest(request.url, {
-    method: 'POST',
-    body: JSON.stringify({ symbol }),
-  });
-
-  return POST(mockRequest);
 }

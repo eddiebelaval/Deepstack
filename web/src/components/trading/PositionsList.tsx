@@ -60,7 +60,7 @@ export function PositionsList() {
         action,
         quantity: qty,
         price,
-        order_type: 'MKT',
+        orderType: 'MKT',
         notes: 'Position closed',
       });
 
