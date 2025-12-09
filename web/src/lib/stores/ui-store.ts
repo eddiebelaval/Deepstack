@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'options-screener' | 'options-builder' | 'screener' | 'alerts' | 'calendar' | 'news' | 'none';
+export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'options-screener' | 'options-builder' | 'screener' | 'alerts' | 'calendar' | 'news' | 'prediction-markets' | 'none';
 
 export interface WidgetConfig {
   id: string;
@@ -14,6 +14,12 @@ interface UIState {
   // Main Content State
   activeContent: ActiveContentType;
   setActiveContent: (content: ActiveContentType) => void;
+
+  // Chart Panel State (persistent during chat)
+  chartPanelOpen: boolean;
+  chartPanelCollapsed: boolean;
+  setChartPanelOpen: (isOpen: boolean) => void;
+  toggleChartCollapsed: () => void;
 
   // Sidebar State
   leftSidebarOpen: boolean;
@@ -47,6 +53,8 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       // Initial State
       activeContent: 'none',
+      chartPanelOpen: true, // Chart visible by default
+      chartPanelCollapsed: false, // Not collapsed by default
       leftSidebarOpen: false, // Collapsed by default as per spec
       rightSidebarOpen: true, // Visible by default as per spec
       profileOpen: false,
@@ -61,6 +69,9 @@ export const useUIStore = create<UIState>()(
 
       // Actions
       setActiveContent: (content) => set({ activeContent: content }),
+      setChartPanelOpen: (isOpen) => set({ chartPanelOpen: isOpen }),
+      toggleChartCollapsed: () => set((state) => ({ chartPanelCollapsed: !state.chartPanelCollapsed })),
+
 
       toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
       toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),

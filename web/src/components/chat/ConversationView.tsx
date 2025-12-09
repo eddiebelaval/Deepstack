@@ -17,6 +17,8 @@ import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TradingChart } from '@/components/charts/TradingChart';
+import { ChartToolbar } from '@/components/charts/ChartToolbar';
+import { DrawingToolbar } from '@/components/charts/DrawingToolbar';
 import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { DeepValuePanel } from '@/components/trading/DeepValuePanel';
@@ -26,6 +28,7 @@ import { AlertsPanel } from '@/components/trading/AlertsPanel';
 import { CalendarPanel } from '@/components/trading/CalendarPanel';
 import { NewsPanel } from '@/components/trading/NewsPanel';
 import { OptionsScreenerPanel, OptionsStrategyBuilder } from '@/components/options';
+import { PredictionMarketsPanel } from '@/components/prediction-markets';
 import { PresetGrid } from './PresetGrid';
 import { HomeWidgets } from './HomeWidgets';
 import { cn } from '@/lib/utils';
@@ -45,7 +48,7 @@ export function ConversationView() {
     const { tier } = useUser();
     const { chatsToday, isAtLimit, remaining, canChat } = useChatLimit();
     const { activeProvider, setIsStreaming, useExtendedThinking } = useChatStore();
-    const { activeContent, setActiveContent } = useUIStore();
+    const { activeContent, setActiveContent, chartPanelOpen, chartPanelCollapsed } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
     const { isLoadingBars, bars } = useMarketDataStore();
     const { isMobile, isDesktop } = useIsMobile();
@@ -400,6 +403,13 @@ export function ConversationView() {
                 </div>
             );
         }
+        if (activeContent === 'prediction-markets') {
+            return (
+                <div className="flex-1 min-h-0 overflow-hidden bg-card border-t border-border/50">
+                    <PredictionMarketsPanel />
+                </div>
+            );
+        }
         return null;
     };
 
@@ -493,12 +503,54 @@ export function ConversationView() {
     }
 
     // Workspace view with active content and/or messages
-    // Layout: Fixed height page, tool panel slides down from top, chat scrolls in middle, input at bottom
+    // NEW LAYOUT: Persistent chart panel (collapsible) + Chat area + Tool panels
+    const showPersistentChart = chartPanelOpen && !chartPanelCollapsed;
+    const chartPanelHeight = isMobile ? 280 : 350;
+    const collapsedBarHeight = 40;
+
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Tool Panel - Slides down from top when active - smaller on mobile */}
-            {/* Using fixed pixel heights since percentage heights don't work well in nested flex contexts */}
-            {hasActiveContent && (
+            {/* Persistent Chart Panel - Always visible when chartPanelOpen, collapsible */}
+            {chartPanelOpen && (
+                <div
+                    className="flex-shrink-0 border-b border-border/30 transition-all duration-300 ease-in-out overflow-hidden"
+                    style={{ height: showPersistentChart ? chartPanelHeight : collapsedBarHeight }}
+                >
+                    {/* Chart Toolbar - Always visible for controls */}
+                    <ChartToolbar />
+
+                    {/* Drawing Toolbar - Only when chart is expanded */}
+                    {showPersistentChart && <DrawingToolbar />}
+
+                    {/* Chart Content - Only when not collapsed */}
+                    {showPersistentChart && (
+                        <div className="h-[calc(100%-80px)] relative">
+                            <TradingChart className="w-full h-full" />
+                            {/* Loading overlay */}
+                            {isChartLoading && (
+                                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
+                                    </div>
+                                </div>
+                            )}
+                            {/* No data message */}
+                            {!isChartLoading && !hasChartData && (
+                                <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
+                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                        <LineChart className="h-8 w-8 opacity-50" />
+                                        <span className="text-sm">No data available for {activeSymbol}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Other Tool Panels - Slide down when active (non-chart tools) */}
+            {hasActiveContent && activeContent !== 'chart' && (
                 <div
                     className={cn(
                         "flex-shrink-0 bg-background border-b border-border/30 transition-all duration-300 ease-in-out",
@@ -509,69 +561,21 @@ export function ConversationView() {
                     <div className="h-full flex flex-col min-h-0">
                         {/* Tool Header with controls */}
                         <div className="flex items-center justify-between mb-2 px-1 flex-shrink-0 h-8">
-                            <div className="flex items-center gap-2">
-                                {activeContent === 'chart' ? (
-                                    isSearchingSymbol ? (
-                                        <form onSubmit={handleSymbolSearch} className="flex items-center gap-1">
-                                            <Input
-                                                ref={symbolInputRef}
-                                                type="text"
-                                                value={symbolSearchValue}
-                                                onChange={(e) => setSymbolSearchValue(e.target.value.toUpperCase())}
-                                                onKeyDown={handleSymbolKeyDown}
-                                                placeholder="Symbol..."
-                                                className="h-6 w-20 text-xs uppercase px-2"
-                                                maxLength={10}
-                                            />
-                                            <Button
-                                                type="submit"
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-6 w-6"
-                                                disabled={!symbolSearchValue.trim()}
-                                            >
-                                                <Search className="h-3 w-3" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-6 w-6"
-                                                onClick={() => {
-                                                    setSymbolSearchValue('');
-                                                    setIsSearchingSymbol(false);
-                                                }}
-                                            >
-                                                <X className="h-3 w-3" />
-                                            </Button>
-                                        </form>
-                                    ) : (
-                                        <button
-                                            onClick={() => setIsSearchingSymbol(true)}
-                                            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-0.5 rounded transition-colors group"
-                                            title="Click to search symbol"
-                                        >
-                                            <Search className="h-3 w-3 opacity-50 group-hover:opacity-100" />
-                                            <span>Chart: {activeSymbol}</span>
-                                        </button>
-                                    )
-                                ) : (
-                                    <span className="text-sm font-medium text-muted-foreground">
-                                        {activeContent === 'orders' && 'Order Entry'}
-                                        {activeContent === 'portfolio' && 'Positions'}
-                                        {activeContent === 'deep-value' && 'Deep Value Screener'}
-                                        {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
-                                        {activeContent === 'options-screener' && 'Options Screener'}
-                                        {activeContent === 'options-builder' && 'Strategy Builder'}
-                                        {activeContent === 'screener' && 'Stock Screener'}
-                                        {activeContent === 'alerts' && 'Price Alerts'}
-                                        {activeContent === 'calendar' && 'Market Calendar'}
-                                        {activeContent === 'news' && 'Market News'}
-                                    </span>
-                                )}
-                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">
+                                {activeContent === 'orders' && 'Order Entry'}
+                                {activeContent === 'portfolio' && 'Positions'}
+                                {activeContent === 'deep-value' && 'Deep Value Screener'}
+                                {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
+                                {activeContent === 'options-screener' && 'Options Screener'}
+                                {activeContent === 'options-builder' && 'Strategy Builder'}
+                                {activeContent === 'screener' && 'Stock Screener'}
+                                {activeContent === 'alerts' && 'Price Alerts'}
+                                {activeContent === 'calendar' && 'Market Calendar'}
+                                {activeContent === 'news' && 'Market News'}
+                                {activeContent === 'prediction-markets' && 'Prediction Markets'}
+                            </span>
                             <div className="flex items-center gap-1">
-                                {/* Size preset buttons - Available for ALL panels */}
+                                {/* Size preset buttons */}
                                 <div className="flex items-center gap-0.5 mr-1 border-r border-border/50 pr-2">
                                     <Button
                                         variant={panelSize === 'compact' ? 'secondary' : 'ghost'}

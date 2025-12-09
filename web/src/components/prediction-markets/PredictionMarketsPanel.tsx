@@ -1,0 +1,474 @@
+'use client';
+
+/**
+ * PredictionMarketsPanel - Full prediction markets experience
+ *
+ * Features:
+ * - Platform filters (All/Kalshi/Polymarket)
+ * - Category tabs
+ * - Search functionality
+ * - Market grid with probability bars
+ * - Selected market detail view
+ * - Watchlist integration
+ * - "Link to Thesis" action
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { usePredictionMarkets } from '@/hooks/usePredictionMarkets';
+import type { PredictionMarket } from '@/lib/types/prediction-markets';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PlatformBadge } from './PlatformBadge';
+import { ProbabilityBar } from './ProbabilityBar';
+import { cn } from '@/lib/utils';
+import {
+    Search,
+    TrendingUp,
+    ExternalLink,
+    Eye,
+    EyeOff,
+    Link2,
+    RefreshCw,
+    AlertCircle,
+    Wifi,
+    WifiOff,
+} from 'lucide-react';
+
+type PlatformFilter = 'all' | 'kalshi' | 'polymarket';
+type CategoryFilter = 'all' | 'Economics' | 'Crypto' | 'Politics' | 'Stocks' | 'Sports';
+
+const CATEGORIES: CategoryFilter[] = ['all', 'Economics', 'Crypto', 'Politics', 'Stocks', 'Sports'];
+
+export function PredictionMarketsPanel() {
+    const {
+        markets,
+        watchlist,
+        filters,
+        isLoading,
+        error,
+        isMockData,
+        loadMarkets,
+        searchMarkets,
+        setFilters,
+        toggleWatchlist,
+        isInWatchlist,
+    } = usePredictionMarkets();
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedMarket, setSelectedMarket] = useState<PredictionMarket | null>(null);
+    const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
+    const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+
+    // Load markets on mount and when filters change
+    useEffect(() => {
+        loadMarkets();
+    }, [platformFilter, loadMarkets]);
+
+    // Apply filters to store
+    useEffect(() => {
+        setFilters({
+            source: platformFilter,
+            category: categoryFilter === 'all' ? null : categoryFilter,
+        });
+    }, [platformFilter, categoryFilter, setFilters]);
+
+    const handleSearch = useCallback((e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            searchMarkets(searchQuery);
+        } else {
+            loadMarkets();
+        }
+    }, [searchQuery, searchMarkets, loadMarkets]);
+
+    const handleRefresh = useCallback(() => {
+        loadMarkets();
+    }, [loadMarkets]);
+
+    // Filter markets by category on frontend (since backend may not support all categories)
+    const filteredMarkets = categoryFilter === 'all'
+        ? markets
+        : markets.filter(m => m.category?.toLowerCase().includes(categoryFilter.toLowerCase()));
+
+    return (
+        <div className="h-full flex flex-col">
+            {/* Header with filters */}
+            <div className="flex-shrink-0 p-4 border-b border-border/50 space-y-3">
+                {/* Top row: Title + Status + Refresh */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-primary" />
+                            Prediction Markets
+                        </h2>
+                        {/* Connection status */}
+                        <Badge variant={isMockData ? 'secondary' : 'outline'} className="text-xs">
+                            {isMockData ? (
+                                <>
+                                    <WifiOff className="h-3 w-3 mr-1" />
+                                    Cached
+                                </>
+                            ) : (
+                                <>
+                                    <Wifi className="h-3 w-3 mr-1 text-green-500" />
+                                    Live
+                                </>
+                            )}
+                        </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {watchlist.length > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                                <Eye className="h-3 w-3 mr-1" />
+                                {watchlist.length} watching
+                            </Badge>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={handleRefresh}
+                            disabled={isLoading}
+                        >
+                            <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Platform tabs */}
+                <Tabs value={platformFilter} onValueChange={(v) => setPlatformFilter(v as PlatformFilter)}>
+                    <TabsList className="grid grid-cols-3 w-fit">
+                        <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
+                        <TabsTrigger value="kalshi" className="text-xs px-3">Kalshi</TabsTrigger>
+                        <TabsTrigger value="polymarket" className="text-xs px-3">Polymarket</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+
+                {/* Search and Categories */}
+                <div className="flex gap-2 flex-wrap">
+                    <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-[200px]">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search markets..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9 h-9"
+                            />
+                        </div>
+                        <Button type="submit" size="sm" variant="secondary">
+                            Search
+                        </Button>
+                    </form>
+
+                    {/* Category pills */}
+                    <div className="flex gap-1 flex-wrap">
+                        {CATEGORIES.map((cat) => (
+                            <Button
+                                key={cat}
+                                variant={categoryFilter === cat ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-8 text-xs"
+                                onClick={() => setCategoryFilter(cat)}
+                            >
+                                {cat === 'all' ? 'All Categories' : cat}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Main content area */}
+            <div className="flex-1 min-h-0 flex">
+                {/* Market grid */}
+                <div className={cn(
+                    'flex-1 min-w-0 border-r border-border/30',
+                    selectedMarket ? 'w-2/3' : 'w-full'
+                )}>
+                    <ScrollArea className="h-full">
+                        <div className="p-4 space-y-2">
+                            {isLoading && filteredMarkets.length === 0 ? (
+                                // Loading skeletons
+                                <div className="space-y-3">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                                    ))}
+                                </div>
+                            ) : error ? (
+                                // Error state
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <AlertCircle className="h-10 w-10 text-red-400 mb-3" />
+                                    <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                                    <Button variant="outline" size="sm" onClick={handleRefresh}>
+                                        Retry
+                                    </Button>
+                                </div>
+                            ) : filteredMarkets.length === 0 ? (
+                                // Empty state
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <TrendingUp className="h-10 w-10 text-muted-foreground/50 mb-3" />
+                                    <p className="text-sm text-muted-foreground">No markets found</p>
+                                    {searchQuery && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="mt-2"
+                                            onClick={() => {
+                                                setSearchQuery('');
+                                                loadMarkets();
+                                            }}
+                                        >
+                                            Clear search
+                                        </Button>
+                                    )}
+                                </div>
+                            ) : (
+                                // Market cards
+                                filteredMarkets.map((market) => (
+                                    <MarketCard
+                                        key={`${market.platform}-${market.id}`}
+                                        market={market}
+                                        isSelected={selectedMarket?.id === market.id}
+                                        isWatched={isInWatchlist(market.platform, market.id)}
+                                        onSelect={() => setSelectedMarket(market)}
+                                        onToggleWatch={() => toggleWatchlist(market)}
+                                    />
+                                ))
+                            )}
+                        </div>
+                    </ScrollArea>
+                </div>
+
+                {/* Detail panel (when market selected) */}
+                {selectedMarket && (
+                    <div className="w-1/3 min-w-[280px] max-w-[400px]">
+                        <MarketDetailPanel
+                            market={selectedMarket}
+                            isWatched={isInWatchlist(selectedMarket.platform, selectedMarket.id)}
+                            onToggleWatch={() => toggleWatchlist(selectedMarket)}
+                            onClose={() => setSelectedMarket(null)}
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ============ Market Card Component ============
+
+function MarketCard({
+    market,
+    isSelected,
+    isWatched,
+    onSelect,
+    onToggleWatch,
+}: {
+    market: PredictionMarket;
+    isSelected: boolean;
+    isWatched: boolean;
+    onSelect: () => void;
+    onToggleWatch: () => void;
+}) {
+    const probability = Math.round(market.yesPrice * 100);
+
+    return (
+        <Card
+            className={cn(
+                'cursor-pointer transition-all hover:border-primary/50',
+                isSelected && 'border-primary bg-primary/5 ring-1 ring-primary/30'
+            )}
+            onClick={onSelect}
+        >
+            <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                            <PlatformBadge platform={market.platform} />
+                            <Badge variant="outline" className="text-xs">
+                                {market.category}
+                            </Badge>
+                        </div>
+                        <h3 className="font-medium text-sm leading-tight line-clamp-2">
+                            {market.title}
+                        </h3>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                        <div
+                            className={cn(
+                                'text-xl font-bold',
+                                probability >= 70 ? 'text-green-500' :
+                                    probability <= 30 ? 'text-red-500' : 'text-amber-500'
+                            )}
+                        >
+                            {probability}%
+                        </div>
+                        <span className="text-xs text-muted-foreground">YES</span>
+                    </div>
+                </div>
+
+                <ProbabilityBar yesPrice={market.yesPrice} />
+
+                <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                    <span>Vol: ${formatVolume(market.volume)}</span>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleWatch();
+                        }}
+                    >
+                        {isWatched ? (
+                            <Eye className="h-3 w-3 mr-1" />
+                        ) : (
+                            <EyeOff className="h-3 w-3 mr-1" />
+                        )}
+                        {isWatched ? 'Watching' : 'Watch'}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+// ============ Market Detail Panel ============
+
+function MarketDetailPanel({
+    market,
+    isWatched,
+    onToggleWatch,
+    onClose,
+}: {
+    market: PredictionMarket;
+    isWatched: boolean;
+    onToggleWatch: () => void;
+    onClose: () => void;
+}) {
+    const probability = Math.round(market.yesPrice * 100);
+
+    return (
+        <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                    <PlatformBadge platform={market.platform} />
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+                        ×
+                    </Button>
+                </div>
+
+                {/* Title and probability */}
+                <div>
+                    <h3 className="font-semibold text-lg leading-tight mb-2">{market.title}</h3>
+                    <div className="flex items-center gap-4">
+                        <div className="text-center">
+                            <div className={cn(
+                                'text-3xl font-bold',
+                                probability >= 70 ? 'text-green-500' :
+                                    probability <= 30 ? 'text-red-500' : 'text-amber-500'
+                            )}>
+                                {probability}%
+                            </div>
+                            <span className="text-xs text-muted-foreground">YES</span>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-muted-foreground">
+                                {100 - probability}%
+                            </div>
+                            <span className="text-xs text-muted-foreground">NO</span>
+                        </div>
+                    </div>
+                </div>
+
+                <ProbabilityBar yesPrice={market.yesPrice} />
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                        <div className="text-xs text-muted-foreground mb-1">Volume</div>
+                        <div className="font-semibold">${formatVolume(market.volume)}</div>
+                    </div>
+                    {market.volume24h && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                            <div className="text-xs text-muted-foreground mb-1">24h Volume</div>
+                            <div className="font-semibold">${formatVolume(market.volume24h)}</div>
+                        </div>
+                    )}
+                    {market.endDate && (
+                        <div className="bg-muted/50 rounded-lg p-3 col-span-2">
+                            <div className="text-xs text-muted-foreground mb-1">Ends</div>
+                            <div className="font-semibold">
+                                {new Date(market.endDate).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Description */}
+                {market.description && (
+                    <div>
+                        <h4 className="text-xs font-medium text-muted-foreground mb-1">Description</h4>
+                        <p className="text-sm text-muted-foreground line-clamp-4">{market.description}</p>
+                    </div>
+                )}
+
+                {/* Actions */}
+                <div className="space-y-2 pt-2">
+                    <Button
+                        className="w-full"
+                        onClick={() => window.open(market.url, '_blank')}
+                    >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Trade on {market.platform === 'kalshi' ? 'Kalshi' : 'Polymarket'}
+                    </Button>
+
+                    <Button
+                        variant={isWatched ? 'secondary' : 'outline'}
+                        className="w-full"
+                        onClick={onToggleWatch}
+                    >
+                        {isWatched ? (
+                            <>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Watching
+                            </>
+                        ) : (
+                            <>
+                                <EyeOff className="h-4 w-4 mr-2" />
+                                Add to Watchlist
+                            </>
+                        )}
+                    </Button>
+
+                    <Button variant="outline" className="w-full">
+                        <Link2 className="h-4 w-4 mr-2" />
+                        Link to Thesis
+                    </Button>
+                </div>
+            </div>
+        </ScrollArea>
+    );
+}
+
+// ============ Helpers ============
+
+function formatVolume(volume: number): string {
+    if (volume >= 1_000_000) {
+        return `${(volume / 1_000_000).toFixed(1)}M`;
+    }
+    if (volume >= 1_000) {
+        return `${(volume / 1_000).toFixed(1)}K`;
+    }
+    return volume.toFixed(0);
+}

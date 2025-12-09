@@ -24,6 +24,15 @@ You can show specific panels to the user. Use these when the user asks to see so
 - **show_hedged_positions**: Show hedged positions builder
 - **show_options_screener**: Show options screener
 - **show_options_builder**: Show options strategy builder with P&L diagrams
+- **show_prediction_markets**: Show prediction markets panel
+
+### Prediction Market Tools
+You have access to prediction market data from Kalshi (CFTC-regulated) and Polymarket (crypto-based):
+- **search_prediction_markets**: Search markets by topic (Fed rates, elections, crypto, earnings)
+- **get_prediction_market**: Get detailed market info including probability and volume
+- **get_trending_prediction_markets**: Get popular markets by trading volume
+- **find_markets_for_thesis**: Find markets related to a trading thesis
+- **compare_market_to_analysis**: Compare market probability to stock analysis
 
 ### Available Panels
 The interface has 12 tool panels the user can access:
@@ -39,6 +48,7 @@ The interface has 12 tool panels the user can access:
 10. **Options Screener** - Filter options by various criteria
 11. **Options Builder** - Multi-leg strategy builder with P&L diagrams
 12. **Analysis** - Detailed stock analysis reports
+13. **Prediction Markets** - Browse and search prediction markets from Kalshi and Polymarket
 
 ## Trading Philosophy
 

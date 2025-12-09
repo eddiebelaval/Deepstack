@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useWatchlistStore } from '@/lib/stores/watchlist-store';
 import { LazyMultiSeriesChart } from '@/components/lazy';
 import { type SeriesData } from '@/components/charts/MultiSeriesChart';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronRight, Plus, X, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // DeepStack Brand Palette for Series
@@ -48,53 +50,65 @@ interface LegendCardProps {
     color: string;
     isVisible: boolean;
     onClick: () => void;
+    onRemove?: () => void;
     isCrypto?: boolean;
 }
 
-function LegendCard({ displayName, price, percentChange, color, isVisible, onClick, isCrypto }: LegendCardProps) {
+function LegendCard({ displayName, price, percentChange, color, isVisible, onClick, onRemove, isCrypto }: LegendCardProps) {
     const isPositive = percentChange >= 0;
 
     return (
-        <button
-            onClick={onClick}
-            className={cn(
-                "flex items-stretch min-w-[140px] rounded-lg transition-all duration-200 text-left overflow-hidden",
-                "border border-border/40 hover:border-border/60",
-                isVisible
-                    ? "bg-card/60 opacity-100 shadow-sm"
-                    : "bg-muted/20 opacity-40 grayscale"
+        <div className="relative group">
+            <button
+                onClick={onClick}
+                className={cn(
+                    "flex items-stretch min-w-[140px] rounded-lg transition-all duration-200 text-left overflow-hidden",
+                    "border border-border/40 hover:border-border/60",
+                    isVisible
+                        ? "bg-card/60 opacity-100 shadow-sm"
+                        : "bg-muted/20 opacity-40 grayscale"
+                )}
+            >
+                {/* Color bar on left side */}
+                <div
+                    className="w-1.5 shrink-0"
+                    style={{ backgroundColor: color }}
+                />
+
+                {/* Content */}
+                <div className="flex flex-col justify-center py-2 px-3 flex-1 min-w-0">
+                    {/* Symbol/Name */}
+                    <div className="text-[10px] text-muted-foreground font-medium truncate leading-none mb-1.5 uppercase tracking-wider">
+                        {displayName}
+                    </div>
+
+                    {/* Price */}
+                    <div className="text-base font-bold tracking-tight text-foreground leading-none mb-1">
+                        {isCrypto
+                            ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : price.toFixed(2)
+                        }
+                    </div>
+
+                    {/* Percentage Change */}
+                    <div className={cn(
+                        "text-xs font-semibold leading-none",
+                        isPositive ? "text-green-500" : "text-red-500"
+                    )}>
+                        {isPositive ? '+' : ''}{percentChange.toFixed(2)}%
+                    </div>
+                </div>
+            </button>
+            {/* Remove button - shown on hover when onRemove provided */}
+            {onRemove && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                >
+                    <X className="h-3 w-3" />
+                </button>
             )}
-        >
-            {/* Color bar on left side */}
-            <div
-                className="w-1.5 shrink-0"
-                style={{ backgroundColor: color }}
-            />
-
-            {/* Content */}
-            <div className="flex flex-col justify-center py-2 px-3 flex-1 min-w-0">
-                {/* Symbol/Name */}
-                <div className="text-[10px] text-muted-foreground font-medium truncate leading-none mb-1.5 uppercase tracking-wider">
-                    {displayName}
-                </div>
-
-                {/* Price */}
-                <div className="text-base font-bold tracking-tight text-foreground leading-none mb-1">
-                    {isCrypto
-                        ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                        : price.toFixed(2)
-                    }
-                </div>
-
-                {/* Percentage Change */}
-                <div className={cn(
-                    "text-xs font-semibold leading-none",
-                    isPositive ? "text-green-500" : "text-red-500"
-                )}>
-                    {isPositive ? '+' : ''}{percentChange.toFixed(2)}%
-                </div>
-            </div>
-        </button>
+        </div>
     );
 }
 
@@ -112,13 +126,19 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function HomeWidgets() {
-    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto'>('market');
+    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto' | 'custom'>('market');
     const [timeframe, setTimeframe] = useState('1D');
     const [isLogScale, setIsLogScale] = useState(false);
     const [displayMode, setDisplayMode] = useState<'$' | '%'>('%'); // Default to % like Webull
     const [isLoading, setIsLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [isMockData, setIsMockData] = useState(false);
+
+    // Custom symbols state
+    const [customSymbols, setCustomSymbols] = useState<string[]>(['SPY', 'AAPL']);
+    const [isAddingSymbol, setIsAddingSymbol] = useState(false);
+    const [newSymbolInput, setNewSymbolInput] = useState('');
+    const symbolInputRef = useRef<HTMLInputElement>(null);
 
     // State for series data
     const [seriesData, setSeriesData] = useState<SeriesData[]>([]);
@@ -127,12 +147,35 @@ export function HomeWidgets() {
     const { getActiveWatchlist } = useWatchlistStore();
     const activeWatchlist = getActiveWatchlist();
 
+    // Focus input when adding symbol
+    useEffect(() => {
+        if (isAddingSymbol && symbolInputRef.current) {
+            symbolInputRef.current.focus();
+        }
+    }, [isAddingSymbol]);
+
+    // Add custom symbol
+    const handleAddSymbol = () => {
+        const symbol = newSymbolInput.trim().toUpperCase();
+        if (symbol && !customSymbols.includes(symbol) && customSymbols.length < 8) {
+            setCustomSymbols([...customSymbols, symbol]);
+        }
+        setNewSymbolInput('');
+        setIsAddingSymbol(false);
+    };
+
+    // Remove custom symbol
+    const removeCustomSymbol = (symbol: string) => {
+        setCustomSymbols(customSymbols.filter(s => s !== symbol));
+    };
+
     // Determine symbols based on tab
     const symbols = useMemo(() => {
         if (activeTab === 'market') return MARKET_INDICES;
         if (activeTab === 'crypto') return CRYPTO_SYMBOLS;
+        if (activeTab === 'custom') return customSymbols;
         return activeWatchlist?.items.map(i => i.symbol).slice(0, 8) || [];
-    }, [activeTab, activeWatchlist]);
+    }, [activeTab, activeWatchlist, customSymbols]);
 
     const isCrypto = activeTab === 'crypto';
 
@@ -269,21 +312,68 @@ export function HomeWidgets() {
     };
 
     const tabTitle = activeTab === 'market' ? 'United States' :
-        activeTab === 'crypto' ? 'Cryptocurrency' : 'Watchlist';
+        activeTab === 'crypto' ? 'Cryptocurrency' :
+            activeTab === 'custom' ? 'Custom Comparison' : 'Watchlist';
 
     return (
         <div className="w-full max-w-5xl mx-auto mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
             <Card className="p-4 bg-card/80 border-border/50 backdrop-blur-sm overflow-hidden">
                 {/* Header with Title and Tabs */}
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-foreground">{tabTitle}</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold text-foreground">{tabTitle}</h2>
+                        {/* Add Symbol button - only show on custom tab */}
+                        {activeTab === 'custom' && (
+                            isAddingSymbol ? (
+                                <form
+                                    onSubmit={(e) => { e.preventDefault(); handleAddSymbol(); }}
+                                    className="flex items-center gap-1"
+                                >
+                                    <Input
+                                        ref={symbolInputRef}
+                                        type="text"
+                                        value={newSymbolInput}
+                                        onChange={(e) => setNewSymbolInput(e.target.value.toUpperCase())}
+                                        onKeyDown={(e) => e.key === 'Escape' && setIsAddingSymbol(false)}
+                                        placeholder="SYMBOL"
+                                        className="h-7 w-20 text-xs uppercase px-2"
+                                        maxLength={10}
+                                    />
+                                    <Button type="submit" size="icon" variant="ghost" className="h-7 w-7">
+                                        <Plus className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7"
+                                        onClick={() => { setNewSymbolInput(''); setIsAddingSymbol(false); }}
+                                    >
+                                        <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                </form>
+                            ) : (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs gap-1"
+                                    onClick={() => setIsAddingSymbol(true)}
+                                    disabled={customSymbols.length >= 8}
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Add
+                                </Button>
+                            )
+                        )}
+                    </div>
 
                     {/* Compact Tab Pills */}
                     <div className="flex bg-muted/40 p-0.5 rounded-lg">
                         {[
                             { key: 'market', label: 'Indices' },
                             { key: 'crypto', label: 'Crypto' },
-                            { key: 'watchlist', label: 'Watchlist' }
+                            { key: 'watchlist', label: 'Watchlist' },
+                            { key: 'custom', label: 'Custom' }
                         ].map(tab => (
                             <button
                                 key={tab.key}
@@ -398,6 +488,7 @@ export function HomeWidgets() {
                                 color={metric.color}
                                 isVisible={visibleSymbols.has(metric.symbol)}
                                 onClick={() => toggleSymbol(metric.symbol)}
+                                onRemove={activeTab === 'custom' ? () => removeCustomSymbol(metric.symbol) : undefined}
                                 isCrypto={isCrypto}
                             />
                         ))}

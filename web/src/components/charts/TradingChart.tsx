@@ -18,8 +18,17 @@ import {
 } from "lightweight-charts";
 import { useTradingStore, type ChartType, type IndicatorConfig } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
+import { useMarketData } from "@/components/providers/MarketDataProvider";
 import type { OHLCVBar } from "@/lib/stores/market-data-store";
 import { calculateIndicators, type LineIndicatorData } from "@/lib/indicators";
+
+// Overlay colors - distinct from main chart
+const OVERLAY_COLORS = [
+  '#3B82F6', // Blue
+  '#A855F7', // Purple
+  '#10B981', // Green
+  '#EC4899', // Pink
+];
 
 // Chart theme colors - using hex/rgba for lightweight-charts compatibility
 const CHART_THEME = {
@@ -50,10 +59,12 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
   const mainSeriesRef = useRef<ISeriesApi<"Candlestick" | "Line" | "Area"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const indicatorSeriesRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
+  const overlaySeriesRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  const { activeSymbol, chartType, indicators } = useTradingStore();
+  const { activeSymbol, chartType, indicators, overlaySymbols } = useTradingStore();
   const { bars } = useMarketDataStore();
+  const { fetchBars } = useMarketData();
   const symbolBars = bars[activeSymbol] || [];
 
   // Memoize bar data transformation
@@ -178,6 +189,7 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
       mainSeriesRef.current = null;
       volumeSeriesRef.current = null;
       indicatorSeriesRef.current.clear();
+      overlaySeriesRef.current.clear();
       crosshairPriceRef.current = null;
     };
   }, [onCrosshairPriceChange]); // Include callback in deps
@@ -275,6 +287,62 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
       // RSI and MACD are handled in separate panels (Phase 2.3)
     });
   }, [indicators, indicatorData]);
+
+  // Fetch and render overlay symbols
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    // Fetch bars for any overlay symbols that don't have data
+    overlaySymbols.forEach((symbol) => {
+      if (!bars[symbol]) {
+        fetchBars(symbol);
+      }
+    });
+
+    // Get current overlay symbols set
+    const overlaySet = new Set(overlaySymbols);
+
+    // Remove series for symbols no longer in overlays
+    overlaySeriesRef.current.forEach((series, symbol) => {
+      if (!overlaySet.has(symbol)) {
+        chartRef.current?.removeSeries(series);
+        overlaySeriesRef.current.delete(symbol);
+      }
+    });
+
+    // Get the main symbol's first value for normalization
+    const mainFirstValue = symbolBars.length > 0 ? symbolBars[0].close : null;
+    if (!mainFirstValue) return;
+
+    // Add or update overlay series
+    overlaySymbols.forEach((symbol, index) => {
+      const overlayBars = bars[symbol];
+      if (!overlayBars || overlayBars.length === 0) return;
+
+      // Get or create series
+      let series = overlaySeriesRef.current.get(symbol);
+      if (!series) {
+        series = chartRef.current!.addSeries(LineSeries, {
+          color: OVERLAY_COLORS[index % OVERLAY_COLORS.length],
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: true,
+          title: symbol,
+        });
+        overlaySeriesRef.current.set(symbol, series);
+      }
+
+      // Normalize to percentage change from first bar (for fair comparison)
+      const overlayFirstValue = overlayBars[0].close;
+      const normalizedData: LineData[] = overlayBars.map((bar) => ({
+        time: bar.time as UTCTimestamp,
+        // Scale overlay to main chart's price range using % change
+        value: mainFirstValue * (1 + (bar.close - overlayFirstValue) / overlayFirstValue),
+      }));
+
+      series.setData(normalizedData);
+    });
+  }, [overlaySymbols, bars, symbolBars, fetchBars]);
 
   // Helper function to create main series
   function createMainSeries(chart: IChartApi, type: ChartType) {

@@ -27,6 +27,9 @@ type TradingState = {
   // Active symbol
   activeSymbol: string;
 
+  // Overlay symbols for comparison (max 4)
+  overlaySymbols: string[];
+
   // Chart settings
   chartType: ChartType;
   timeframe: Timeframe;
@@ -43,6 +46,11 @@ type TradingState = {
   setActiveSymbol: (symbol: string) => void;
   setChartType: (type: ChartType) => void;
   setTimeframe: (timeframe: Timeframe) => void;
+
+  // Overlay actions
+  addOverlaySymbol: (symbol: string) => void;
+  removeOverlaySymbol: (symbol: string) => void;
+  clearOverlays: () => void;
 
   // Indicator actions
   addIndicator: (type: IndicatorType) => void;
@@ -62,6 +70,7 @@ type TradingState = {
 
 const initialState = {
   activeSymbol: 'SPY',
+  overlaySymbols: [] as string[],
   chartType: 'candlestick' as ChartType,
   timeframe: '1d' as Timeframe,
   indicators: [] as IndicatorConfig[],
@@ -80,6 +89,22 @@ export const useTradingStore = create<TradingState>()(
       setChartType: (chartType) => set({ chartType }),
 
       setTimeframe: (timeframe) => set({ timeframe }),
+
+      addOverlaySymbol: (symbol) =>
+        set((state) => {
+          // Don't add if already exists or is the active symbol
+          if (state.overlaySymbols.includes(symbol) || state.activeSymbol === symbol) return state;
+          // Limit to 4 overlays
+          if (state.overlaySymbols.length >= 4) return state;
+          return { overlaySymbols: [...state.overlaySymbols, symbol] };
+        }),
+
+      removeOverlaySymbol: (symbol) =>
+        set((state) => ({
+          overlaySymbols: state.overlaySymbols.filter((s) => s !== symbol),
+        })),
+
+      clearOverlays: () => set({ overlaySymbols: [] }),
 
       addIndicator: (type) =>
         set((state) => {

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/command';
 import { useSearchPaletteStore } from '@/hooks/useKeyboardShortcuts';
 import { useTradingStore } from '@/lib/stores/trading-store';
-import { TrendingUp, Star, Clock, BarChart3, DollarSign } from 'lucide-react';
+import { TrendingUp, Star, Clock, BarChart3, DollarSign, Layers } from 'lucide-react';
 
 // Popular symbols for quick access
 const POPULAR_SYMBOLS = [
@@ -43,7 +43,7 @@ interface SymbolResult {
 
 export function SymbolSearchDialog() {
   const { isSearchOpen, setSearchOpen, searchQuery, setSearchQuery } = useSearchPaletteStore();
-  const { setActiveSymbol } = useTradingStore();
+  const { activeSymbol, setActiveSymbol, overlaySymbols, addOverlaySymbol } = useTradingStore();
   const [recentSymbols, setRecentSymbols] = useState<SymbolResult[]>([]);
 
   // Filter symbols based on query
@@ -77,6 +77,23 @@ export function SymbolSearchDialog() {
       return [{ symbol, name, type }, ...filtered].slice(0, 5);
     });
   }, [setActiveSymbol, setSearchOpen]);
+
+  const handleCompare = useCallback((symbol: string, name: string, type: string) => {
+    // Add as overlay symbol instead of replacing active symbol
+    addOverlaySymbol(symbol);
+    setSearchOpen(false);
+
+    // Add to recent
+    setRecentSymbols((prev) => {
+      const filtered = prev.filter((s) => s.symbol !== symbol);
+      return [{ symbol, name, type }, ...filtered].slice(0, 5);
+    });
+  }, [addOverlaySymbol, setSearchOpen]);
+
+  // Check if symbol can be added as comparison
+  const canCompare = (symbol: string) => {
+    return symbol !== activeSymbol && !overlaySymbols.includes(symbol) && overlaySymbols.length < 4;
+  };
 
   // Check if query looks like a valid symbol to offer direct search
   const canSearchDirectly = searchQuery.length >= 1 && searchQuery.length <= 6 && /^[A-Za-z.]+$/.test(searchQuery);
@@ -132,6 +149,7 @@ export function SymbolSearchDialog() {
                 key={item.symbol}
                 value={item.symbol}
                 onSelect={() => handleSelect(item.symbol, item.name, item.type)}
+                className="group"
               >
                 {item.type === 'ETF' ? (
                   <Star className="h-4 w-4 mr-2 text-yellow-500" />
@@ -139,7 +157,19 @@ export function SymbolSearchDialog() {
                   <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
                 )}
                 <span className="font-medium">{item.symbol}</span>
-                <span className="ml-2 text-muted-foreground text-xs truncate">{item.name}</span>
+                <span className="ml-2 text-muted-foreground text-xs truncate flex-1">{item.name}</span>
+                {canCompare(item.symbol) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCompare(item.symbol, item.name, item.type);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-opacity mr-2"
+                  >
+                    <Layers className="h-3 w-3" />
+                    Compare
+                  </button>
+                )}
                 <CommandShortcut>{item.type}</CommandShortcut>
               </CommandItem>
             ))}
