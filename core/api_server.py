@@ -1093,15 +1093,20 @@ class DeepStackAPIServer:
 
     def _initialize_components(self):
         """Initialize trading components synchronously."""
+        # Initialize IBKR client (optional - may fail if IBKR not available)
         try:
-            # Initialize IBKR client
             if (
                 self.config.trading.mode == "live"
                 or self.config.trading.mode == "paper"
             ):
                 self.ibkr_client = IBKRClient(self.config)
+                logger.info("IBKR client initialized")
+        except Exception as e:
+            logger.warning(f"IBKR client init failed (optional): {e}")
+            # Continue - IBKR is not required for data-only operations
 
-            # Initialize Alpaca client
+        # Initialize Alpaca client (required for market data/news)
+        try:
             alpaca_key = self.config.alpaca_api_key
             alpaca_secret = self.config.alpaca_secret_key
             has_key = bool(alpaca_key)
@@ -1113,24 +1118,32 @@ class DeepStackAPIServer:
                     secret_key=alpaca_secret,
                 )
                 logger.info("Alpaca client initialized successfully")
+            else:
+                logger.warning("Alpaca credentials not provided")
+        except Exception as e:
+            logger.error(f"Alpaca client init failed: {e}")
 
-            # Initialize paper trader
-            if self.config.trading.mode == "paper":
+        # Initialize paper trader (optional)
+        try:
+            if self.config.trading.mode == "paper" and self.ibkr_client:
                 self.paper_trader = PaperTrader(self.config, self.ibkr_client)
+                logger.info("Paper trader initialized")
+        except Exception as e:
+            logger.warning(f"Paper trader init failed (optional): {e}")
 
-            # Initialize order manager
+        # Initialize order manager (optional)
+        try:
             from ..risk.portfolio_risk import PortfolioRisk
 
             risk_manager = PortfolioRisk(self.config)
             self.order_manager = OrderManager(
                 self.config, self.ibkr_client, self.paper_trader, risk_manager
             )
-
-            logger.info("Trading components initialized successfully")
-
+            logger.info("Order manager initialized")
         except Exception as e:
-            logger.error(f"Error initializing trading components: {e}")
-            # Don't raise - allow server to start even if components fail
+            logger.warning(f"Order manager init failed (optional): {e}")
+
+        logger.info("Component initialization complete")
 
     async def initialize_trading_components(self):
         """Initialize trading components (IBKR client, paper trader, etc.)."""
