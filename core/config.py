@@ -257,7 +257,7 @@ class Config(BaseModel):
         Returns:
             Config object
         """
-        # Load environment variables
+        # Load env vars - only include if set (avoid None overwriting defaults)
         alpaca_key = os.getenv("ALPACA_API_KEY")
         alpaca_secret = os.getenv("ALPACA_SECRET_KEY")
         logger.info(
@@ -265,15 +265,20 @@ class Config(BaseModel):
             f"ALPACA_SECRET_KEY present: {bool(alpaca_secret)}"
         )
 
-        env_config = {
+        # Start with env vars that have defaults (always include)
+        env_config: Dict[str, Any] = {
             "ibkr_host": os.getenv("IBKR_HOST", "127.0.0.1"),
             "ibkr_port": int(os.getenv("IBKR_PORT", "7497")),
             "ibkr_client_id": int(os.getenv("IBKR_CLIENT_ID", "1")),
-            "alpaca_api_key": alpaca_key,
-            "alpaca_secret_key": alpaca_secret,
             "alpaca_base_url": os.getenv(
                 "ALPACA_BASE_URL", "https://paper-api.alpaca.markets"
             ),
+        }
+
+        # Optional env vars - only include if set (don't overwrite defaults with None)
+        optional_env_vars = {
+            "alpaca_api_key": alpaca_key,
+            "alpaca_secret_key": alpaca_secret,
             "alpha_vantage_api_key": os.getenv("ALPHA_VANTAGE_API_KEY"),
             "anthropic_api_key": os.getenv("ANTHROPIC_API_KEY"),
             "llm_model": os.getenv("LLM_MODEL"),
@@ -281,6 +286,11 @@ class Config(BaseModel):
             "deepseek_api_key": os.getenv("DEEPSEEK_API_KEY"),
             "xai_api_key": os.getenv("XAI_API_KEY"),
         }
+
+        # Only add optional vars if they have values
+        for key, value in optional_env_vars.items():
+            if value is not None:
+                env_config[key] = value
 
         # Merge with config dict
         config_dict.update(env_config)
