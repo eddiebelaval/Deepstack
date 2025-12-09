@@ -1096,11 +1096,17 @@ class DeepStackAPIServer:
                 self.ibkr_client = IBKRClient(self.config)
 
             # Initialize Alpaca client
-            if self.config.alpaca_api_key and self.config.alpaca_secret_key:
+            alpaca_key = self.config.alpaca_api_key
+            alpaca_secret = self.config.alpaca_secret_key
+            has_key = bool(alpaca_key)
+            has_secret = bool(alpaca_secret)
+            logger.info(f"Alpaca config: key={has_key}, secret={has_secret}")
+            if alpaca_key and alpaca_secret:
                 self.alpaca_client = AlpacaClient(
-                    api_key=self.config.alpaca_api_key,
-                    secret_key=self.config.alpaca_secret_key,
+                    api_key=alpaca_key,
+                    secret_key=alpaca_secret,
                 )
+                logger.info("Alpaca client initialized successfully")
 
             # Initialize paper trader
             if self.config.trading.mode == "paper":

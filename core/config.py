@@ -258,12 +258,19 @@ class Config(BaseModel):
             Config object
         """
         # Load environment variables
+        alpaca_key = os.getenv("ALPACA_API_KEY")
+        alpaca_secret = os.getenv("ALPACA_SECRET_KEY")
+        logger.info(
+            f"Config loading - ALPACA_API_KEY present: {bool(alpaca_key)}, "
+            f"ALPACA_SECRET_KEY present: {bool(alpaca_secret)}"
+        )
+
         env_config = {
             "ibkr_host": os.getenv("IBKR_HOST", "127.0.0.1"),
             "ibkr_port": int(os.getenv("IBKR_PORT", "7497")),
             "ibkr_client_id": int(os.getenv("IBKR_CLIENT_ID", "1")),
-            "alpaca_api_key": os.getenv("ALPACA_API_KEY"),
-            "alpaca_secret_key": os.getenv("ALPACA_SECRET_KEY"),
+            "alpaca_api_key": alpaca_key,
+            "alpaca_secret_key": alpaca_secret,
             "alpaca_base_url": os.getenv(
                 "ALPACA_BASE_URL", "https://paper-api.alpaca.markets"
             ),
