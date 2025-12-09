@@ -19,10 +19,12 @@ import {
     TrendingDown,
     Settings2,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Settings
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
 
 type WidgetType = 'watchlist' | 'quickStats' | 'marketStatus' | 'positions';
 
@@ -41,7 +43,7 @@ const DEFAULT_WIDGETS: WidgetConfig[] = [
 ];
 
 // Watchlist Widget Component
-function WatchlistWidget() {
+function WatchlistWidget({ onSettingsClick }: { onSettingsClick: () => void }) {
     const { quotes } = useMarketDataStore();
     const { getActiveWatchlist } = useWatchlistStore();
     const watchlist = getActiveWatchlist();
@@ -159,17 +161,19 @@ function WidgetCard({
     config,
     onRemove,
     isCollapsed,
-    onToggleCollapse
+    onToggleCollapse,
+    onSettings
 }: {
     config: WidgetConfig;
     onRemove: () => void;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
+    onSettings?: () => void;
 }) {
     const renderContent = () => {
         switch (config.type) {
             case 'watchlist':
-                return <WatchlistWidget />;
+                return <WatchlistWidget onSettingsClick={onSettings || (() => {})} />;
             case 'quickStats':
                 return <QuickStatsWidget />;
             case 'marketStatus':
@@ -185,6 +189,21 @@ function WidgetCard({
                 <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                 <config.icon className="h-4 w-4 text-primary" />
                 <CardTitle className="text-sm font-medium flex-1">{config.title}</CardTitle>
+                {onSettings && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded-md"
+                                onClick={onSettings}
+                            >
+                                <Settings className="h-3 w-3" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Manage Watchlists</TooltipContent>
+                    </Tooltip>
+                )}
                 <Button
                     variant="ghost"
                     size="icon"
@@ -216,6 +235,7 @@ function WidgetCard({
 export function WidgetPanel() {
     const { rightSidebarOpen, setRightSidebarOpen } = useUIStore();
     const [widgets, setWidgets] = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
+    const [showWatchlistManagement, setShowWatchlistManagement] = useState(false);
     const widgetScrollRef = useRef<HTMLDivElement>(null);
 
     const removeWidget = (id: string) => {
@@ -226,6 +246,12 @@ export function WidgetPanel() {
         setWidgets(widgets.map(w =>
             w.id === id ? { ...w, isCollapsed: !w.isCollapsed } : w
         ));
+    };
+
+    const handleWidgetSettings = (widgetType: WidgetType) => {
+        if (widgetType === 'watchlist') {
+            setShowWatchlistManagement(true);
+        }
     };
 
     if (!rightSidebarOpen) return null;
@@ -272,6 +298,7 @@ export function WidgetPanel() {
                                     onRemove={() => removeWidget(widget.id)}
                                     isCollapsed={widget.isCollapsed}
                                     onToggleCollapse={() => toggleCollapse(widget.id)}
+                                    onSettings={widget.type === 'watchlist' ? () => handleWidgetSettings(widget.type) : undefined}
                                 />
                             ))}
 
@@ -299,6 +326,12 @@ export function WidgetPanel() {
                     </Button>
                 </div>
             </aside>
+
+            {/* Watchlist Management Dialog */}
+            <WatchlistManagementDialog
+                open={showWatchlistManagement}
+                onOpenChange={setShowWatchlistManagement}
+            />
         </TooltipProvider>
     );
 }

@@ -12,9 +12,11 @@ import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store
 import { useUIStore } from '@/lib/stores/ui-store';
 import { LazyMultiSeriesChart } from '@/components/lazy';
 import { type SeriesData } from '@/components/charts/MultiSeriesChart';
-import { Loader2, ChevronRight, Plus, X, Pencil, RotateCcw } from 'lucide-react';
+import { Loader2, ChevronRight, Plus, X, Pencil, RotateCcw, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BetsCarousel } from '@/components/prediction-markets';
+import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
+import { SymbolSearchDialog } from '@/components/trading/SymbolSearchDialog';
 
 // DeepStack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
@@ -179,6 +181,10 @@ export function HomeWidgets() {
     const [newSymbolInput, setNewSymbolInput] = useState('');
     const symbolInputRef = useRef<HTMLInputElement>(null);
 
+    // Watchlist dialog state
+    const [showWatchlistManagement, setShowWatchlistManagement] = useState(false);
+    const [showSymbolSearch, setShowSymbolSearch] = useState(false);
+
     // State for series data
     const [seriesData, setSeriesData] = useState<SeriesData[]>([]);
     const [visibleSymbols, setVisibleSymbols] = useState<Set<string>>(new Set());
@@ -197,7 +203,12 @@ export function HomeWidgets() {
         resetCustom,
     } = useMarketWatchStore();
 
-    const { getActiveWatchlist } = useWatchlistStore();
+    const {
+        getActiveWatchlist,
+        addSymbol: addWatchlistSymbol,
+        removeSymbol: removeWatchlistSymbol,
+        activeWatchlistId,
+    } = useWatchlistStore();
     const activeWatchlist = getActiveWatchlist();
 
     // Prediction markets store and UI store for navigation
@@ -213,7 +224,8 @@ export function HomeWidgets() {
 
     // Determine which tab type we're on for store operations
     const currentTabType = activeTab === 'market' ? 'indices' : activeTab === 'crypto' ? 'crypto' : activeTab === 'custom' ? 'custom' : null;
-    const canEdit = currentTabType !== null && activeTab !== 'watchlist' && activeTab !== 'predictions';
+    const canEdit = activeTab !== 'predictions';
+    const isWatchlistTab = activeTab === 'watchlist';
 
     // Add symbol to current tab
     const handleAddSymbol = () => {
@@ -227,7 +239,9 @@ export function HomeWidgets() {
 
     // Remove symbol from current tab
     const handleRemoveSymbol = (symbol: string) => {
-        if (currentTabType) {
+        if (isWatchlistTab && activeWatchlistId) {
+            removeWatchlistSymbol(activeWatchlistId, symbol);
+        } else if (currentTabType) {
             removeSymbol(currentTabType, symbol);
         }
     };
@@ -396,75 +410,102 @@ export function HomeWidgets() {
                         {/* Edit mode controls - show on editable tabs */}
                         {canEdit && (
                             <div className="flex items-center gap-1">
-                                {/* Edit toggle button */}
-                                <Button
-                                    variant={isEditMode ? "secondary" : "ghost"}
-                                    size="icon"
-                                    className={cn(
-                                        "h-7 w-7 transition-colors",
-                                        isEditMode && "bg-primary/10 text-primary"
-                                    )}
-                                    onClick={toggleEditMode}
-                                    title={isEditMode ? "Exit edit mode" : "Edit symbols"}
-                                >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-
-                                {/* Reset button - only show in edit mode */}
-                                {isEditMode && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                        onClick={handleReset}
-                                        title="Reset to defaults"
-                                    >
-                                        <RotateCcw className="h-3.5 w-3.5" />
-                                    </Button>
-                                )}
-
-                                {/* Add Symbol - show in edit mode or when adding */}
-                                {(isEditMode || isAddingSymbol) && (
-                                    isAddingSymbol ? (
-                                        <form
-                                            onSubmit={(e) => { e.preventDefault(); handleAddSymbol(); }}
-                                            className="flex items-center gap-1"
+                                {isWatchlistTab ? (
+                                    // Watchlist-specific controls
+                                    <>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() => setShowWatchlistManagement(true)}
+                                            title="Manage watchlists"
                                         >
-                                            <Input
-                                                ref={symbolInputRef}
-                                                type="text"
-                                                value={newSymbolInput}
-                                                onChange={(e) => setNewSymbolInput(e.target.value.toUpperCase())}
-                                                onKeyDown={(e) => e.key === 'Escape' && setIsAddingSymbol(false)}
-                                                placeholder={activeTab === 'crypto' ? "BTC/USD" : "SYMBOL"}
-                                                className="h-7 w-24 text-xs uppercase px-2"
-                                                maxLength={10}
-                                            />
-                                            <Button type="submit" size="icon" variant="ghost" className="h-7 w-7">
-                                                <Plus className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-7 w-7"
-                                                onClick={() => { setNewSymbolInput(''); setIsAddingSymbol(false); }}
-                                            >
-                                                <X className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </form>
-                                    ) : (
+                                            <Settings className="h-3.5 w-3.5" />
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             className="h-7 px-2 text-xs gap-1"
-                                            onClick={() => setIsAddingSymbol(true)}
-                                            disabled={symbols.length >= 8}
+                                            onClick={() => setShowSymbolSearch(true)}
                                         >
                                             <Plus className="h-3.5 w-3.5" />
                                             Add
                                         </Button>
-                                    )
+                                    </>
+                                ) : (
+                                    // Market watch controls (indices, crypto, custom)
+                                    <>
+                                        {/* Edit toggle button */}
+                                        <Button
+                                            variant={isEditMode ? "secondary" : "ghost"}
+                                            size="icon"
+                                            className={cn(
+                                                "h-7 w-7 transition-colors",
+                                                isEditMode && "bg-primary/10 text-primary"
+                                            )}
+                                            onClick={toggleEditMode}
+                                            title={isEditMode ? "Exit edit mode" : "Edit symbols"}
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </Button>
+
+                                        {/* Reset button - only show in edit mode */}
+                                        {isEditMode && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                                onClick={handleReset}
+                                                title="Reset to defaults"
+                                            >
+                                                <RotateCcw className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+
+                                        {/* Add Symbol - show in edit mode or when adding */}
+                                        {(isEditMode || isAddingSymbol) && (
+                                            isAddingSymbol ? (
+                                                <form
+                                                    onSubmit={(e) => { e.preventDefault(); handleAddSymbol(); }}
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    <Input
+                                                        ref={symbolInputRef}
+                                                        type="text"
+                                                        value={newSymbolInput}
+                                                        onChange={(e) => setNewSymbolInput(e.target.value.toUpperCase())}
+                                                        onKeyDown={(e) => e.key === 'Escape' && setIsAddingSymbol(false)}
+                                                        placeholder={activeTab === 'crypto' ? "BTC/USD" : "SYMBOL"}
+                                                        className="h-7 w-24 text-xs uppercase px-2"
+                                                        maxLength={10}
+                                                    />
+                                                    <Button type="submit" size="icon" variant="ghost" className="h-7 w-7">
+                                                        <Plus className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-7 w-7"
+                                                        onClick={() => { setNewSymbolInput(''); setIsAddingSymbol(false); }}
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </form>
+                                            ) : (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs gap-1"
+                                                    onClick={() => setIsAddingSymbol(true)}
+                                                    disabled={symbols.length >= 8}
+                                                >
+                                                    <Plus className="h-3.5 w-3.5" />
+                                                    Add
+                                                </Button>
+                                            )
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}
@@ -610,7 +651,7 @@ export function HomeWidgets() {
                                     color={metric.color}
                                     isVisible={visibleSymbols.has(metric.symbol)}
                                     onClick={() => toggleSymbol(metric.symbol)}
-                                    onRemove={isEditMode && canEdit ? () => handleRemoveSymbol(metric.symbol) : undefined}
+                                    onRemove={(isEditMode && canEdit) ? () => handleRemoveSymbol(metric.symbol) : undefined}
                                     isCrypto={isCrypto}
                                     showRemoveAlways={isEditMode}
                                 />
@@ -637,6 +678,16 @@ export function HomeWidgets() {
                     </div>
                 )}
             </Card>
+
+            {/* Watchlist Management Dialogs */}
+            <WatchlistManagementDialog
+                open={showWatchlistManagement}
+                onOpenChange={setShowWatchlistManagement}
+            />
+            <SymbolSearchDialog
+                open={showSymbolSearch}
+                onOpenChange={setShowSymbolSearch}
+            />
         </div>
     );
 }

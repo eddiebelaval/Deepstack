@@ -4,9 +4,8 @@ import React from 'react';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { HomeWidgets } from '@/components/chat/HomeWidgets';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ChevronDown, LineChart, X } from 'lucide-react';
+import { ChevronDown, LineChart } from 'lucide-react';
 
 // Fixed dimensions - no resizing, solid panel feel
 const COLLAPSED_TAB_HEIGHT = 44; // Height of the tab when collapsed
@@ -23,7 +22,6 @@ export function MarketWatchPanel() {
   const {
     marketWatchPanel,
     toggleMarketWatchPanel,
-    closeMarketWatchPanel,
     leftSidebarOpen,
     rightSidebarOpen,
   } = useUIStore();
@@ -87,16 +85,6 @@ export function MarketWatchPanel() {
           </div>
         </button>
 
-        {/* Right: Close button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive transition-colors"
-          onClick={closeMarketWatchPanel}
-          aria-label="Close Market Watch panel"
-        >
-          <X className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Content - Only visible when expanded, no scroll needed */}

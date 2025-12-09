@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import NextImage from "next/image";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useUIStore } from '@/lib/stores/ui-store';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { UserMenu } from '@/components/auth/UserMenu';
+import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
 import {
     MessageSquare,
     Plus,
@@ -18,7 +19,8 @@ import {
     X,
     Lightbulb,
     BookOpen,
-    Brain
+    Brain,
+    ListChecks
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -27,6 +29,7 @@ export function LeftSidebar() {
     const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
     const { isMobile, isTablet, isDesktop } = useIsMobile();
     const chatHistoryRef = useRef<HTMLDivElement>(null);
+    const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
 
     const handleNewChat = () => {
         setCurrentConversation(null);
@@ -264,6 +267,25 @@ export function LeftSidebar() {
                         </TooltipTrigger>
                         {!showExpanded && <TooltipContent side="right">AI Insights</TooltipContent>}
                     </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2"
+                                )}
+                                onClick={() => {
+                                    setWatchlistDialogOpen(true);
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <ListChecks className="h-4 w-4 shrink-0 text-green-500" />
+                                {showExpanded && <span className="ml-2">Watchlists</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">Manage Watchlist</TooltipContent>}
+                    </Tooltip>
                 </div>
 
                 {/* Chat History */}
@@ -314,6 +336,12 @@ export function LeftSidebar() {
                     )}
                 </div>
             </aside>
+
+            {/* Watchlist Management Dialog */}
+            <WatchlistManagementDialog
+                open={watchlistDialogOpen}
+                onOpenChange={setWatchlistDialogOpen}
+            />
         </TooltipProvider>
     );
 }

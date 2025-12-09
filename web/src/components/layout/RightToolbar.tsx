@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/lib/stores/ui-store';
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
+import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
 
 type ToolbarItem = {
     id: string;
@@ -62,12 +63,18 @@ export function RightToolbar() {
         toggleRightSidebar
     } = useUIStore();
 
+    // State for watchlist management dialog
+    const [showWatchlistManagement, setShowWatchlistManagement] = useState(false);
+
     const handleToolClick = (toolId: string) => {
         if (toolId === 'widgets') {
             toggleRightSidebar();
         } else if (toolId === 'chart') {
             setActiveContent(activeContent === 'chart' ? 'none' : 'chart');
-        } else if (toolId === 'watchlist' || toolId === 'positions') {
+        } else if (toolId === 'watchlist') {
+            // Open watchlist management dialog directly
+            setShowWatchlistManagement(true);
+        } else if (toolId === 'positions') {
             // Open widget panel with that widget focused
             if (!rightSidebarOpen) toggleRightSidebar();
         } else if (toolId === 'orders') {
@@ -174,6 +181,12 @@ export function RightToolbar() {
                     ))}
                 </div>
             </aside>
+
+            {/* Watchlist Management Dialog */}
+            <WatchlistManagementDialog
+                open={showWatchlistManagement}
+                onOpenChange={setShowWatchlistManagement}
+            />
         </TooltipProvider>
     );
 }
