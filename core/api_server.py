@@ -264,7 +264,13 @@ class DeepStackAPIServer:
             """Get market news."""
             try:
                 if not self.alpaca_client:
-                    logger.warning("Alpaca client not initialized")
+                    # Debug: log config values to understand why client is None
+                    key = bool(self.config.alpaca_api_key)
+                    secret = bool(self.config.alpaca_secret_key)
+                    logger.warning(
+                        f"Alpaca client not initialized. "
+                        f"Config key={key}, secret={secret}"
+                    )
                     return {"news": []}
 
                 articles = await self.alpaca_client.get_news(symbol=symbol, limit=limit)
