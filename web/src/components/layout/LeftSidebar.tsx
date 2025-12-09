@@ -22,7 +22,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function LeftSidebar() {
-    const { leftSidebarOpen, toggleLeftSidebar, setLeftSidebarOpen, toggleProfile, toggleSettings, profileOpen, settingsOpen } = useUIStore();
+    const { leftSidebarOpen, toggleLeftSidebar, setLeftSidebarOpen, toggleProfile, toggleSettings, profileOpen, settingsOpen, activeContent, setActiveContent } = useUIStore();
     const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
     const { isMobile, isTablet, isDesktop } = useIsMobile();
     const chatHistoryRef = useRef<HTMLDivElement>(null);
@@ -198,13 +198,14 @@ export function LeftSidebar() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant="ghost"
+                                variant={activeContent === 'thesis' ? "secondary" : "ghost"}
                                 className={cn(
                                     "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
-                                    !showExpanded && "justify-center px-2"
+                                    !showExpanded && "justify-center px-2",
+                                    activeContent === 'thesis' && "bg-primary/20 text-primary"
                                 )}
                                 onClick={() => {
-                                    window.location.href = '/thesis';
+                                    setActiveContent(activeContent === 'thesis' ? 'none' : 'thesis');
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >
@@ -217,13 +218,14 @@ export function LeftSidebar() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant="ghost"
+                                variant={activeContent === 'journal' ? "secondary" : "ghost"}
                                 className={cn(
                                     "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
-                                    !showExpanded && "justify-center px-2"
+                                    !showExpanded && "justify-center px-2",
+                                    activeContent === 'journal' && "bg-primary/20 text-primary"
                                 )}
                                 onClick={() => {
-                                    window.location.href = '/journal';
+                                    setActiveContent(activeContent === 'journal' ? 'none' : 'journal');
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >
@@ -236,13 +238,14 @@ export function LeftSidebar() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant="ghost"
+                                variant={activeContent === 'insights' ? "secondary" : "ghost"}
                                 className={cn(
                                     "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
-                                    !showExpanded && "justify-center px-2"
+                                    !showExpanded && "justify-center px-2",
+                                    activeContent === 'insights' && "bg-primary/20 text-primary"
                                 )}
                                 onClick={() => {
-                                    window.location.href = '/insights';
+                                    setActiveContent(activeContent === 'insights' ? 'none' : 'insights');
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >

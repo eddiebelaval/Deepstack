@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useNewsStore, NewsArticle } from '@/lib/stores/news-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
+import { RelatedPredictionMarkets } from '@/components/news/RelatedPredictionMarkets';
 
 const SENTIMENT_CONFIG = {
   positive: {
@@ -272,6 +273,13 @@ function ArticleCard({
               </>
             )}
           </div>
+
+          {/* Related Prediction Markets */}
+          <RelatedPredictionMarkets
+            headline={article.headline}
+            summary={article.summary}
+            symbols={article.symbols}
+          />
         </div>
       </div>
     </div>

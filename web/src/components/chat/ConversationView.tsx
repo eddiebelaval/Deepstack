@@ -29,6 +29,9 @@ import { CalendarPanel } from '@/components/trading/CalendarPanel';
 import { NewsPanel } from '@/components/trading/NewsPanel';
 import { OptionsScreenerPanel, OptionsStrategyBuilder } from '@/components/options';
 import { PredictionMarketsPanel } from '@/components/prediction-markets';
+import { JournalList } from '@/components/journal/JournalList';
+import { ThesisList } from '@/components/thesis/ThesisList';
+import { InsightsPanel } from '@/components/insights/InsightsPanel';
 import { PresetGrid } from './PresetGrid';
 import { HomeWidgets } from './HomeWidgets';
 import { cn } from '@/lib/utils';
@@ -410,6 +413,27 @@ export function ConversationView() {
                 </div>
             );
         }
+        if (activeContent === 'thesis') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
+                    <ThesisList />
+                </div>
+            );
+        }
+        if (activeContent === 'journal') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
+                    <JournalList />
+                </div>
+            );
+        }
+        if (activeContent === 'insights') {
+            return (
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide bg-card border-t border-border/50">
+                    <InsightsPanel />
+                </div>
+            );
+        }
         return null;
     };
 
@@ -573,6 +597,9 @@ export function ConversationView() {
                                 {activeContent === 'calendar' && 'Market Calendar'}
                                 {activeContent === 'news' && 'Market News'}
                                 {activeContent === 'prediction-markets' && 'Prediction Markets'}
+                                {activeContent === 'thesis' && 'Thesis Engine'}
+                                {activeContent === 'journal' && 'Trade Journal'}
+                                {activeContent === 'insights' && 'AI Insights'}
                             </span>
                             <div className="flex items-center gap-1">
                                 {/* Size preset buttons */}
