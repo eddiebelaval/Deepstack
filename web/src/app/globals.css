@@ -391,6 +391,31 @@
   .scroll-smooth-ios {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Remove tap highlight on iOS */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* GPU acceleration for smooth animations */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Prevent rubber-banding on main container */
+  .no-overscroll {
+    overscroll-behavior: none;
+  }
+
+  /* Smooth momentum scrolling on all scrollable areas */
+  [data-slot="scroll-area-viewport"],
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Touch action rules for proper gesture handling */

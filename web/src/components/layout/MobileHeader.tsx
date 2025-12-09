@@ -14,7 +14,7 @@ export function MobileHeader() {
     const { toggleLeftSidebar, setActiveContent } = useUIStore();
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 bg-sidebar/95 backdrop-blur-md border-b border-sidebar-border">
+        <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 bg-sidebar/95 backdrop-blur-md border-b border-sidebar-border safe-area-top" style={{ minHeight: 'calc(56px + env(safe-area-inset-top, 0px))', paddingTop: 'max(8px, env(safe-area-inset-top, 0px))' }}>
             {/* Left: Hamburger Menu */}
             <Button
                 variant="ghost"
