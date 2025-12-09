@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 type Message = any; // import { Message } from '@ai-sdk/react';
 import { MessageBubble } from './MessageBubble';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Sparkles } from 'lucide-react';
 
 type MessageListProps = {
@@ -53,7 +52,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   }
 
   return (
-    <ScrollArea className="flex-1 px-4">
+    <div className="flex-1 px-4">
       <div className="max-w-3xl mx-auto py-6">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
@@ -71,6 +70,6 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
 
         <div ref={bottomRef} />
       </div>
-    </ScrollArea>
+    </div>
   );
 }

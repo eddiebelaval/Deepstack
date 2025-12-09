@@ -11,6 +11,7 @@ import { LazyMultiSeriesChart } from '@/components/lazy';
 import { type SeriesData } from '@/components/charts/MultiSeriesChart';
 import { Loader2, ChevronRight, Plus, X, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BetsCarousel } from '@/components/prediction-markets';
 
 // DeepStack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
@@ -126,7 +127,7 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function HomeWidgets() {
-    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto' | 'custom'>('market');
+    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto' | 'custom' | 'predictions'>('market');
     const [timeframe, setTimeframe] = useState('1D');
     const [isLogScale, setIsLogScale] = useState(false);
     const [displayMode, setDisplayMode] = useState<'$' | '%'>('%'); // Default to % like Webull
@@ -372,6 +373,7 @@ export function HomeWidgets() {
                         {[
                             { key: 'market', label: 'Indices' },
                             { key: 'crypto', label: 'Crypto' },
+                            { key: 'predictions', label: 'Bets' },
                             { key: 'watchlist', label: 'Watchlist' },
                             { key: 'custom', label: 'Custom' }
                         ].map(tab => (
@@ -391,125 +393,147 @@ export function HomeWidgets() {
                     </div>
                 </div>
 
-                {/* Chart Area with Percentage Labels Overlay */}
+                {/* Content Area - Chart or Predictions */}
                 <div className="relative h-[280px] w-full rounded-lg bg-background/40 border border-border/20 overflow-hidden">
-                    {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 backdrop-blur-[1px]">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        </div>
-                    )}
-
-                    {seriesData.length > 0 ? (
-                        <>
-                            <LazyMultiSeriesChart
-                                series={displaySeries}
-                                logScale={isLogScale}
+                    {activeTab === 'predictions' ? (
+                        <div className="h-full p-3">
+                            <BetsCarousel
+                                onMarketSelect={(market) => {
+                                    console.log('Selected market:', market);
+                                    // TODO: Navigate to prediction markets panel with selected market
+                                }}
+                                onViewAll={() => {
+                                    console.log('View all markets');
+                                    // TODO: Navigate to prediction markets panel
+                                }}
                             />
-                            {/* Removed misaligned static labels overlay. Values are best shown on axis or via legend. */}
-                        </>
+                        </div>
                     ) : (
-                        !isLoading && (
-                            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                                No data available
-                            </div>
-                        )
+                        <>
+                            {isLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 backdrop-blur-[1px]">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                            )}
+
+                            {seriesData.length > 0 ? (
+                                <>
+                                    <LazyMultiSeriesChart
+                                        series={displaySeries}
+                                        logScale={isLogScale}
+                                    />
+                                </>
+                            ) : (
+                                !isLoading && (
+                                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                                        No data available
+                                    </div>
+                                )
+                            )}
+                        </>
                     )}
                 </div>
 
-                {/* Controls Row */}
-                <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
-                    {/* Timeframe Pills */}
-                    <div className="flex items-center bg-muted/30 rounded-lg p-0.5 border border-border/30">
-                        {TIMEFRAMES.map(tf => (
-                            <button
-                                key={tf}
-                                onClick={() => setTimeframe(tf)}
-                                className={cn(
-                                    "px-2.5 py-1 text-[10px] font-medium rounded-md transition-all",
-                                    timeframe === tf
-                                        ? "bg-primary/10 text-primary"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                {tf}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Display Mode & Log Scale */}
-                    <div className="flex items-center gap-3">
+                {/* Controls Row - Hidden for Predictions tab */}
+                {activeTab !== 'predictions' && (
+                    <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
+                        {/* Timeframe Pills */}
                         <div className="flex items-center bg-muted/30 rounded-lg p-0.5 border border-border/30">
-                            <button
-                                onClick={() => setDisplayMode('$')}
-                                className={cn(
-                                    "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
-                                    displayMode === '$'
-                                        ? "bg-primary/10 text-primary"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                $
-                            </button>
-                            <button
-                                onClick={() => setDisplayMode('%')}
-                                className={cn(
-                                    "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
-                                    displayMode === '%'
-                                        ? "bg-primary/10 text-primary"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                %
-                            </button>
+                            {TIMEFRAMES.map(tf => (
+                                <button
+                                    key={tf}
+                                    onClick={() => setTimeframe(tf)}
+                                    className={cn(
+                                        "px-2.5 py-1 text-[10px] font-medium rounded-md transition-all",
+                                        timeframe === tf
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {tf}
+                                </button>
+                            ))}
                         </div>
 
+                        {/* Display Mode & Log Scale */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center bg-muted/30 rounded-lg p-0.5 border border-border/30">
+                                <button
+                                    onClick={() => setDisplayMode('$')}
+                                    className={cn(
+                                        "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                                        displayMode === '$'
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    $
+                                </button>
+                                <button
+                                    onClick={() => setDisplayMode('%')}
+                                    className={cn(
+                                        "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                                        displayMode === '%'
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    %
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    id="log-scale"
+                                    checked={isLogScale}
+                                    onCheckedChange={setIsLogScale}
+                                    className="h-4 w-7"
+                                />
+                                <Label htmlFor="log-scale" className="text-xs text-muted-foreground cursor-pointer">LOG</Label>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Webull-Style Legend Cards - Hidden for Predictions tab */}
+                {activeTab !== 'predictions' && (
+                    <div className="mt-4 pt-4 border-t border-border/30">
+                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                            {seriesMetrics.map((metric) => metric && (
+                                <LegendCard
+                                    key={metric.symbol}
+                                    symbol={metric.symbol}
+                                    displayName={metric.displayName}
+                                    price={metric.price}
+                                    percentChange={metric.percentChange}
+                                    color={metric.color}
+                                    isVisible={visibleSymbols.has(metric.symbol)}
+                                    onClick={() => toggleSymbol(metric.symbol)}
+                                    onRemove={activeTab === 'custom' ? () => removeCustomSymbol(metric.symbol) : undefined}
+                                    isCrypto={isCrypto}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Footer with timestamp and See All - Hidden for Predictions tab */}
+                {activeTab !== 'predictions' && (
+                    <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
                         <div className="flex items-center gap-2">
-                            <Switch
-                                id="log-scale"
-                                checked={isLogScale}
-                                onCheckedChange={setIsLogScale}
-                                className="h-4 w-7"
+                            <div
+                                className={cn("h-2 w-2 rounded-full", isMockData ? "bg-yellow-500" : "bg-green-500")}
+                                title={isMockData ? "Using simulated data" : "Live data connection"}
                             />
-                            <Label htmlFor="log-scale" className="text-xs text-muted-foreground cursor-pointer">LOG</Label>
+                            <span>
+                                {lastUpdated ? formatTimeAgo(lastUpdated) : 'Loading...'}
+                            </span>
                         </div>
+                        <button className="flex items-center gap-0.5 hover:text-foreground transition-colors">
+                            See All <ChevronRight className="h-3 w-3" />
+                        </button>
                     </div>
-                </div>
-
-                {/* Webull-Style Legend Cards */}
-                <div className="mt-4 pt-4 border-t border-border/30">
-                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-                        {seriesMetrics.map((metric) => metric && (
-                            <LegendCard
-                                key={metric.symbol}
-                                symbol={metric.symbol}
-                                displayName={metric.displayName}
-                                price={metric.price}
-                                percentChange={metric.percentChange}
-                                color={metric.color}
-                                isVisible={visibleSymbols.has(metric.symbol)}
-                                onClick={() => toggleSymbol(metric.symbol)}
-                                onRemove={activeTab === 'custom' ? () => removeCustomSymbol(metric.symbol) : undefined}
-                                isCrypto={isCrypto}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Footer with timestamp and See All */}
-                <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                        <div
-                            className={cn("h-2 w-2 rounded-full", isMockData ? "bg-yellow-500" : "bg-green-500")}
-                            title={isMockData ? "Using simulated data" : "Live data connection"}
-                        />
-                        <span>
-                            {lastUpdated ? formatTimeAgo(lastUpdated) : 'Loading...'}
-                        </span>
-                    </div>
-                    <button className="flex items-center gap-0.5 hover:text-foreground transition-colors">
-                        See All <ChevronRight className="h-3 w-3" />
-                    </button>
-                </div>
+                )}
             </Card>
         </div>
     );

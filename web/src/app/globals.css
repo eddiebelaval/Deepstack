@@ -122,9 +122,19 @@
     @apply border-border outline-ring/50;
   }
 
+  html,
   body {
     @apply bg-background text-foreground;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
+}
+
+@utility app-height {
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* Frosted Glass System */

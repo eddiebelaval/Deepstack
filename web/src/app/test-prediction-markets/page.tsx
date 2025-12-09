@@ -10,7 +10,7 @@
  * - Filtering by source and category
  * - Search functionality
  * - Watchlist management
- * - Mock data fallback indicator
+ * - Service unavailable state indicator
  */
 
 import { useEffect, useState } from 'react';
@@ -24,7 +24,7 @@ export default function TestPredictionMarketsPage() {
     filters,
     isLoading,
     error,
-    isMockData,
+    isUnavailable,
     loadMarkets,
     searchMarkets,
     setFilters,
@@ -51,10 +51,10 @@ export default function TestPredictionMarketsPage() {
     <div className="container mx-auto p-6 max-w-6xl">
       <h1 className="text-3xl font-bold mb-6">Prediction Markets Test</h1>
 
-      {/* Mock Data Indicator */}
-      {isMockData && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-6">
-          <strong>Mock Data Mode:</strong> Backend unavailable, showing sample data
+      {/* Service Unavailable Indicator */}
+      {isUnavailable && (
+        <div className="bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded mb-6">
+          <strong>Service Unavailable:</strong> Prediction markets service is currently down. Please try again later.
         </div>
       )}
 

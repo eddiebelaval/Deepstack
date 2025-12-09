@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { usePredictionMarkets } from '@/hooks/usePredictionMarkets';
+import { usePredictionMarkets, type FeedType } from '@/hooks/usePredictionMarkets';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,13 +29,13 @@ import { cn } from '@/lib/utils';
 import {
     Search,
     TrendingUp,
+    Sparkles,
     ExternalLink,
     Eye,
     EyeOff,
     Link2,
     RefreshCw,
     AlertCircle,
-    Wifi,
     WifiOff,
 } from 'lucide-react';
 
@@ -51,10 +51,12 @@ export function PredictionMarketsPanel() {
         filters,
         isLoading,
         error,
-        isMockData,
+        isUnavailable,
+        feedType,
         loadMarkets,
         searchMarkets,
         setFilters,
+        setFeedType,
         toggleWatchlist,
         isInWatchlist,
     } = usePredictionMarkets();
@@ -64,10 +66,16 @@ export function PredictionMarketsPanel() {
     const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
     const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
 
-    // Load markets on mount and when filters change
+    // Load markets on mount and when filters/feed type change
     useEffect(() => {
-        loadMarkets();
-    }, [platformFilter, loadMarkets]);
+        loadMarkets(feedType);
+    }, [platformFilter, feedType, loadMarkets]);
+
+    // Handle feed type change
+    const handleFeedChange = useCallback((newFeed: FeedType) => {
+        setFeedType(newFeed);
+        loadMarkets(newFeed);
+    }, [setFeedType, loadMarkets]);
 
     // Apply filters to store
     useEffect(() => {
@@ -106,20 +114,13 @@ export function PredictionMarketsPanel() {
                             <TrendingUp className="h-5 w-5 text-primary" />
                             Prediction Markets
                         </h2>
-                        {/* Connection status */}
-                        <Badge variant={isMockData ? 'secondary' : 'outline'} className="text-xs">
-                            {isMockData ? (
-                                <>
-                                    <WifiOff className="h-3 w-3 mr-1" />
-                                    Cached
-                                </>
-                            ) : (
-                                <>
-                                    <Wifi className="h-3 w-3 mr-1 text-green-500" />
-                                    Live
-                                </>
-                            )}
-                        </Badge>
+                        {/* Connection status - only show when unavailable */}
+                        {isUnavailable && (
+                            <Badge variant="destructive" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/20">
+                                <WifiOff className="h-3 w-3 mr-1" />
+                                Service Unavailable
+                            </Badge>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         {watchlist.length > 0 && (
@@ -140,14 +141,30 @@ export function PredictionMarketsPanel() {
                     </div>
                 </div>
 
-                {/* Platform tabs */}
-                <Tabs value={platformFilter} onValueChange={(v) => setPlatformFilter(v as PlatformFilter)}>
-                    <TabsList className="grid grid-cols-3 w-fit">
-                        <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
-                        <TabsTrigger value="kalshi" className="text-xs px-3">Kalshi</TabsTrigger>
-                        <TabsTrigger value="polymarket" className="text-xs px-3">Polymarket</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                {/* Feed type tabs (Trending / New) */}
+                <div className="flex items-center gap-4">
+                    <Tabs value={feedType} onValueChange={(v) => handleFeedChange(v as FeedType)}>
+                        <TabsList className="grid grid-cols-2 w-fit">
+                            <TabsTrigger value="trending" className="text-xs px-4 gap-1.5">
+                                <TrendingUp className="h-3.5 w-3.5" />
+                                Trending
+                            </TabsTrigger>
+                            <TabsTrigger value="new" className="text-xs px-4 gap-1.5">
+                                <Sparkles className="h-3.5 w-3.5" />
+                                New
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+
+                    {/* Platform filter */}
+                    <Tabs value={platformFilter} onValueChange={(v) => setPlatformFilter(v as PlatformFilter)}>
+                        <TabsList className="grid grid-cols-3 w-fit">
+                            <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
+                            <TabsTrigger value="kalshi" className="text-xs px-3">Kalshi</TabsTrigger>
+                            <TabsTrigger value="polymarket" className="text-xs px-3">Polymarket</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
 
                 {/* Search and Categories */}
                 <div className="flex gap-2 flex-wrap">

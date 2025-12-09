@@ -15,7 +15,7 @@ Features:
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -24,6 +24,169 @@ from cachetools import TTLCache
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+
+def infer_category(title: str, description: Optional[str] = None) -> str:
+    """
+    Infer market category from title and description text.
+
+    Used when API doesn't provide category (e.g., Polymarket).
+
+    Args:
+        title: Market title/question
+        description: Optional market description
+
+    Returns:
+        Inferred category string
+    """
+    text = (title + " " + (description or "")).lower()
+
+    # Economics/Finance keywords
+    if any(
+        kw in text
+        for kw in [
+            "fed",
+            "rate",
+            "inflation",
+            "gdp",
+            "cpi",
+            "fomc",
+            "interest",
+            "treasury",
+            "bond",
+            "yield",
+            "unemployment",
+            "jobs",
+            "payroll",
+            "recession",
+            "tariff",
+            "trade war",
+        ]
+    ):
+        return "Economics"
+
+    # Crypto keywords
+    if any(
+        kw in text
+        for kw in [
+            "bitcoin",
+            "btc",
+            "ethereum",
+            "eth",
+            "crypto",
+            "solana",
+            "sol",
+            "dogecoin",
+            "doge",
+            "xrp",
+            "ripple",
+            "cardano",
+            "ada",
+            "polygon",
+            "avalanche",
+            "chainlink",
+            "uniswap",
+            "defi",
+            "nft",
+        ]
+    ):
+        return "Crypto"
+
+    # Stocks/Earnings keywords
+    if any(
+        kw in text
+        for kw in [
+            "stock",
+            "share",
+            "earnings",
+            "aapl",
+            "nvda",
+            "tsla",
+            "msft",
+            "amzn",
+            "googl",
+            "meta",
+            "price target",
+            "market cap",
+            "ipo",
+            "nasdaq",
+            "s&p",
+            "dow",
+            "spy",
+            "qqq",
+        ]
+    ):
+        return "Stocks"
+
+    # Politics keywords
+    if any(
+        kw in text
+        for kw in [
+            "election",
+            "president",
+            "congress",
+            "senate",
+            "house",
+            "vote",
+            "democrat",
+            "republican",
+            "trump",
+            "biden",
+            "governor",
+            "mayor",
+            "primary",
+            "caucus",
+            "impeach",
+            "supreme court",
+        ]
+    ):
+        return "Politics"
+
+    # Sports keywords
+    if any(
+        kw in text
+        for kw in [
+            "nfl",
+            "nba",
+            "mlb",
+            "nhl",
+            "super bowl",
+            "championship",
+            "playoffs",
+            "world series",
+            "stanley cup",
+            "finals",
+            "mvp",
+            "quarterback",
+            "touchdown",
+            "home run",
+            "soccer",
+            "fifa",
+        ]
+    ):
+        return "Sports"
+
+    # Commodities keywords
+    if any(
+        kw in text
+        for kw in [
+            "oil",
+            "gold",
+            "silver",
+            "copper",
+            "wheat",
+            "corn",
+            "natural gas",
+            "crude",
+            "brent",
+            "wti",
+            "commodity",
+            "opec",
+        ]
+    ):
+        return "Commodities"
+
+    return "Other"
 
 
 class Platform(str, Enum):
@@ -541,11 +704,20 @@ class PolymarketClient:
         # Fall back to market slug if no event slug available
         url_slug = event_slug or raw.get("slug", raw.get("id", ""))
 
+        # Extract title and description for category inference
+        title = raw.get("question", raw.get("title", ""))
+        description = raw.get("description")
+
+        # Get category from API or infer from title/description
+        category = raw.get("category")
+        if not category or category == "Unknown":
+            category = infer_category(title, description)
+
         return PredictionMarket(
             id=raw.get("conditionId", raw.get("id", "")),
             platform=Platform.POLYMARKET,
-            title=raw.get("question", raw.get("title", "")),
-            category=raw.get("category", "Unknown"),
+            title=title,
+            category=category,
             yes_price=yes_price,
             no_price=no_price,
             volume=float(raw.get("volume", 0)),
@@ -554,7 +726,7 @@ class PolymarketClient:
             end_date=end_date,
             status="active" if raw.get("active", True) else "closed",
             url=f"https://polymarket.com/event/{url_slug}",
-            description=raw.get("description"),
+            description=description,
         )
 
 
@@ -708,6 +880,93 @@ class PredictionMarketManager:
         except Exception as e:
             logger.error(f"Error getting market detail: {e}")
             return None
+
+    async def get_new_markets(
+        self, limit: int = 20, category: Optional[str] = None
+    ) -> List[PredictionMarket]:
+        """
+        Get recently created/opened markets from both platforms.
+
+        Polymarket API returns markets with 'startDate' or 'createdAt'.
+        Kalshi API returns markets with 'open_time'.
+
+        Args:
+            limit: Max markets to return
+            category: Optional category filter
+
+        Returns:
+            List of PredictionMarket sorted by creation date (newest first)
+        """
+        try:
+            # Fetch from both platforms in parallel
+            kalshi_task = self.kalshi.get_markets(status="open", limit=50)
+            polymarket_task = self.polymarket.get_markets(limit=50, active=True)
+
+            kalshi_data, polymarket_data = await asyncio.gather(
+                kalshi_task, polymarket_task, return_exceptions=True
+            )
+
+            markets_with_dates: List[tuple] = []  # (market, created_date)
+
+            # Process Kalshi markets - use 'open_time' as creation date
+            if isinstance(kalshi_data, dict):
+                for raw in kalshi_data.get("markets", []):
+                    try:
+                        market = self.kalshi.normalize_market(raw)
+                        if (
+                            category is None
+                            or market.category.lower() == category.lower()
+                        ):
+                            # Parse open_time as creation date
+                            created = None
+                            if raw.get("open_time"):
+                                try:
+                                    created = datetime.fromisoformat(
+                                        raw["open_time"].replace("Z", "+00:00")
+                                    )
+                                except (ValueError, TypeError):
+                                    pass
+                            markets_with_dates.append((market, created))
+                    except Exception as e:
+                        logger.warning(f"Failed to normalize Kalshi market: {e}")
+
+            # Process Polymarket markets - use 'startDate' or 'createdAt'
+            if isinstance(polymarket_data, list):
+                for raw in polymarket_data:
+                    try:
+                        market = self.polymarket.normalize_market(raw)
+                        if (
+                            category is None
+                            or market.category.lower() == category.lower()
+                        ):
+                            # Parse startDate or createdAt as creation date
+                            created = None
+                            date_str = raw.get("startDate") or raw.get("createdAt")
+                            if date_str:
+                                try:
+                                    created = datetime.fromisoformat(
+                                        date_str.replace("Z", "+00:00")
+                                    )
+                                except (ValueError, TypeError):
+                                    pass
+                            markets_with_dates.append((market, created))
+                    except Exception as e:
+                        logger.warning(f"Failed to normalize Polymarket market: {e}")
+
+            # Sort by creation date (newest first), None dates go to end
+            # Use timezone-aware datetime.min to avoid comparison errors
+            markets_with_dates.sort(
+                key=lambda x: (
+                    x[1] if x[1] else datetime.min.replace(tzinfo=timezone.utc)
+                ),
+                reverse=True,
+            )
+
+            return [m[0] for m in markets_with_dates[:limit]]
+
+        except Exception as e:
+            logger.error(f"Error getting new markets: {e}")
+            return []
 
     async def get_categories(self) -> Dict[str, List[str]]:
         """

@@ -7,14 +7,12 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get('limit') || '20';
   const category = searchParams.get('category');
-  const source = searchParams.get('source');
 
   try {
     const params = new URLSearchParams({ limit });
     if (category) params.append('category', category);
-    if (source && source !== 'all') params.append('source', source);
 
-    const response = await fetch(`${BACKEND_URL}/api/predictions/trending?${params}`, {
+    const response = await fetch(`${BACKEND_URL}/api/predictions/new?${params}`, {
       cache: 'no-store',
     });
 
@@ -32,12 +30,12 @@ export async function GET(request: NextRequest) {
       count: data.count,
     });
   } catch (error) {
-    console.error('Prediction markets fetch error:', error);
+    console.error('New prediction markets fetch error:', error);
 
     // Return error response - no mock data
     return NextResponse.json(
       {
-        error: 'Unable to fetch prediction markets',
+        error: 'Unable to fetch new markets',
         message: 'The prediction markets service is currently unavailable. Please try again later.',
         unavailable: true,
       },

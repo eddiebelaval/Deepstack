@@ -148,6 +148,34 @@ async def get_trending(
         raise HTTPException(status_code=500, detail="Failed to fetch trending markets")
 
 
+@router.get("/new", response_model=TrendingMarketsResponse)
+async def get_new_markets(
+    limit: int = Query(20, ge=1, le=100, description="Max markets to return"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+):
+    """
+    Get newly created/opened prediction markets from Kalshi and Polymarket.
+
+    Returns markets sorted by creation date (newest first).
+
+    Args:
+        limit: Maximum number of markets to return (1-100)
+        category: Optional category filter
+
+    Returns:
+        List of recently created prediction markets
+    """
+    try:
+        manager = get_manager()
+        markets = await manager.get_new_markets(limit=limit, category=category)
+
+        return TrendingMarketsResponse(markets=markets, count=len(markets))
+
+    except Exception as e:
+        logger.error(f"Error getting new markets: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch new markets")
+
+
 @router.get("/search", response_model=SearchMarketsResponse)
 async def search_markets(
     q: str = Query(..., min_length=2, description="Search query"),
@@ -200,7 +228,9 @@ async def get_market(
         except ValueError:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid platform: {platform}. Must be 'kalshi' or 'polymarket'",
+                detail=(
+                    f"Invalid platform: {platform}. " "Must be 'kalshi' or 'polymarket'"
+                ),
             )
 
         manager = get_manager()
@@ -335,10 +365,10 @@ async def analyze_market(request: AnalysisRequest) -> MarketAnalysisResponse:
     Run AI-powered analysis on a prediction market.
 
     Provides multiple types of analysis:
-    - **inefficiency**: Detect price inefficiencies (large moves without news, extreme positioning)
+    - **inefficiency**: Detect price inefficiencies (large moves, positioning)
     - **momentum**: Analyze price trends and volume patterns
-    - **contrarian**: Identify extreme positioning and mean reversion opportunities
-    - **thesis_correlation**: Correlate market to a trading thesis (requires thesis_symbol and thesis_hypothesis)
+    - **contrarian**: Identify extreme positioning and mean reversion
+    - **thesis_correlation**: Correlate to a trading thesis (requires extras)
 
     Args:
         request: Analysis request containing:
@@ -368,7 +398,10 @@ async def analyze_market(request: AnalysisRequest) -> MarketAnalysisResponse:
         except ValueError:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid platform: {request.platform}. Must be 'kalshi' or 'polymarket'",
+                detail=(
+                    f"Invalid platform: {request.platform}. "
+                    "Must be 'kalshi' or 'polymarket'"
+                ),
             )
 
         # Validate analysis types
@@ -378,7 +411,8 @@ async def analyze_market(request: AnalysisRequest) -> MarketAnalysisResponse:
         if invalid_types:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid analysis types: {invalid_types}. Valid types: {valid_types}",
+                detail=f"Invalid analysis types: {invalid_types}. "
+                f"Valid types: {valid_types}",
             )
 
         # Check thesis correlation requirements
@@ -386,7 +420,8 @@ async def analyze_market(request: AnalysisRequest) -> MarketAnalysisResponse:
             if not request.thesis_symbol or not request.thesis_hypothesis:
                 raise HTTPException(
                     status_code=400,
-                    detail="thesis_correlation requires both thesis_symbol and thesis_hypothesis",
+                    detail="thesis_correlation requires both "
+                    "thesis_symbol and thesis_hypothesis",
                 )
 
         analyzer = get_analyzer()
@@ -476,15 +511,17 @@ async def analyze_market_quick(
     Quick GET endpoint for market analysis.
 
     This is a convenience endpoint that accepts parameters via URL/query string.
-    For full functionality including thesis correlation, use the POST endpoint.
+    For full functionality including thesis correlation, use POST.
 
     Args:
         platform: 'kalshi' or 'polymarket'
         market_id: Market identifier
         types: Comma-separated list of analysis types
 
-    Example:
-        GET /api/predictions/analyze/kalshi/FED-25JAN?types=inefficiency,momentum,contrarian
+    Example::
+
+        GET /api/predictions/analyze/kalshi/FED-25JAN
+            ?types=inefficiency,momentum,contrarian
     """
     analysis_types = [t.strip() for t in types.split(",")]
 
@@ -524,10 +561,12 @@ async def health_check():
 @router.on_event("shutdown")
 async def shutdown_event():
     """Close all client sessions on shutdown."""
-    global _manager, _analyzer
+    global _manager, _analyzer  # noqa: F824
     if _analyzer:
         await _analyzer.close()
+        _analyzer = None
         logger.info("Prediction market analyzer closed")
     if _manager:
         await _manager.close()
+        _manager = None
         logger.info("Prediction market manager closed")

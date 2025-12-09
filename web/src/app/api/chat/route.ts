@@ -14,6 +14,16 @@ interface TradingContext {
   positions?: Array<{ symbol: string; qty: number; unrealizedPL: number }>;
   watchlist?: string[];
   patterns?: Array<{ title: string; description: string; impact: string }>;
+  // Prediction market context when viewing a specific market
+  selectedMarket?: {
+    id: string;
+    platform: 'kalshi' | 'polymarket';
+    title: string;
+    yesPrice: number;
+    noPrice: number;
+    volume: number;
+    category?: string;
+  };
 }
 
 function buildContextMessage(context?: TradingContext): string {
@@ -48,6 +58,25 @@ function buildContextMessage(context?: TradingContext): string {
       .map(p => `- ${p.title}: ${p.description}`)
       .join('\n');
     parts.push(`\n## User Trading Patterns (use these to personalize advice)\n${patternSummary}`);
+  }
+
+  // Include selected prediction market context
+  if (context.selectedMarket) {
+    const market = context.selectedMarket;
+    const yesPct = Math.round(market.yesPrice * 100);
+    const noPct = Math.round(market.noPrice * 100);
+    const volumeFormatted = market.volume >= 1000000
+      ? `$${(market.volume / 1000000).toFixed(1)}M`
+      : `$${(market.volume / 1000).toFixed(0)}K`;
+
+    parts.push(`\n## Selected Prediction Market\n` +
+      `Market: "${market.title}"\n` +
+      `Platform: ${market.platform}\n` +
+      `YES: ${yesPct}% | NO: ${noPct}%\n` +
+      `Volume: ${volumeFormatted}\n` +
+      `Category: ${market.category || 'Unknown'}\n` +
+      `\nConsider how this market's probability might inform trading decisions on related assets.`
+    );
   }
 
   return parts.length > 0 ? `\n\n## Current Context\n${parts.join('\n')}` : '';

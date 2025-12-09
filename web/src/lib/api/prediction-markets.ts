@@ -31,18 +31,18 @@ export interface FetchMarketsOptions {
 
 export interface MarketsResponse {
   markets: PredictionMarket[];
-  mock?: boolean;
+  unavailable?: boolean;
 }
 
 export interface MarketDetailResponse {
   market: PredictionMarket & {
     priceHistory?: Array<{ timestamp: string; yesPrice: number; volume?: number }>;
   };
-  mock?: boolean;
+  unavailable?: boolean;
 }
 
 /**
- * Fetch trending prediction markets
+ * Fetch trending prediction markets (sorted by volume)
  */
 export async function fetchTrendingMarkets(
   options: FetchMarketsOptions = {}
@@ -55,6 +55,25 @@ export async function fetchTrendingMarkets(
   const response = await fetch(`/api/prediction-markets?${params.toString()}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch markets: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch new/recently created prediction markets (sorted by creation date)
+ */
+export async function fetchNewMarkets(
+  options: FetchMarketsOptions = {}
+): Promise<MarketsResponse> {
+  const params = new URLSearchParams();
+  if (options.limit) params.append('limit', options.limit.toString());
+  if (options.category) params.append('category', options.category);
+  if (options.source) params.append('source', options.source);
+
+  const response = await fetch(`/api/prediction-markets/new?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch new markets: ${response.statusText}`);
   }
 
   return response.json();

@@ -5,6 +5,7 @@ Provides REST/WebSocket API for the CLI interface to communicate with
 the trading engine, agents, and market data.
 """
 
+import json
 import logging
 import os
 import uuid
@@ -1049,8 +1050,60 @@ class DeepStackAPIServer:
                     # Keep connection alive and listen for messages
                     data = await websocket.receive_text()
 
-                    # Echo back for now - could handle commands later
-                    await websocket.send_text(f"Echo: {data}")
+                    # Parse incoming JSON message
+                    try:
+                        message = json.loads(data)
+                        msg_type = message.get("type", "")
+
+                        if msg_type == "ping":
+                            # Respond to heartbeat with pong
+                            await websocket.send_json(
+                                {
+                                    "type": "heartbeat",
+                                    "timestamp": datetime.now().isoformat(),
+                                }
+                            )
+                        elif msg_type == "subscribe":
+                            # Handle symbol subscription (placeholder for now)
+                            symbols = message.get("symbols", [])
+                            logger.debug(
+                                f"WebSocket subscription request for: {symbols}"
+                            )
+                            await websocket.send_json(
+                                {
+                                    "type": "subscribed",
+                                    "symbols": symbols,
+                                    "timestamp": datetime.now().isoformat(),
+                                }
+                            )
+                        elif msg_type == "unsubscribe":
+                            # Handle unsubscription
+                            symbols = message.get("symbols", [])
+                            logger.debug(
+                                f"WebSocket unsubscription request for: {symbols}"
+                            )
+                            await websocket.send_json(
+                                {
+                                    "type": "unsubscribed",
+                                    "symbols": symbols,
+                                    "timestamp": datetime.now().isoformat(),
+                                }
+                            )
+                        else:
+                            # Unknown message type - log but don't error
+                            logger.debug(f"Unknown WebSocket message type: {msg_type}")
+
+                    except json.JSONDecodeError:
+                        logger.warning(
+                            f"Invalid JSON received on WebSocket: {data[:100]}"
+                        )
+                        await websocket.send_json(
+                            {
+                                "type": "error",
+                                "timestamp": datetime.now().isoformat(),
+                                "data": {"message": "Invalid JSON message"},
+                            }
+                        )
 
             except WebSocketDisconnect:
                 if websocket in self.websocket_connections:

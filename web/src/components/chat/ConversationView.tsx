@@ -122,6 +122,8 @@ export function ConversationView() {
             setActiveContent('deep-value');
         } else if (lower.includes('hedged') || lower.includes('conviction')) {
             setActiveContent('hedged-positions');
+        } else if (lower.includes('prediction') || lower.includes('kalshi') || lower.includes('polymarket') || lower.includes('betting market')) {
+            setActiveContent('prediction-markets');
         }
     };
 
@@ -142,6 +144,7 @@ export function ConversationView() {
                 'hedged-positions': 'hedged-positions',
                 'options-screener': 'options-screener',
                 'options-builder': 'options-builder',
+                'prediction-markets': 'prediction-markets',
             };
 
             // Allow tool calls to switch content (including to 'chart')

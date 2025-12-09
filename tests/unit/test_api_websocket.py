@@ -4,11 +4,10 @@ Unit tests for WebSocket functionality in DeepStack API Server.
 Tests cover:
 - WebSocket connection lifecycle
 - Message broadcasting to multiple clients
-- Message handling and echo functionality
+- Message handling (ping/pong, subscribe/unsubscribe)
 - Connection cleanup and error handling
 """
 
-import json
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -70,10 +69,11 @@ def client(api_server):
 def test_websocket_connect_success(client):
     """Test successful WebSocket connection establishment."""
     with client.websocket_connect("/ws") as websocket:
-        # Connection is established - verify we can send/receive
-        websocket.send_text("test")
-        data = websocket.receive_text()
-        assert "Echo: test" in data
+        # Connection is established - verify we can send/receive with proper JSON
+        websocket.send_json({"type": "ping"})
+        data = websocket.receive_json()
+        assert data["type"] == "heartbeat"
+        assert "timestamp" in data
 
 
 def test_websocket_disconnect_graceful(client, api_server):
@@ -84,8 +84,8 @@ def test_websocket_disconnect_graceful(client, api_server):
     with client.websocket_connect("/ws") as websocket:
         # Verify connection was added
         assert len(api_server.websocket_connections) == initial_count + 1
-        websocket.send_text("ping")
-        websocket.receive_text()
+        websocket.send_json({"type": "ping"})
+        websocket.receive_json()
 
     # After context exit, connection should be removed
     # Give it a moment to clean up
@@ -121,9 +121,9 @@ def test_websocket_multiple_connections(client, api_server):
 
         # Each can send/receive independently
         for i, ws in enumerate(connections):
-            ws.send_text(f"message_{i}")
-            response = ws.receive_text()
-            assert f"Echo: message_{i}" in response
+            ws.send_json({"type": "ping"})
+            response = ws.receive_json()
+            assert response["type"] == "heartbeat"
 
     finally:
         # Clean up all connections
@@ -150,9 +150,9 @@ def test_websocket_connection_limit(client, api_server):
         assert len(api_server.websocket_connections) == max_connections
 
         # All should be functional
-        connections[0].send_text("test")
-        response = connections[0].receive_text()
-        assert "Echo: test" in response
+        connections[0].send_json({"type": "ping"})
+        response = connections[0].receive_json()
+        assert response["type"] == "heartbeat"
 
     finally:
         # Clean up
@@ -285,32 +285,25 @@ async def test_broadcast_with_no_connections(api_server):
 
 
 def test_receive_subscribe_message(client):
-    """Test receiving a subscribe message (echo functionality)."""
+    """Test receiving a subscribe message."""
     with client.websocket_connect("/ws") as websocket:
-        subscribe_msg = json.dumps(
-            {"action": "subscribe", "channel": "quotes", "symbols": ["AAPL", "GOOGL"]}
-        )
+        websocket.send_json({"type": "subscribe", "symbols": ["AAPL", "GOOGL"]})
+        response = websocket.receive_json()
 
-        websocket.send_text(subscribe_msg)
-        response = websocket.receive_text()
-
-        # Currently echoes back
-        assert "Echo:" in response
-        assert "subscribe" in response
+        assert response["type"] == "subscribed"
+        assert response["symbols"] == ["AAPL", "GOOGL"]
+        assert "timestamp" in response
 
 
 def test_receive_unsubscribe_message(client):
     """Test receiving an unsubscribe message."""
     with client.websocket_connect("/ws") as websocket:
-        unsubscribe_msg = json.dumps(
-            {"action": "unsubscribe", "channel": "quotes", "symbols": ["AAPL"]}
-        )
+        websocket.send_json({"type": "unsubscribe", "symbols": ["AAPL"]})
+        response = websocket.receive_json()
 
-        websocket.send_text(unsubscribe_msg)
-        response = websocket.receive_text()
-
-        assert "Echo:" in response
-        assert "unsubscribe" in response
+        assert response["type"] == "unsubscribed"
+        assert response["symbols"] == ["AAPL"]
+        assert "timestamp" in response
 
 
 def test_receive_invalid_json(client):
@@ -319,37 +312,37 @@ def test_receive_invalid_json(client):
         # Send invalid JSON
         websocket.send_text("{invalid json")
 
-        # Should still echo (current implementation)
-        response = websocket.receive_text()
-        assert "Echo:" in response
+        # Should return error response
+        response = websocket.receive_json()
+        assert response["type"] == "error"
+        assert "Invalid JSON" in response["data"]["message"]
 
 
 def test_receive_unknown_message_type(client):
-    """Test handling of unknown message types."""
+    """Test handling of unknown message types - no response for unknown types."""
     with client.websocket_connect("/ws") as websocket:
-        unknown_msg = json.dumps({"type": "unknown_action", "data": "test"})
+        # Send unknown type - server logs but doesn't respond
+        websocket.send_json({"type": "unknown_action", "data": "test"})
 
-        websocket.send_text(unknown_msg)
-        response = websocket.receive_text()
+        # Send a ping to verify connection is still working
+        websocket.send_json({"type": "ping"})
+        response = websocket.receive_json()
 
-        # Should still process (echo back)
-        assert "Echo:" in response
+        # Should get heartbeat response (unknown type was silently ignored)
+        assert response["type"] == "heartbeat"
 
 
 def test_message_queue_ordering(client):
     """Test that messages are processed in order."""
     with client.websocket_connect("/ws") as websocket:
-        # Send multiple messages
-        messages = ["message_1", "message_2", "message_3"]
+        # Send multiple ping messages
+        for i in range(3):
+            websocket.send_json({"type": "ping"})
 
-        for msg in messages:
-            websocket.send_text(msg)
-
-        # Receive and verify order
-        for i, expected_msg in enumerate(messages):
-            response = websocket.receive_text()
-            assert expected_msg in response
-            assert "Echo:" in response
+        # Receive and verify we get 3 heartbeat responses
+        for i in range(3):
+            response = websocket.receive_json()
+            assert response["type"] == "heartbeat"
 
 
 # ==========================================
@@ -454,17 +447,17 @@ async def test_broadcast_message_structure(api_server):
 def test_concurrent_message_sending(client):
     """Test sending messages concurrently from client."""
     with client.websocket_connect("/ws") as websocket:
-        # Send multiple messages rapidly
+        # Send multiple ping messages rapidly
         for i in range(10):
-            websocket.send_text(f"rapid_message_{i}")
+            websocket.send_json({"type": "ping"})
 
-        # All should be echoed back
+        # All should get heartbeat responses
         received = []
         for i in range(10):
-            response = websocket.receive_text()
+            response = websocket.receive_json()
             received.append(response)
 
         # Verify all messages were processed
         assert len(received) == 10
-        for i, response in enumerate(received):
-            assert f"rapid_message_{i}" in response
+        for response in received:
+            assert response["type"] == "heartbeat"

@@ -37,10 +37,13 @@ import { useCallback, useState } from 'react';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import {
   fetchTrendingMarkets,
+  fetchNewMarkets,
   searchMarkets as apiSearchMarkets,
   fetchMarketDetail,
 } from '@/lib/api/prediction-markets';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
+
+export type FeedType = 'trending' | 'new';
 
 export function usePredictionMarkets() {
   const {
@@ -61,30 +64,32 @@ export function usePredictionMarkets() {
     isInWatchlist,
   } = usePredictionMarketsStore();
 
-  const [isMockData, setIsMockData] = useState(false);
+  const [isUnavailable, setIsUnavailable] = useState(false);
+  const [feedType, setFeedType] = useState<FeedType>('trending');
 
   /**
-   * Load markets based on current filters
+   * Load markets based on current filters and feed type
    */
-  const loadMarkets = useCallback(async () => {
+  const loadMarkets = useCallback(async (feed: FeedType = feedType) => {
     setLoading(true);
     setError(null);
 
     try {
-      const { markets: fetchedMarkets, mock } = await fetchTrendingMarkets({
+      const fetchFn = feed === 'new' ? fetchNewMarkets : fetchTrendingMarkets;
+      const { markets: fetchedMarkets, unavailable } = await fetchFn({
         category: filters.category || undefined,
         source: filters.source !== 'all' ? filters.source : undefined,
         limit: 20,
       });
 
       setMarkets(fetchedMarkets);
-      setIsMockData(!!mock);
+      setIsUnavailable(!!unavailable);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load markets');
     } finally {
       setLoading(false);
     }
-  }, [filters, setMarkets, setLoading, setError]);
+  }, [filters, feedType, setMarkets, setLoading, setError]);
 
   /**
    * Search markets by query
@@ -100,9 +105,9 @@ export function usePredictionMarkets() {
       setError(null);
 
       try {
-        const { markets: searchResults, mock } = await apiSearchMarkets(query);
+        const { markets: searchResults, unavailable } = await apiSearchMarkets(query);
         setMarkets(searchResults);
-        setIsMockData(!!mock);
+        setIsUnavailable(!!unavailable);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to search markets');
       } finally {
@@ -121,9 +126,9 @@ export function usePredictionMarkets() {
       setError(null);
 
       try {
-        const { market, mock } = await fetchMarketDetail(platform, marketId);
+        const { market, unavailable } = await fetchMarketDetail(platform, marketId);
         setSelectedMarket(market as PredictionMarket);
-        setIsMockData(!!mock);
+        setIsUnavailable(!!unavailable);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load market detail');
         setSelectedMarket(null);
@@ -164,7 +169,8 @@ export function usePredictionMarkets() {
     watchlist,
     selectedMarket,
     filters,
-    isMockData,
+    isUnavailable,
+    feedType,
 
     // Loading states
     isLoading,
@@ -176,6 +182,7 @@ export function usePredictionMarkets() {
     loadMarketDetail,
     setFilters,
     setSelectedMarket,
+    setFeedType,
 
     // Watchlist actions
     toggleWatchlist,
