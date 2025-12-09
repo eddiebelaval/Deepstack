@@ -2,137 +2,54 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
 
-interface Node {
-    x: number;
-    y: number;
-    baseX: number;
-    baseY: number;
-    radius: number;
-    pulsePhase: number;
-    pulseSpeed: number;
-    connections: number[];
-    brightness: number;
-    targetBrightness: number;
-}
-
-interface Particle {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    size: number;
-    opacity: number;
-    life: number;
-    maxLife: number;
-}
-
-interface ContourLine {
-    points: { x: number; y: number }[];
-    phase: number;
-    speed: number;
-    amplitude: number;
-}
-
 export function IntelligentBackground() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
-    const nodesRef = useRef<Node[]>([]);
-    const particlesRef = useRef<Particle[]>([]);
-    const contoursRef = useRef<ContourLine[]>([]);
-    const scrollYRef = useRef(0);
     const timeRef = useRef(0);
+    const scrollYRef = useRef(0);
 
-    // Colors from the design system
-    const AMBER = { r: 255, g: 170, b: 50 }; // Primary amber
-    const AMBER_DIM = { r: 180, g: 120, b: 40 };
+    // Radar state
+    const radarRef = useRef({
+        originX: 0,
+        originY: 0,
+        pings: [] as { radius: number; alpha: number; id: number }[],
+        lastPingTime: 0,
+        pingInterval: 180, // ~3 seconds at 60fps
+    });
 
-    // Initialize nodes in a grid pattern
-    const initNodes = useCallback((width: number, height: number) => {
-        const nodes: Node[] = [];
-        const gridSize = 120;
-        const rows = Math.ceil(height / gridSize) + 2;
-        const cols = Math.ceil(width / gridSize) + 2;
-
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                // Add some randomness to the grid positions
-                const x = col * gridSize + (Math.random() - 0.5) * 40;
-                const y = row * gridSize + (Math.random() - 0.5) * 40;
-
-                nodes.push({
-                    x,
-                    y,
-                    baseX: x,
-                    baseY: y,
-                    radius: 2 + Math.random() * 3,
-                    pulsePhase: Math.random() * Math.PI * 2,
-                    pulseSpeed: 0.04 + Math.random() * 0.04, // Doubled speed
-                    connections: [],
-                    brightness: 0.4 + Math.random() * 0.4, // Increased base brightness
-                    targetBrightness: 0.4 + Math.random() * 0.4, // Increased target brightness
-                });
-            }
+    // Topography state - simplified to math function, no large arrays
+    const topoRef = useRef({
+        offset: 0,
+        speed: 0.002,
+        // Random seeds for terrain generation to ensure every reload is unique
+        seeds: {
+            x1: 1, y1: 1, t1: 0,
+            x2: 1, y2: 1, t2: 0,
+            x3: 1, y3: 1,
         }
+    });
 
-        // Create connections between nearby nodes
-        for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-                const dx = nodes[i].x - nodes[j].x;
-                const dy = nodes[i].y - nodes[j].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < gridSize * 1.5) {
-                    nodes[i].connections.push(j);
-                }
-            }
+    // Colors
+    const AMBER = { r: 255, g: 170, b: 50 };
+
+    // Initialize radar origin and terrain seeds on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            radarRef.current.originX = Math.random() * width;
+            radarRef.current.originY = Math.random() * height;
+
+            // Randomize terrain coefficients
+            topoRef.current.seeds = {
+                x1: 0.5 + Math.random(), y1: 0.5 + Math.random(), t1: Math.random() * 100,
+                x2: 0.5 + Math.random(), y2: 0.5 + Math.random(), t2: Math.random() * 100,
+                x3: 0.5 + Math.random(), y3: 0.5 + Math.random()
+            };
         }
-
-        nodesRef.current = nodes;
     }, []);
 
-    // Initialize contour lines
-    const initContours = useCallback((width: number, height: number) => {
-        const contours: ContourLine[] = [];
-        const numContours = 8;
-
-        for (let i = 0; i < numContours; i++) {
-            const points: { x: number; y: number }[] = [];
-            const numPoints = 50;
-            const yBase = (height / numContours) * i + height / (numContours * 2);
-
-            for (let j = 0; j <= numPoints; j++) {
-                const x = (width / numPoints) * j;
-                const y = yBase;
-                points.push({ x, y });
-            }
-
-            contours.push({
-                points,
-                phase: Math.random() * Math.PI * 2,
-                speed: 0.008 + Math.random() * 0.008,
-                amplitude: 20 + Math.random() * 30,
-            });
-        }
-
-        contoursRef.current = contours;
-    }, []);
-
-    // Spawn particles
-    const spawnParticle = useCallback((width: number, height: number) => {
-        if (particlesRef.current.length > 60) return;
-
-        particlesRef.current.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: (Math.random() - 0.5) * 0.5 - 0.3, // Slight upward drift
-            size: 1 + Math.random() * 2,
-            opacity: 0,
-            life: 0,
-            maxLife: 200 + Math.random() * 200,
-        });
-    }, []);
-
-    // Main animation loop
     const animate = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -143,162 +60,129 @@ export function IntelligentBackground() {
         const width = canvas.width;
         const height = canvas.height;
         const time = timeRef.current;
-        const scrollOffset = scrollYRef.current * 0.3; // Parallax factor
+        const seeds = topoRef.current.seeds;
 
-        // Clear canvas
-        ctx.fillStyle = 'rgb(20, 18, 16)'; // Deep charcoal background
+        // 1. Clear background (Deep charcoal)
+        ctx.fillStyle = 'rgb(10, 9, 8)';
         ctx.fillRect(0, 0, width, height);
 
-        // Draw contour lines with wave animation
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        // 2. Draw Topographical Lines
+        ctx.lineWidth = 1.5;
+        topoRef.current.offset += topoRef.current.speed;
 
-        for (const contour of contoursRef.current) {
-            contour.phase += contour.speed;
+        // Elevation function with random seeds
+        const getElevation = (x: number, y: number, t: number) => {
+            const scale = 0.002;
+            // Use random seeds to vary the terrain shape
+            const v1 = Math.sin(x * scale * seeds.x1 + t + seeds.t1) * Math.cos(y * scale * seeds.y1 + t);
+            const v2 = Math.sin(x * scale * 2 * seeds.x2 - t + seeds.t2) * Math.cos(y * scale * 2 * seeds.y2 + t * 0.5) * 0.5;
+            const v3 = Math.sin(x * scale * 4 * seeds.x3 + t * 2) * Math.sin(y * scale * 4 * seeds.y3) * 0.25;
+            return v1 + v2 + v3; // Range approx -1.75 to 1.75
+        };
 
+        // We will trace paths.
+        ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.15)`; // Faint map lines
+
+        for (let i = 0; i < 15; i++) { // Number of primary contours
             ctx.beginPath();
+            const baseY = (height / 15) * i;
 
-            for (let i = 0; i < contour.points.length; i++) {
-                const point = contour.points[i];
-                const wave1 = Math.sin(point.x * 0.008 + contour.phase) * contour.amplitude;
-                const wave2 = Math.sin(point.x * 0.012 + contour.phase * 0.7) * contour.amplitude * 0.5;
-                const wave3 = Math.sin(point.x * 0.003 + contour.phase * 1.3) * contour.amplitude * 0.8;
+            for (let x = 0; x < width; x += 10) {
+                const elevation = getElevation(x, baseY, time * 0.005);
+                const yOffset = elevation * 150; // Amplitude
 
-                const y = point.y + wave1 + wave2 + wave3 + scrollOffset;
+                // Apply parallax
+                const parallax = scrollYRef.current * 0.1;
 
-                if (i === 0) {
-                    ctx.moveTo(point.x, y);
-                } else {
-                    ctx.lineTo(point.x, y);
-                }
+                if (x === 0) ctx.moveTo(x, baseY + yOffset - parallax);
+                else ctx.lineTo(x, baseY + yOffset - parallax);
             }
-
-            // Pulsing glow on contour lines
-            const pulse = 0.3 + Math.sin(time * 0.05 + contour.phase) * 0.2; // Stronger and faster pulse
-            ctx.strokeStyle = `rgba(${AMBER_DIM.r}, ${AMBER_DIM.g}, ${AMBER_DIM.b}, ${pulse})`;
-            ctx.lineWidth = 1.5;
             ctx.stroke();
         }
 
-        // Draw connections between nodes
-        ctx.lineWidth = 1;
-        for (const node of nodesRef.current) {
-            for (const connIdx of node.connections) {
-                const other = nodesRef.current[connIdx];
-                if (!other) continue;
-
-                const dx = other.x - node.x;
-                const dy = other.y - node.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const opacity = Math.max(0, 0.1 - dist / 2000) * (node.brightness + other.brightness); // Removed division by 2 for brighter lines
-
-                if (opacity > 0.01) {
-                    ctx.beginPath();
-                    ctx.moveTo(node.x, node.y + scrollOffset);
-                    ctx.lineTo(other.x, other.y + scrollOffset);
-                    ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${opacity})`;
-                    ctx.stroke();
-                }
-            }
+        // 3. Update Radar
+        radarRef.current.lastPingTime++;
+        if (radarRef.current.lastPingTime >= radarRef.current.pingInterval) {
+            radarRef.current.pings.push({
+                radius: 0,
+                alpha: 1,
+                id: Date.now()
+            });
+            radarRef.current.lastPingTime = 0;
         }
 
-        // Update and draw nodes
-        for (const node of nodesRef.current) {
-            node.pulsePhase += node.pulseSpeed;
+        const maxRadius = Math.max(width, height) * 1.2;
+        const spreadSpeed = 3; // Pixels per frame
 
-            // Gentle floating motion
-            node.x = node.baseX + Math.sin(time * 0.01 + node.pulsePhase) * 5;
-            node.y = node.baseY + Math.cos(time * 0.008 + node.pulsePhase) * 5;
+        // Update pings
+        radarRef.current.pings = radarRef.current.pings.filter(ping => ping.alpha > 0.01);
 
-            // Random activation (creates "thinking" effect)
-            if (Math.random() < 0.005) { // More frequent activation
-                node.targetBrightness = 0.8 + Math.random() * 0.2; // Brighter bursts
-            }
-            node.brightness += (node.targetBrightness - node.brightness) * 0.03;
-            if (node.brightness > 0.5) {
-                node.targetBrightness *= 0.98; // Decay back down
+        radarRef.current.pings.forEach(ping => {
+            ping.radius += spreadSpeed;
+            // Fade out based on size/distance
+            if (ping.radius > maxRadius * 0.5) {
+                ping.alpha *= 0.99;
             }
 
-            const pulse = 0.5 + Math.sin(node.pulsePhase) * 0.3;
-            const glow = node.brightness * pulse;
+            const centerX = radarRef.current.originX;
+            const centerY = radarRef.current.originY;
 
-            // Draw node glow
-            const gradient = ctx.createRadialGradient(
-                node.x, node.y + scrollOffset, 0,
-                node.x, node.y + scrollOffset, node.radius * 8
-            );
-            gradient.addColorStop(0, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${glow * 0.4})`);
-            gradient.addColorStop(0.5, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${glow * 0.1})`);
-            gradient.addColorStop(1, 'transparent');
-
+            // Draw the ping ring DISTORTED by the terrain
+            // We sample points around the circle and offset radius by elevation
             ctx.beginPath();
-            ctx.arc(node.x, node.y + scrollOffset, node.radius * 8, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
+            const numPoints = 120; // Resolution of the ring
 
-            // Draw node core
-            ctx.beginPath();
-            ctx.arc(node.x, node.y + scrollOffset, node.radius * pulse, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${glow})`;
-            ctx.fill();
-        }
+            for (let i = 0; i <= numPoints; i++) {
+                const angle = (i / numPoints) * Math.PI * 2;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
 
-        // Update and draw particles
-        const newParticles: Particle[] = [];
-        for (const particle of particlesRef.current) {
-            particle.life++;
-            particle.x += particle.vx;
-            particle.y += particle.vy + scrollOffset * 0.001;
+                // Base position on the perfect circle
+                const baseX = centerX + cos * ping.radius;
+                const baseY = centerY + sin * ping.radius;
 
-            // Fade in and out
-            if (particle.life < 30) {
-                particle.opacity = particle.life / 30;
-            } else if (particle.life > particle.maxLife - 30) {
-                particle.opacity = (particle.maxLife - particle.life) / 30;
-            } else {
-                particle.opacity = 1;
+                // Sample elevation at this point
+                // Note: We use the same time as the map to sync the movement
+                const elevation = getElevation(baseX, baseY, time * 0.005);
+
+                // Distort the radius based on elevation
+                // The distortion amount scales with the "height" of the terrain
+                const distortion = elevation * 40; // 40px variation
+                const distortedRadius = ping.radius + distortion;
+
+                const finalX = centerX + cos * distortedRadius;
+                const finalY = centerY + sin * distortedRadius;
+
+                if (i === 0) ctx.moveTo(finalX, finalY);
+                else ctx.lineTo(finalX, finalY);
             }
+            ctx.closePath();
 
-            if (particle.life < particle.maxLife && particle.x > 0 && particle.x < width && particle.y > 0 && particle.y < height) {
-                newParticles.push(particle);
+            // Stroke
+            ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.8})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
 
-                // Draw particle
-                ctx.beginPath();
-                ctx.arc(particle.x, particle.y + scrollOffset, particle.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${particle.opacity * 0.3})`;
-                ctx.fill();
-            }
-        }
-        particlesRef.current = newParticles;
-
-        // Spawn new particles occasionally
-        if (Math.random() < 0.15) {
-            spawnParticle(width, height);
-        }
+            // Fill using same path (slightly inefficient to recalc but safer for closed path)
+            // Ideally we'd reuse the path object if creating 2D One
+            ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.05})`;
+            ctx.fill();
+        });
 
         timeRef.current++;
         animationRef.current = requestAnimationFrame(animate);
-    }, [spawnParticle, AMBER, AMBER_DIM]);
+    }, [AMBER]);
 
-    // Handle resize
     const handleResize = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width * window.devicePixelRatio;
         canvas.height = rect.height * window.devicePixelRatio;
-
         const ctx = canvas.getContext('2d');
-        if (ctx) {
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        }
+        if (ctx) ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }, []);
 
-        initNodes(rect.width, rect.height);
-        initContours(rect.width, rect.height);
-    }, [initNodes, initContours]);
-
-    // Handle scroll for parallax
     const handleScroll = useCallback(() => {
         scrollYRef.current = window.scrollY;
     }, []);
@@ -307,9 +191,7 @@ export function IntelligentBackground() {
         handleResize();
         window.addEventListener('resize', handleResize);
         window.addEventListener('scroll', handleScroll, { passive: true });
-
         animationRef.current = requestAnimationFrame(animate);
-
         return () => {
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('scroll', handleScroll);
@@ -321,10 +203,7 @@ export function IntelligentBackground() {
         <canvas
             ref={canvasRef}
             className="absolute inset-0 w-full h-full"
-            style={{
-                width: '100%',
-                height: '100%',
-            }}
+            style={{ width: '100%', height: '100%' }}
         />
     );
 }

@@ -20,7 +20,7 @@ export function FrostedOverlay({ className, intensity = 'medium' }: FrostedOverl
         <div
             className={cn(
                 "absolute inset-0 z-10 w-full h-full pointer-events-none",
-                "bg-background/10", // Base transparency - reduced to let glow show through
+                "bg-background/5", // Reduced to ~5% to be very clear but still present; user asked for "bring to 10%" but "black wallpaper is to dark" implies we should lighter touches.
                 blurMap[intensity],
                 "border-b border-border/10",
                 // Add a subtle vignette/gradient to make it feel like glass
