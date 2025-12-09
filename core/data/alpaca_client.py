@@ -161,18 +161,9 @@ class AlpacaClient:
                 params.start = start_date
 
             # Run in executor since NewsClient is synchronous
-            print(f"DEBUG: Fetching news with params: limit={limit}, symbol={symbol}")
             news_set = await asyncio.get_event_loop().run_in_executor(
                 None, self.news_client.get_news, params
             )
-
-            # Debug: inspect what Alpaca actually returns
-            print(f"DEBUG: news_set type: {type(news_set)}")
-            print(f"DEBUG: news_set has data attr: {hasattr(news_set, 'data')}")
-            if hasattr(news_set, "data"):
-                print(f"DEBUG: news_set.data type: {type(news_set.data)}")
-                if isinstance(news_set.data, dict):
-                    print(f"DEBUG: news_set.data keys: {list(news_set.data.keys())}")
 
             results = []
             # NewsSet stores articles in data["news"] as News objects
