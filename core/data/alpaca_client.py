@@ -166,25 +166,32 @@ class AlpacaClient:
             )
 
             results = []
-            # NewsSet stores articles in "news" key
-            news_list = (
-                news_set.data.get("news", []) if hasattr(news_set, "data") else []
-            )
-            if not news_list and hasattr(news_set, "news"):
-                # Fallback if structure is different
-                news_list = news_set.news
+            # NewsSet stores articles in data["news"] as raw dicts
+            news_list = []
+            if hasattr(news_set, "data") and isinstance(news_set.data, dict):
+                news_list = news_set.data.get("news", [])
+
+            logger.info(f"Alpaca News API returned {len(news_list)} articles")
 
             for article in news_list:
+                # Articles are raw dicts, access with [] not .attribute
+                created_at = article.get("created_at")
+                published_at = (
+                    created_at.isoformat()
+                    if hasattr(created_at, "isoformat")
+                    else str(created_at)
+                )
+
                 results.append(
                     {
-                        "id": str(article.id),
-                        "headline": article.headline,
-                        "summary": article.summary,
-                        "url": article.url,
-                        "source": article.source,
-                        "publishedAt": article.created_at.isoformat(),
-                        "symbols": article.symbols,
-                        "author": article.author,
+                        "id": str(article.get("id", "")),
+                        "headline": article.get("headline", ""),
+                        "summary": article.get("summary", ""),
+                        "url": article.get("url", ""),
+                        "source": article.get("source", ""),
+                        "publishedAt": published_at,
+                        "symbols": article.get("symbols", []),
+                        "author": article.get("author", ""),
                         "sentiment": "neutral",  # Alpaca: no sentiment, infer on FE
                     }
                 )
