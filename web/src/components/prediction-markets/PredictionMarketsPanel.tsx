@@ -17,7 +17,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { usePredictionMarkets, type FeedType } from '@/hooks/usePredictionMarkets';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import {
+    SquareCard,
+    SquareCardHeader,
+    SquareCardContent,
+    SquareCardFooter,
+    SquareCardTitle,
+    SquareCardActionButton,
+} from '@/components/ui/square-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -211,12 +219,12 @@ export function PredictionMarketsPanel() {
                     selectedMarket ? 'w-2/3' : 'w-full'
                 )}>
                     <ScrollArea className="h-full">
-                        <div className="p-4 space-y-2">
+                        <div className="p-4">
                             {isLoading && filteredMarkets.length === 0 ? (
-                                // Loading skeletons
-                                <div className="space-y-3">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                                // Loading skeletons - grid layout matching cards
+                                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
+                                    {[...Array(8)].map((_, i) => (
+                                        <Skeleton key={i} className="aspect-square w-full rounded-xl" />
                                     ))}
                                 </div>
                             ) : error ? (
@@ -248,17 +256,19 @@ export function PredictionMarketsPanel() {
                                     )}
                                 </div>
                             ) : (
-                                // Market cards
-                                filteredMarkets.map((market) => (
-                                    <MarketCard
-                                        key={`${market.platform}-${market.id}`}
-                                        market={market}
-                                        isSelected={selectedMarket?.id === market.id}
-                                        isWatched={isInWatchlist(market.platform, market.id)}
-                                        onSelect={() => setSelectedMarket(market)}
-                                        onToggleWatch={() => toggleWatchlist(market)}
-                                    />
-                                ))
+                                // Market cards - grid layout
+                                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
+                                    {filteredMarkets.map((market) => (
+                                        <MarketCard
+                                            key={`${market.platform}-${market.id}`}
+                                            market={market}
+                                            isSelected={selectedMarket?.id === market.id}
+                                            isWatched={isInWatchlist(market.platform, market.id)}
+                                            onSelect={() => setSelectedMarket(market)}
+                                            onToggleWatch={() => toggleWatchlist(market)}
+                                        />
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </ScrollArea>
@@ -298,63 +308,69 @@ function MarketCard({
     const probability = Math.round(market.yesPrice * 100);
 
     return (
-        <Card
-            className={cn(
-                'cursor-pointer transition-all hover:border-primary/50',
-                isSelected && 'border-primary bg-primary/5 ring-1 ring-primary/30'
-            )}
+        <SquareCard
             onClick={onSelect}
+            isHighlighted={isWatched}
+            isSelected={isSelected}
         >
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <PlatformBadge platform={market.platform} />
-                            <Badge variant="outline" className="text-xs">
-                                {market.category}
-                            </Badge>
-                        </div>
-                        <h3 className="font-medium text-sm leading-tight line-clamp-2">
-                            {market.title}
-                        </h3>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                        <div
+            {/* Header: Platform badge + Watch toggle */}
+            <SquareCardHeader>
+                <PlatformBadge platform={market.platform} size="sm" />
+                <SquareCardActionButton
+                    onClick={() => onToggleWatch()}
+                    isActive={isWatched}
+                    activeClassName="text-primary hover:text-primary/80"
+                    title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
+                >
+                    {isWatched ? (
+                        <Eye className="h-3.5 w-3.5" />
+                    ) : (
+                        <EyeOff className="h-3.5 w-3.5" />
+                    )}
+                </SquareCardActionButton>
+            </SquareCardHeader>
+
+            {/* Title */}
+            <SquareCardTitle className="mb-2">{market.title}</SquareCardTitle>
+
+            {/* Probability bar in content area */}
+            <SquareCardContent className="mb-2">
+                <div className="h-full flex flex-col justify-center">
+                    <ProbabilityBar yesPrice={market.yesPrice} />
+                    {market.category && (
+                        <Badge variant="outline" className="text-[10px] mt-2 w-fit">
+                            {market.category}
+                        </Badge>
+                    )}
+                </div>
+            </SquareCardContent>
+
+            {/* Footer: Price + Volume */}
+            <SquareCardFooter>
+                {/* Left: Probability */}
+                <div className="flex flex-col">
+                    <div className="flex items-baseline gap-1">
+                        <span
                             className={cn(
-                                'text-xl font-bold',
-                                probability >= 70 ? 'text-green-500' :
-                                    probability <= 30 ? 'text-red-500' : 'text-amber-500'
+                                'text-xl font-bold tabular-nums leading-none',
+                                probability >= 50 ? 'text-green-500' : 'text-red-500'
                             )}
                         >
                             {probability}%
-                        </div>
-                        <span className="text-xs text-muted-foreground">YES</span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">YES</span>
                     </div>
                 </div>
 
-                <ProbabilityBar yesPrice={market.yesPrice} />
-
-                <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-                    <span>Vol: ${formatVolume(market.volume)}</span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleWatch();
-                        }}
-                    >
-                        {isWatched ? (
-                            <Eye className="h-3 w-3 mr-1" />
-                        ) : (
-                            <EyeOff className="h-3 w-3 mr-1" />
-                        )}
-                        {isWatched ? 'Watching' : 'Watch'}
-                    </Button>
+                {/* Right: Volume */}
+                <div className="flex flex-col items-end">
+                    <span className="text-xs font-semibold text-foreground leading-none">
+                        ${formatVolume(market.volume)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">vol</span>
                 </div>
-            </CardContent>
-        </Card>
+            </SquareCardFooter>
+        </SquareCard>
     );
 }
 

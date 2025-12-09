@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  SquareCard,
+  SquareCardHeader,
+  SquareCardContent,
+  SquareCardFooter,
+  SquareCardTitle,
+  SquareCardActionButton,
+} from '@/components/ui/square-card';
 import { PlatformBadge } from './PlatformBadge';
 import type { PredictionMarket, MarketPricePoint } from '@/lib/types/prediction-markets';
 import { TrendingUp, TrendingDown, Minus, Star, StarOff, Loader2 } from 'lucide-react';
@@ -9,14 +17,14 @@ import { TrendingUp, TrendingDown, Minus, Star, StarOff, Loader2 } from 'lucide-
 /**
  * BetsCarouselCard - Compact market card with probability sparkline chart
  *
+ * Now uses unified SquareCard component for consistent 1:1 aspect ratio
+ *
  * Features:
  * - SVG sparkline showing YES probability over time
  * - Market title, current YES%, volume
  * - Platform badge
  * - Watchlist toggle
  * - Click to view market details
- *
- * Designed to fit within ~200px height for HomeWidgets carousel
  */
 
 interface BetsCarouselCardProps {
@@ -71,62 +79,50 @@ export function BetsCarouselCard({
   const priceChange = calculatePriceChange(priceHistory, market.yesPrice);
 
   return (
-    <div
-      className={cn(
-        'relative flex flex-col h-full p-3 rounded-xl transition-all duration-200',
-        'border border-border/50 hover:border-border/80',
-        'bg-card/80 hover:bg-card hover:shadow-lg',
-        'cursor-pointer group overflow-hidden',
-        isWatched && 'ring-2 ring-primary/30',
-        className
-      )}
+    <SquareCard
       onClick={onClick}
+      isHighlighted={isWatched}
+      className={className}
     >
       {/* Header: Platform badge + Watchlist */}
-      <div className="flex items-center justify-between mb-1.5 shrink-0">
+      <SquareCardHeader>
         <PlatformBadge platform={market.platform} size="sm" />
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleWatch?.();
-          }}
-          className={cn(
-            'p-1 rounded-full transition-all',
-            isWatched
-              ? 'text-yellow-500 hover:text-yellow-400'
-              : 'text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100'
-          )}
+        <SquareCardActionButton
+          onClick={() => onToggleWatch?.()}
+          isActive={isWatched}
+          activeClassName="text-yellow-500 hover:text-yellow-400"
           title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
         >
-          {isWatched ? <Star className="h-3.5 w-3.5 fill-current" /> : <StarOff className="h-3.5 w-3.5" />}
-        </button>
-      </div>
+          {isWatched ? (
+            <Star className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <StarOff className="h-3.5 w-3.5" />
+          )}
+        </SquareCardActionButton>
+      </SquareCardHeader>
 
-      {/* Title - single line with ellipsis */}
-      <h3
-        className="text-xs font-semibold text-foreground leading-tight line-clamp-2 mb-2 min-h-[2rem] shrink-0"
-        title={market.title}
-      >
-        {market.title}
-      </h3>
+      {/* Title */}
+      <SquareCardTitle className="mb-2">{market.title}</SquareCardTitle>
 
       {/* Sparkline Chart - flexible height */}
-      <div className="flex-1 min-h-[50px] max-h-[70px] bg-muted/20 rounded-lg overflow-hidden mb-2">
-        {isLoadingHistory ? (
-          <div className="h-full flex items-center justify-center">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-          </div>
-        ) : priceHistory.length > 1 ? (
-          <ProbabilitySparkline data={priceHistory} currentPrice={market.yesPrice} />
-        ) : (
-          <div className="h-full flex items-center justify-center">
-            <span className="text-[10px] text-muted-foreground">No data</span>
-          </div>
-        )}
-      </div>
+      <SquareCardContent className="mb-2">
+        <div className="h-full bg-muted/20 rounded-lg overflow-hidden">
+          {isLoadingHistory ? (
+            <div className="h-full flex items-center justify-center">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            </div>
+          ) : priceHistory.length > 1 ? (
+            <ProbabilitySparkline data={priceHistory} currentPrice={market.yesPrice} />
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <span className="text-[10px] text-muted-foreground">No data</span>
+            </div>
+          )}
+        </div>
+      </SquareCardContent>
 
-      {/* Stats Row - compact */}
-      <div className="flex items-end justify-between shrink-0">
+      {/* Stats Row */}
+      <SquareCardFooter>
         {/* Left: Price and change */}
         <div className="flex flex-col">
           <div className="flex items-baseline gap-1">
@@ -162,8 +158,8 @@ export function BetsCarouselCard({
           </span>
           <span className="text-[10px] text-muted-foreground">vol</span>
         </div>
-      </div>
-    </div>
+      </SquareCardFooter>
+    </SquareCard>
   );
 }
 

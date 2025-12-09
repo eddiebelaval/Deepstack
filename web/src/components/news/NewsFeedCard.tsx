@@ -2,6 +2,13 @@
 
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import {
+    SquareCard,
+    SquareCardHeader,
+    SquareCardContent,
+    SquareCardFooter,
+    SquareCardActionButton,
+} from '@/components/ui/square-card';
 import type { NewsArticle } from '@/lib/stores/news-store';
 import {
     TrendingUp,
@@ -13,18 +20,16 @@ import {
 } from 'lucide-react';
 
 /**
- * NewsFeedCard - Modern news card matching BETS card design language
+ * NewsFeedCard - News card using unified SquareCard component
+ *
+ * Now uses unified SquareCard component for consistent 1:1 aspect ratio
  *
  * Features:
- * - Glass-style card with rounded corners and hover effects
- * - Fixed height for square-ish grid layout (h-[180px])
  * - Sentiment indicator (bullish/bearish/neutral)
  * - Source badge similar to platform badges
  * - Time ago display
  * - Symbol tags with click-to-filter
  * - Bookmark toggle (like watchlist star)
- *
- * Designed to match the visual language of MarketFeedCard/BetsCarouselCard
  */
 
 interface NewsFeedCardProps {
@@ -79,29 +84,14 @@ export function NewsFeedCard({
     };
 
     return (
-        <a
+        <SquareCard
             href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-                'relative flex flex-col h-[180px] p-3 rounded-xl transition-all duration-200',
-                'border border-border/50 hover:border-border/80',
-                'bg-card/80 hover:bg-card hover:shadow-lg',
-                'cursor-pointer group overflow-hidden',
-                isBookmarked && 'ring-2 ring-primary/30',
-                className
-            )}
+            isHighlighted={isBookmarked}
+            hoverGradient={sentimentConfig.bgGradient}
+            className={className}
         >
-            {/* Subtle gradient overlay based on sentiment */}
-            <div
-                className={cn(
-                    'absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none',
-                    sentimentConfig.bgGradient
-                )}
-            />
-
             {/* Header: Source badge + Sentiment + Time + Bookmark */}
-            <div className="flex items-center justify-between mb-1.5 shrink-0 relative z-10">
+            <SquareCardHeader>
                 <div className="flex items-center gap-2">
                     <SourceBadge source={article.source} />
                     <div className="flex items-center gap-1 text-muted-foreground">
@@ -122,18 +112,10 @@ export function NewsFeedCard({
                     </div>
                     {/* Bookmark toggle */}
                     {onToggleBookmark && (
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onToggleBookmark();
-                            }}
-                            className={cn(
-                                'p-1 rounded-full transition-all',
-                                isBookmarked
-                                    ? 'text-primary hover:text-primary/80'
-                                    : 'text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100'
-                            )}
+                        <SquareCardActionButton
+                            onClick={() => onToggleBookmark()}
+                            isActive={isBookmarked}
+                            activeClassName="text-primary hover:text-primary/80"
                             title={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
                         >
                             {isBookmarked ? (
@@ -141,47 +123,53 @@ export function NewsFeedCard({
                             ) : (
                                 <Bookmark className="h-3.5 w-3.5" />
                             )}
-                        </button>
+                        </SquareCardActionButton>
                     )}
                 </div>
-            </div>
+            </SquareCardHeader>
 
             {/* Headline - fills available space */}
-            <h3
-                className="text-xs font-semibold text-foreground leading-snug line-clamp-3 flex-1 relative z-10 group-hover:text-primary transition-colors"
-                title={article.headline}
-            >
-                {article.headline}
-            </h3>
+            <SquareCardContent>
+                <h3
+                    className="text-xs font-semibold text-foreground leading-snug line-clamp-3 group-hover:text-primary transition-colors"
+                    title={article.headline}
+                >
+                    {article.headline}
+                </h3>
+            </SquareCardContent>
 
             {/* Footer: Symbol tags */}
-            {article.symbols && article.symbols.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap mt-auto pt-1 shrink-0 relative z-10">
-                    {article.symbols.slice(0, 3).map((symbol) => (
-                        <button
-                            key={symbol}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onSymbolClick?.(symbol);
-                            }}
-                            className={cn(
-                                'px-1.5 py-0.5 rounded text-[10px] font-semibold',
-                                'bg-primary/10 text-primary border border-primary/20',
-                                'hover:bg-primary/20 hover:border-primary/40 transition-all'
-                            )}
-                        >
-                            ${symbol}
-                        </button>
-                    ))}
-                    {article.symbols.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground">
-                            +{article.symbols.length - 3}
-                        </span>
-                    )}
-                </div>
-            )}
-        </a>
+            <SquareCardFooter>
+                {article.symbols && article.symbols.length > 0 ? (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        {article.symbols.slice(0, 3).map((symbol) => (
+                            <button
+                                key={symbol}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onSymbolClick?.(symbol);
+                                }}
+                                className={cn(
+                                    'px-1.5 py-0.5 rounded text-[10px] font-semibold',
+                                    'bg-primary/10 text-primary border border-primary/20',
+                                    'hover:bg-primary/20 hover:border-primary/40 transition-all'
+                                )}
+                            >
+                                ${symbol}
+                            </button>
+                        ))}
+                        {article.symbols.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground">
+                                +{article.symbols.length - 3}
+                            </span>
+                        )}
+                    </div>
+                ) : (
+                    <div />
+                )}
+            </SquareCardFooter>
+        </SquareCard>
     );
 }
 
