@@ -534,19 +534,21 @@ export function ConversationView() {
 
     // Workspace view with active content and/or messages
     // NEW LAYOUT: Persistent chart panel (collapsible) + Chat area + Tool panels
-    const showPersistentChart = chartPanelOpen && !chartPanelCollapsed;
+    // On mobile, we hide the persistent chart panel entirely for better usability
+    const showPersistentChart = !isMobile && chartPanelOpen && !chartPanelCollapsed;
     // Taller default panel to fit HomeWidgets (approx 450px needed)
     // If activeContent is explicitly 'chart', we can use standard height
     const isShowingHomeWidgets = activeContent !== 'chart';
+    // Reduced heights for mobile if we ever show chart
     const chartPanelHeight = isMobile
-        ? (isShowingHomeWidgets ? 450 : 280)
+        ? (isShowingHomeWidgets ? 280 : 200)
         : (isShowingHomeWidgets ? 500 : 350);
     const collapsedBarHeight = 40;
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Persistent Chart Panel - Always visible when chartPanelOpen, collapsible */}
-            {chartPanelOpen && (
+            {/* Persistent Chart Panel - Hidden on mobile for usability */}
+            {!isMobile && chartPanelOpen && (
                 <div
                     className="flex-shrink-0 border-b border-border/30 transition-all duration-300 ease-in-out overflow-hidden"
                     style={{ height: showPersistentChart ? chartPanelHeight : collapsedBarHeight }}
@@ -602,8 +604,45 @@ export function ConversationView() {
                 </div>
             )}
 
-            {/* Other Tool Panels - Slide down when active (non-chart tools) */}
-            {hasActiveContent && activeContent !== 'chart' ? (
+            {/* Mobile: Full-screen tool panel with close button, no resizable split */}
+            {/* Desktop: Resizable split between tool panel and chat */}
+            {hasActiveContent && activeContent !== 'chart' && isMobile ? (
+                // Mobile: Full-height tool panel with close button
+                <div className="flex-1 flex flex-col min-h-0">
+                    {/* Tool Header */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 flex-shrink-0 h-12 bg-background/95 backdrop-blur-sm">
+                        <span className="text-sm font-semibold text-foreground">
+                            {activeContent === 'orders' && 'Order Entry'}
+                            {activeContent === 'portfolio' && 'Positions'}
+                            {activeContent === 'deep-value' && 'Deep Value'}
+                            {activeContent === 'hedged-positions' && 'Hedged Positions'}
+                            {activeContent === 'options-screener' && 'Options'}
+                            {activeContent === 'options-builder' && 'Strategy Builder'}
+                            {activeContent === 'screener' && 'Screener'}
+                            {activeContent === 'alerts' && 'Alerts'}
+                            {activeContent === 'calendar' && 'Calendar'}
+                            {activeContent === 'news' && 'News'}
+                            {activeContent === 'prediction-markets' && 'Markets'}
+                            {activeContent === 'thesis' && 'Thesis'}
+                            {activeContent === 'journal' && 'Journal'}
+                            {activeContent === 'insights' && 'Insights'}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-lg hover:bg-destructive/10 hover:text-destructive tap-target"
+                            onClick={closeContentZone}
+                        >
+                            <X className="h-5 w-5" />
+                        </Button>
+                    </div>
+                    {/* Tool Content - Full height on mobile */}
+                    <div className="flex-1 min-h-0 overflow-auto">
+                        {renderActiveContent()}
+                    </div>
+                </div>
+            ) : hasActiveContent && activeContent !== 'chart' ? (
+                // Desktop: Resizable split panels
                 <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
                     {/* Tool Panel (Top) */}
                     <ResizablePanel defaultSize={50} minSize={20} className="flex flex-col min-h-0">

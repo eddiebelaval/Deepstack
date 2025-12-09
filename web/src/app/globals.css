@@ -364,6 +364,92 @@
   padding-top: env(safe-area-inset-top, 0);
 }
 
+.safe-area-left {
+  padding-left: env(safe-area-inset-left, 0);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* iOS-specific optimizations */
+@supports (-webkit-touch-callout: none) {
+
+  /* Disable callout on long-press for cleaner touch experience */
+  .no-callout {
+    -webkit-touch-callout: none;
+  }
+
+  /* Fix iOS Safari 100vh issue */
+  .h-screen-ios {
+    height: 100vh;
+    height: -webkit-fill-available;
+    height: 100dvh;
+  }
+
+  /* Momentum scrolling for iOS */
+  .scroll-smooth-ios {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Touch action rules for proper gesture handling */
+.touch-pan-x {
+  touch-action: pan-x;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
+}
+
+.touch-none {
+  touch-action: none;
+}
+
+/* Prevent text selection on interactive elements */
+.select-none-touch {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Mobile virtual keyboard - ensure inputs aren't covered */
+@media (max-width: 767px) {
+
+  /* When keyboard is visible, add bottom margin to inputs */
+  .keyboard-aware {
+    scroll-padding-bottom: 200px;
+  }
+
+  /* Smaller input on mobile to save space */
+  .mobile-input {
+    min-height: 40px !important;
+    padding: 8px 12px !important;
+  }
+
+  /* Ensure fixed bottom elements account for keyboard */
+  .fixed-bottom-keyboard {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition: transform 0.2s ease-out;
+  }
+}
+
+/* iOS input zoom prevention - ensure font-size >= 16px */
+@media (max-width: 767px) {
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 /* Trading panel transitions */
 .panel-transition {
   transition: width 200ms ease-in-out, opacity 150ms ease-in-out;

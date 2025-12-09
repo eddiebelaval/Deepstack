@@ -9,7 +9,9 @@ import { ProviderSelector } from './ProviderSelector';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { CommandPalette } from './CommandPalette';
+import { cn } from '@/lib/utils';
 
 type ChatInputProps = {
   onSend: (message: string) => void;
@@ -20,9 +22,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { isStreaming, activeProvider, setActiveProvider, useExtendedThinking, setUseExtendedThinking } = useChatStore();
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { isMobile } = useIsMobile();
 
   const handleCommand = async (command: string) => {
     // Populate input for visual feedback
@@ -81,28 +85,53 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   }, [input]);
 
-  return (
-    <div className="glass-input p-4 relative">
-      <div className="flex items-end gap-3">
-        <ProviderSelector
-          value={activeProvider}
-          onChange={setActiveProvider}
-          disabled={isStreaming}
-        />
+  // iOS virtual keyboard handling - scroll input into view
+  useEffect(() => {
+    if (!isMobile || typeof window === 'undefined') return;
 
-        <Button
-          onClick={() => setUseExtendedThinking(!useExtendedThinking)}
-          variant={useExtendedThinking ? 'default' : 'outline'}
-          size="icon"
-          className="h-10 w-10 rounded-xl relative"
-          title={useExtendedThinking ? 'Extended thinking enabled' : 'Extended thinking disabled'}
-          disabled={isStreaming}
-        >
-          <Brain className="h-4 w-4" />
-          {useExtendedThinking && (
-            <div className="absolute -top-1 -right-1 h-2 w-2 bg-purple-500 rounded-full animate-pulse" />
-          )}
-        </Button>
+    const handleResize = () => {
+      // When virtual keyboard opens, visualViewport height decreases
+      if (document.activeElement === textareaRef.current) {
+        // Scroll the input container into view
+        containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    };
+
+    // Use visualViewport API for more accurate keyboard detection
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      return () => window.visualViewport?.removeEventListener('resize', handleResize);
+    }
+  }, [isMobile]);
+
+  return (
+    <div ref={containerRef} className={cn("glass-input relative", isMobile ? "p-3" : "p-4")}>
+      <div className={cn("flex items-end", isMobile ? "gap-2" : "gap-3")}>
+        {/* Hide provider selector on mobile to save space */}
+        {!isMobile && (
+          <ProviderSelector
+            value={activeProvider}
+            onChange={setActiveProvider}
+            disabled={isStreaming}
+          />
+        )}
+
+        {/* Hide extended thinking button on mobile */}
+        {!isMobile && (
+          <Button
+            onClick={() => setUseExtendedThinking(!useExtendedThinking)}
+            variant={useExtendedThinking ? 'default' : 'outline'}
+            size="icon"
+            className="h-10 w-10 rounded-xl relative"
+            title={useExtendedThinking ? 'Extended thinking enabled' : 'Extended thinking disabled'}
+            disabled={isStreaming}
+          >
+            <Brain className="h-4 w-4" />
+            {useExtendedThinking && (
+              <div className="absolute -top-1 -right-1 h-2 w-2 bg-purple-500 rounded-full animate-pulse" />
+            )}
+          </Button>
+        )}
 
         <div className="flex-1 relative">
           <Textarea
@@ -110,23 +139,35 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about stocks, analyze positions, or place trades..."
+            placeholder={isMobile ? "Ask anything..." : "Ask about stocks, analyze positions, or place trades..."}
             disabled={disabled || isStreaming}
-            className="min-h-[44px] max-h-[200px] resize-none rounded-xl bg-primary/8 border border-primary/20 px-4 py-3 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary shadow-[inset_0_0_12px_rgba(178,120,50,0.15),0_0_8px_rgba(178,120,50,0.1)] scrollbar-hide whitespace-pre-wrap break-all"
+            inputMode="text"
+            enterKeyHint="send"
+            className={cn(
+              "resize-none rounded-xl bg-primary/8 border border-primary/20 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary shadow-[inset_0_0_12px_rgba(178,120,50,0.15),0_0_8px_rgba(178,120,50,0.1)] scrollbar-hide whitespace-pre-wrap break-all",
+              isMobile
+                ? "min-h-[40px] max-h-[120px] px-3 py-2 text-base"
+                : "min-h-[44px] max-h-[200px] px-4 py-3"
+            )}
             rows={1}
           />
-          <DotScrollIndicator
-            scrollRef={textareaRef}
-            maxDots={5}
-            className="absolute right-2 top-1/2 -translate-y-1/2"
-          />
+          {!isMobile && (
+            <DotScrollIndicator
+              scrollRef={textareaRef}
+              maxDots={5}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+            />
+          )}
         </div>
 
         <Button
           onClick={handleSubmit}
           disabled={!input.trim() || disabled || isStreaming}
           size="icon"
-          className="h-10 w-10 rounded-xl"
+          className={cn(
+            "rounded-xl shrink-0",
+            isMobile ? "h-10 w-10" : "h-10 w-10"
+          )}
         >
           {isStreaming ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -136,9 +177,12 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </Button>
       </div>
 
-      <div className="text-xs text-muted-foreground/60 text-center mt-3">
-        Press Enter to send, Shift+Enter for new line • Shift+Tab for Tools
-      </div>
+      {/* Simplified footer on mobile */}
+      {!isMobile && (
+        <div className="text-xs text-muted-foreground/60 text-center mt-3">
+          Press Enter to send, Shift+Enter for new line • Shift+Tab for Tools
+        </div>
+      )}
 
       <CommandPalette
         open={showCommandPalette}
