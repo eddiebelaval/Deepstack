@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useWatchlistStore } from '@/lib/stores/watchlist-store';
 import { useMarketWatchStore, getSymbolDisplayName } from '@/lib/stores/market-watch-store';
+import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
+import { useUIStore } from '@/lib/stores/ui-store';
 import { LazyMultiSeriesChart } from '@/components/lazy';
 import { type SeriesData } from '@/components/charts/MultiSeriesChart';
 import { Loader2, ChevronRight, Plus, X, Pencil, RotateCcw } from 'lucide-react';
@@ -197,6 +199,10 @@ export function HomeWidgets() {
 
     const { getActiveWatchlist } = useWatchlistStore();
     const activeWatchlist = getActiveWatchlist();
+
+    // Prediction markets store and UI store for navigation
+    const { setSelectedMarket } = usePredictionMarketsStore();
+    const { setActiveContent } = useUIStore();
 
     // Focus input when adding symbol
     useEffect(() => {
@@ -495,12 +501,11 @@ export function HomeWidgets() {
                         <div className="h-full p-3">
                             <BetsCarousel
                                 onMarketSelect={(market) => {
-                                    console.log('Selected market:', market);
-                                    // TODO: Navigate to prediction markets panel with selected market
+                                    setSelectedMarket(market);
+                                    setActiveContent('prediction-markets');
                                 }}
                                 onViewAll={() => {
-                                    console.log('View all markets');
-                                    // TODO: Navigate to prediction markets panel
+                                    setActiveContent('prediction-markets');
                                 }}
                             />
                         </div>
