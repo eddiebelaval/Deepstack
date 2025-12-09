@@ -1111,16 +1111,20 @@ class DeepStackAPIServer:
             alpaca_secret = self.config.alpaca_secret_key
             has_key = bool(alpaca_key)
             has_secret = bool(alpaca_secret)
-            logger.info(f"Alpaca config: key={has_key}, secret={has_secret}")
+            # Use print + logger to ensure visibility in Railway logs
+            print(f"Alpaca config check: key={has_key}, secret={has_secret}")
+            logger.warning(f"Alpaca config: key={has_key}, secret={has_secret}")
             if alpaca_key and alpaca_secret:
                 self.alpaca_client = AlpacaClient(
                     api_key=alpaca_key,
                     secret_key=alpaca_secret,
                 )
-                logger.info("Alpaca client initialized successfully")
+                print("Alpaca client initialized successfully")
+                logger.warning("Alpaca client initialized successfully")
             else:
                 logger.warning("Alpaca credentials not provided")
         except Exception as e:
+            print(f"Alpaca client init failed: {e}")
             logger.error(f"Alpaca client init failed: {e}")
 
         # Initialize paper trader (optional)
