@@ -135,7 +135,7 @@ export function StreamingTicker() {
   const duplicatedItems = [...tickerItems, ...tickerItems, ...tickerItems];
 
   return (
-    <div className="led-ticker-container h-9 overflow-hidden relative">
+    <div className="led-ticker-container h-9 overflow-hidden relative fixed top-0 left-0 right-0 z-50">
       {/* Connection status dot */}
       <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20">
         <ConnectionDot />

@@ -33,7 +33,7 @@ import { JournalList } from '@/components/journal/JournalList';
 import { ThesisList } from '@/components/thesis/ThesisList';
 import { InsightsPanel } from '@/components/insights/InsightsPanel';
 import { PresetGrid } from './PresetGrid';
-import { HomeWidgets } from './HomeWidgets';
+// HomeWidgets moved to global MarketWatchPanel in DeepStackLayout
 import { cn } from '@/lib/utils';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { LineChart, X, Search, Loader2 } from 'lucide-react';
@@ -448,14 +448,14 @@ export function ConversationView() {
 
     // Home state - no messages, no active content
     // Centered both horizontally and vertically on the page
+    // Note: HomeWidgets now lives in the global MarketWatchPanel (top of page)
     if (!hasMessages && !hasActiveContent) {
         return (
             <div className={cn(
                 "flex flex-col h-full overflow-hidden",
                 isMobile ? "p-3" : "p-8"
             )}>
-                {/* Top Widgets Section - hide on mobile to save space */}
-                {isDesktop && <div className="flex-shrink-0"><HomeWidgets /></div>}
+                {/* HomeWidgets moved to global MarketWatchPanel in DeepStackLayout */}
 
                 {/* Centered Welcome Message - scrollable if content overflows */}
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center" style={{ overscrollBehavior: 'contain' }}>
@@ -536,73 +536,42 @@ export function ConversationView() {
     }
 
     // Workspace view with active content and/or messages
-    // NEW LAYOUT: Persistent chart panel (collapsible) + Chat area + Tool panels
-    // On mobile, we hide the persistent chart panel entirely for better usability
-    const showPersistentChart = !isMobile && chartPanelOpen && !chartPanelCollapsed;
-    // Taller default panel to fit HomeWidgets (approx 450px needed)
-    // If activeContent is explicitly 'chart', we can use standard height
-    const isShowingHomeWidgets = activeContent !== 'chart';
-    // Reduced heights for mobile if we ever show chart
-    const chartPanelHeight = isMobile
-        ? (isShowingHomeWidgets ? 280 : 200)
-        : (isShowingHomeWidgets ? 500 : 350);
+    // Note: HomeWidgets moved to global MarketWatchPanel - this panel only shows TradingChart
+    // On mobile, we hide the chart panel entirely for better usability
+    const showPersistentChart = !isMobile && chartPanelOpen && !chartPanelCollapsed && activeContent === 'chart';
+    const chartPanelHeight = 350;
     const collapsedBarHeight = 40;
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Persistent Chart Panel - Hidden on mobile for usability */}
-            {!isMobile && chartPanelOpen && (
+            {/* Persistent Trading Chart Panel - Only shows when activeContent is 'chart' */}
+            {!isMobile && chartPanelOpen && activeContent === 'chart' && (
                 <div
                     className="flex-shrink-0 border-b border-border/30 transition-all duration-300 ease-in-out overflow-hidden"
                     style={{ height: showPersistentChart ? chartPanelHeight : collapsedBarHeight }}
                 >
-                    {/* Render different content based on state */}
-                    {activeContent === 'chart' ? (
-                        <>
-                            {/* Standard Trading Chart with toolbars */}
-                            <ChartToolbar />
-                            {showPersistentChart && <DrawingToolbar />}
-                            {showPersistentChart && (
-                                <div className="h-[calc(100%-80px)] relative">
-                                    <TradingChart className="w-full h-full" />
-                                    {isChartLoading && (
-                                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
-                                            <div className="flex flex-col items-center gap-2">
-                                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                                <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {!isChartLoading && !hasChartData && (
-                                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
-                                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                                <LineChart className="h-8 w-8 opacity-50" />
-                                                <span className="text-sm">No data available for {activeSymbol}</span>
-                                            </div>
-                                        </div>
-                                    )}
+                    <ChartToolbar />
+                    {showPersistentChart && <DrawingToolbar />}
+                    {showPersistentChart && (
+                        <div className="h-[calc(100%-80px)] relative">
+                            <TradingChart className="w-full h-full" />
+                            {isChartLoading && (
+                                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
+                                    </div>
                                 </div>
                             )}
-                        </>
-                    ) : (
-                        <>
-                            {/* Home Widgets (Multi-series chart) - Persisted from front page */}
-                            {/* We wrap it to handle the layout nicely */}
-                            <div className="h-full flex flex-col">
-                                <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-background/50 backdrop-blur-sm">
-                                    <span className="text-sm font-medium text-muted-foreground">Market Overview</span>
-                                    {/* Collapse button */}
-                                    {/* We could reuse ChartToolbar here but it has specific chart controls */}
-                                </div>
-                                {showPersistentChart && (
-                                    <div className="flex-1 overflow-hidden p-4">
-                                        <div className="h-full">
-                                            <HomeWidgets />
-                                        </div>
+                            {!isChartLoading && !hasChartData && (
+                                <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
+                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                        <LineChart className="h-8 w-8 opacity-50" />
+                                        <span className="text-sm">No data available for {activeSymbol}</span>
                                     </div>
-                                )}
-                            </div>
-                        </>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             )}
