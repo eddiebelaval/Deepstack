@@ -531,6 +531,16 @@ class PolymarketClient:
             except (ValueError, TypeError):
                 logger.debug(f"Failed to parse endDate: {raw.get('endDate')}")
 
+        # Extract event slug from events array (markets are children of events)
+        # Polymarket URLs use event slug, not market slug
+        event_slug = None
+        events = raw.get("events", [])
+        if isinstance(events, list) and len(events) > 0:
+            event_slug = events[0].get("slug")
+
+        # Fall back to market slug if no event slug available
+        url_slug = event_slug or raw.get("slug", raw.get("id", ""))
+
         return PredictionMarket(
             id=raw.get("conditionId", raw.get("id", "")),
             platform=Platform.POLYMARKET,
@@ -543,7 +553,7 @@ class PolymarketClient:
             open_interest=None,  # Polymarket doesn't expose OI
             end_date=end_date,
             status="active" if raw.get("active", True) else "closed",
-            url=f"https://polymarket.com/event/{raw.get('slug', raw.get('id', ''))}",
+            url=f"https://polymarket.com/event/{url_slug}",
             description=raw.get("description"),
         )
 
