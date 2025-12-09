@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { transformMarket } from '@/lib/utils/prediction-market-transform';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -20,7 +21,16 @@ export async function GET(request: NextRequest) {
       throw new Error(`Backend returned ${response.status}`);
     }
 
-    return NextResponse.json(await response.json());
+    const data = await response.json();
+
+    // Transform snake_case from Python backend to camelCase for frontend
+    const transformedMarkets = (data.markets || []).map(transformMarket);
+
+    return NextResponse.json({
+      markets: transformedMarkets,
+      count: data.count,
+      query,
+    });
   } catch (error) {
     console.error('Prediction markets search error:', error);
 

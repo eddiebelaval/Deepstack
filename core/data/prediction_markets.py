@@ -441,6 +441,9 @@ class PolymarketClient:
         """
         Search markets by query string.
 
+        Polymarket's Gamma API doesn't have a proper search parameter,
+        so we fetch active markets and filter client-side.
+
         Args:
             query: Search query
 
@@ -450,13 +453,32 @@ class PolymarketClient:
         try:
             session = await self._get_session()
 
-            # Polymarket has a search endpoint
-            response = await session.get("/markets", params={"query": query})
+            # Fetch active markets (closed=false) and filter client-side
+            # The 'query' param doesn't work reliably on Gamma API
+            response = await session.get(
+                "/markets", params={"closed": "false", "limit": 200}
+            )
             response.raise_for_status()
 
             markets = response.json()
-            logger.debug(f"Search '{query}' found {len(markets)} Polymarket markets")
-            return markets if isinstance(markets, list) else []
+            if not isinstance(markets, list):
+                return []
+
+            # Client-side filtering by query in title/question
+            query_lower = query.lower()
+            filtered = [
+                m
+                for m in markets
+                if query_lower in m.get("question", "").lower()
+                or query_lower in m.get("title", "").lower()
+                or query_lower in m.get("description", "").lower()
+            ]
+
+            logger.debug(
+                f"Search '{query}' found {len(filtered)} Polymarket "
+                f"markets (from {len(markets)} total)"
+            )
+            return filtered
 
         except Exception as e:
             logger.error(f"Error searching Polymarket markets: {e}")
@@ -478,11 +500,22 @@ class PolymarketClient:
         no_price = 0.5
 
         # Try to extract prices from outcomes
-        if "outcomePrices" in raw and isinstance(raw["outcomePrices"], list):
-            if len(raw["outcomePrices"]) >= 1:
-                yes_price = float(raw["outcomePrices"][0])
-            if len(raw["outcomePrices"]) >= 2:
-                no_price = float(raw["outcomePrices"][1])
+        # Note: outcomePrices can be a JSON string or an actual list
+        outcome_prices = raw.get("outcomePrices")
+        if outcome_prices:
+            # Parse JSON string if needed
+            if isinstance(outcome_prices, str):
+                try:
+                    import json
+
+                    outcome_prices = json.loads(outcome_prices)
+                except (json.JSONDecodeError, TypeError):
+                    outcome_prices = None
+
+            if isinstance(outcome_prices, list) and len(outcome_prices) >= 1:
+                yes_price = float(outcome_prices[0])
+                if len(outcome_prices) >= 2:
+                    no_price = float(outcome_prices[1])
         elif "tokens" in raw and isinstance(raw["tokens"], list):
             # Alternative format
             if len(raw["tokens"]) >= 1:
