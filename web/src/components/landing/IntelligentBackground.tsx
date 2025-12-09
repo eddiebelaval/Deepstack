@@ -8,13 +8,14 @@ export function IntelligentBackground() {
     const timeRef = useRef(0);
     const scrollYRef = useRef(0);
 
-    // Radar state
-    const radarRef = useRef({
-        originX: 0,
-        originY: 0,
-        pings: [] as { radius: number; alpha: number; id: number }[],
-        lastPingTime: 0,
-        pingInterval: 180, // ~3 seconds at 60fps
+    // Ping state - fixed size ring that moves across screen
+    const pingRef = useRef({
+        x: 0,
+        y: 0,
+        velocityX: 0,
+        velocityY: 0,
+        radius: 80, // Fixed radius
+        initialized: false,
     });
 
     // Terrain state - Perlin-like noise for topographical elevation
@@ -29,20 +30,30 @@ export function IntelligentBackground() {
         ]
     });
 
-    // Colors
-    const AMBER = { r: 255, g: 170, b: 50 };
-    const GRID_COLOR = { r: 255, g: 170, b: 50 };
+    // Colors - Grey for topography, Green candle for ping
+    const GREY = { r: 140, g: 140, b: 140 };
+    const GRID_COLOR = { r: 80, g: 80, b: 80 };
+    const GREEN_CANDLE = { r: 34, g: 197, b: 94 }; // Tailwind green-500
 
-    // Initialize radar origin on mount
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
+    // Helper to spawn ping at random position with random direction
+    const spawnPing = useCallback((width: number, height: number) => {
+        // Random angle for movement direction
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.4 + Math.random() * 0.3; // Slow movement
 
-            radarRef.current.originX = width * (0.2 + Math.random() * 0.6);
-            radarRef.current.originY = height * (0.2 + Math.random() * 0.6);
-        }
+        pingRef.current.x = width * (0.1 + Math.random() * 0.8);
+        pingRef.current.y = height * (0.1 + Math.random() * 0.8);
+        pingRef.current.velocityX = Math.cos(angle) * speed;
+        pingRef.current.velocityY = Math.sin(angle) * speed;
     }, []);
+
+    // Initialize ping position on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !pingRef.current.initialized) {
+            spawnPing(window.innerWidth, window.innerHeight);
+            pingRef.current.initialized = true;
+        }
+    }, [spawnPing]);
 
     // Simplex-like noise function (faster than true Perlin)
     const noise2D = useCallback((x: number, y: number, seed: number): number => {
@@ -157,7 +168,7 @@ export function IntelligentBackground() {
             const isMajor = level === 0;
             const alpha = isMajor ? 0.45 : 0.25;
 
-            ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${alpha})`;
+            ctx.strokeStyle = `rgba(${GREY.r}, ${GREY.g}, ${GREY.b}, ${alpha})`;
             ctx.lineWidth = isMajor ? 2.5 : 1.5;
 
             // March through the grid looking for contour crossings
@@ -218,98 +229,80 @@ export function IntelligentBackground() {
             }
         }
 
-        // 4. Update and Draw Radar Pings (terrain-morphing)
-        radarRef.current.lastPingTime++;
-        if (radarRef.current.lastPingTime >= radarRef.current.pingInterval) {
-            radarRef.current.pings.push({
-                radius: 0,
-                alpha: 1,
-                id: Date.now()
-            });
-            radarRef.current.lastPingTime = 0;
+        // 4. Update and Draw Moving Ping (fixed size, moves across screen)
+        const ping = pingRef.current;
+
+        // Move the ping
+        ping.x += ping.velocityX;
+        ping.y += ping.velocityY;
+
+        // Check if ping has left the screen (with buffer for radius)
+        const buffer = ping.radius + 50;
+        if (ping.x < -buffer || ping.x > width + buffer ||
+            ping.y < -buffer || ping.y > height + buffer) {
+            // Respawn at new random position
+            spawnPing(width, height);
         }
 
-        const maxRadius = Math.max(width, height) * 1.2;
-        const spreadSpeed = 2.5; // Pixels per frame
+        const centerX = ping.x;
+        const centerY = ping.y;
+        const pingRadius = ping.radius;
 
-        // Update pings
-        radarRef.current.pings = radarRef.current.pings.filter(ping => ping.alpha > 0.01);
-
-        radarRef.current.pings.forEach(ping => {
-            ping.radius += spreadSpeed;
-
-            // Fade out based on size/distance
-            if (ping.radius > maxRadius * 0.4) {
-                ping.alpha *= 0.985;
-            }
-
-            const centerX = radarRef.current.originX;
-            const centerY = radarRef.current.originY;
-
-            // Draw the ping ring DISTORTED by terrain elevation
-            ctx.beginPath();
-            const numPoints = 180; // High resolution for smooth contour-following
-
-            for (let i = 0; i <= numPoints; i++) {
-                const angle = (i / numPoints) * Math.PI * 2;
-                const cos = Math.cos(angle);
-                const sin = Math.sin(angle);
-
-                // Base position on perfect circle
-                const baseX = centerX + cos * ping.radius;
-                const baseY = centerY + sin * ping.radius;
-
-                // Sample elevation at this point
-                const elevation = getElevation(baseX, baseY - parallax, time);
-
-                // Distort radius based on elevation
-                // Higher terrain pushes the ping outward, lower pulls it in
-                const distortionStrength = 30 + ping.radius * 0.08; // Scale with size
-                const distortedRadius = ping.radius + elevation * distortionStrength;
-
-                const finalX = centerX + cos * distortedRadius;
-                const finalY = centerY + sin * distortedRadius;
-
-                if (i === 0) ctx.moveTo(finalX, finalY);
-                else ctx.lineTo(finalX, finalY);
-            }
-            ctx.closePath();
-
-            // Gradient stroke effect - brighter at edges
-            const gradient = ctx.createRadialGradient(
-                centerX, centerY, ping.radius * 0.8,
-                centerX, centerY, ping.radius * 1.2
-            );
-            gradient.addColorStop(0, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0)`);
-            gradient.addColorStop(0.5, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.6})`);
-            gradient.addColorStop(1, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0)`);
-
-            ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.7})`;
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-
-            // Subtle fill
-            ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.03})`;
-            ctx.fill();
-        });
-
-        // 5. Draw ping origin point (small glowing dot)
-        const pulseAlpha = 0.4 + Math.sin(time * 5) * 0.2;
+        // Draw the ping ring DISTORTED by terrain elevation
         ctx.beginPath();
-        ctx.arc(radarRef.current.originX, radarRef.current.originY, 4, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${pulseAlpha})`;
+        const numPoints = 120; // Resolution for smooth contour-following
+
+        for (let i = 0; i <= numPoints; i++) {
+            const angle = (i / numPoints) * Math.PI * 2;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+
+            // Base position on perfect circle
+            const baseX = centerX + cos * pingRadius;
+            const baseY = centerY + sin * pingRadius;
+
+            // Sample elevation at this point
+            const elevation = getElevation(baseX, baseY - parallax, time);
+
+            // Distort radius based on elevation
+            const distortionStrength = 25;
+            const distortedRadius = pingRadius + elevation * distortionStrength;
+
+            const finalX = centerX + cos * distortedRadius;
+            const finalY = centerY + sin * distortedRadius;
+
+            if (i === 0) ctx.moveTo(finalX, finalY);
+            else ctx.lineTo(finalX, finalY);
+        }
+        ctx.closePath();
+
+        // Green candle ring stroke with glow effect
+        ctx.strokeStyle = `rgba(${GREEN_CANDLE.r}, ${GREEN_CANDLE.g}, ${GREEN_CANDLE.b}, 0.8)`;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = `rgba(${GREEN_CANDLE.r}, ${GREEN_CANDLE.g}, ${GREEN_CANDLE.b}, 0.6)`;
+        ctx.shadowBlur = 15;
+        ctx.stroke();
+
+        // Reset shadow
+        ctx.shadowBlur = 0;
+
+        // Subtle inner fill
+        ctx.fillStyle = `rgba(${GREEN_CANDLE.r}, ${GREEN_CANDLE.g}, ${GREEN_CANDLE.b}, 0.03)`;
         ctx.fill();
 
-        // Glow ring
+        // 5. Draw ping center point (small glowing dot)
+        const pulseAlpha = 0.5 + Math.sin(time * 5) * 0.3;
         ctx.beginPath();
-        ctx.arc(radarRef.current.originX, radarRef.current.originY, 8, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${pulseAlpha * 0.5})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${GREEN_CANDLE.r}, ${GREEN_CANDLE.g}, ${GREEN_CANDLE.b}, ${pulseAlpha})`;
+        ctx.shadowColor = `rgba(${GREEN_CANDLE.r}, ${GREEN_CANDLE.g}, ${GREEN_CANDLE.b}, 0.8)`;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
 
         timeRef.current++;
         animationRef.current = requestAnimationFrame(animate);
-    }, [getElevation, AMBER, GRID_COLOR]);
+    }, [getElevation, spawnPing, GREY, GRID_COLOR, GREEN_CANDLE]);
 
     const handleResize = useCallback(() => {
         const canvas = canvasRef.current;
