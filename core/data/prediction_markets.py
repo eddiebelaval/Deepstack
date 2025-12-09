@@ -279,8 +279,8 @@ class KalshiClient:
                 end_date = datetime.fromisoformat(
                     raw["close_time"].replace("Z", "+00:00")
                 )
-            except Exception:
-                pass
+            except (ValueError, TypeError):
+                logger.debug(f"Failed to parse close_time: {raw.get('close_time')}")
 
         return PredictionMarket(
             id=raw.get("ticker", ""),
@@ -349,6 +349,7 @@ class PolymarketClient:
 
             if active:
                 params["active"] = "true"
+                params["closed"] = "false"  # Exclude closed markets
 
             response = await session.get("/markets", params=params)
             response.raise_for_status()
@@ -421,7 +422,7 @@ class PolymarketClient:
         try:
             session = await self._get_session()
             response = await session.get(
-                f"/prices-history", params={"market": token_id, "fidelity": fidelity}
+                "/prices-history", params={"market": token_id, "fidelity": fidelity}
             )
             response.raise_for_status()
 
@@ -494,8 +495,8 @@ class PolymarketClient:
         if raw.get("endDate"):
             try:
                 end_date = datetime.fromisoformat(raw["endDate"].replace("Z", "+00:00"))
-            except Exception:
-                pass
+            except (ValueError, TypeError):
+                logger.debug(f"Failed to parse endDate: {raw.get('endDate')}")
 
         return PredictionMarket(
             id=raw.get("conditionId", raw.get("id", "")),
