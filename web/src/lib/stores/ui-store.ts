@@ -10,10 +10,26 @@ export interface WidgetConfig {
   isOpen: boolean;
 }
 
+// Market Watch Panel - Global collapsible panel at top of page
+export interface MarketWatchPanelState {
+  isOpen: boolean;           // Panel visible (expanded or collapsed tab)
+  isExpanded: boolean;       // Panel expanded (vs collapsed to tab)
+  height: number;            // Panel height when expanded (px)
+}
+
 interface UIState {
   // Main Content State
   activeContent: ActiveContentType;
   setActiveContent: (content: ActiveContentType) => void;
+
+  // Market Watch Panel State (global, fixed at top)
+  marketWatchPanel: MarketWatchPanelState;
+  openMarketWatchPanel: () => void;
+  closeMarketWatchPanel: () => void;
+  toggleMarketWatchPanel: () => void;
+  expandMarketWatchPanel: () => void;
+  collapseMarketWatchPanel: () => void;
+  setMarketWatchPanelHeight: (height: number) => void;
 
   // Chart Panel State (persistent during chat)
   chartPanelOpen: boolean;
@@ -49,11 +65,24 @@ interface UIState {
   setPaywallOpen: (isOpen: boolean) => void;
 }
 
+// Constants for Market Watch Panel
+const MARKET_WATCH_PANEL_DEFAULT_HEIGHT = 480; // Default height in px
+const MARKET_WATCH_PANEL_MIN_HEIGHT = 200;
+const MARKET_WATCH_PANEL_MAX_HEIGHT = 800;
+
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
       // Initial State
       activeContent: 'none',
+
+      // Market Watch Panel - starts collapsed as a tab
+      marketWatchPanel: {
+        isOpen: true,       // Visible (as collapsed tab or expanded)
+        isExpanded: false,  // Starts collapsed
+        height: MARKET_WATCH_PANEL_DEFAULT_HEIGHT,
+      },
+
       chartPanelOpen: true, // Chart visible by default
       chartPanelCollapsed: false, // Not collapsed by default
       chartWasOpenBeforeTool: true, // Track for restore when tool closes
@@ -95,6 +124,33 @@ export const useUIStore = create<UIState>()(
         // Switching between tools or to 'chart' explicitly
         return { activeContent: content };
       }),
+
+      // Market Watch Panel Actions
+      openMarketWatchPanel: () => set((state) => ({
+        marketWatchPanel: { ...state.marketWatchPanel, isOpen: true, isExpanded: true }
+      })),
+      closeMarketWatchPanel: () => set((state) => ({
+        marketWatchPanel: { ...state.marketWatchPanel, isOpen: false, isExpanded: false }
+      })),
+      toggleMarketWatchPanel: () => set((state) => ({
+        marketWatchPanel: {
+          ...state.marketWatchPanel,
+          isExpanded: !state.marketWatchPanel.isExpanded
+        }
+      })),
+      expandMarketWatchPanel: () => set((state) => ({
+        marketWatchPanel: { ...state.marketWatchPanel, isExpanded: true }
+      })),
+      collapseMarketWatchPanel: () => set((state) => ({
+        marketWatchPanel: { ...state.marketWatchPanel, isExpanded: false }
+      })),
+      setMarketWatchPanelHeight: (height) => set((state) => ({
+        marketWatchPanel: {
+          ...state.marketWatchPanel,
+          height: Math.min(Math.max(height, MARKET_WATCH_PANEL_MIN_HEIGHT), MARKET_WATCH_PANEL_MAX_HEIGHT)
+        }
+      })),
+
       setChartPanelOpen: (isOpen) => set({ chartPanelOpen: isOpen }),
       toggleChartCollapsed: () => set((state) => ({ chartPanelCollapsed: !state.chartPanelCollapsed })),
 
@@ -133,6 +189,8 @@ export const useUIStore = create<UIState>()(
         profileOpen: state.profileOpen,
         settingsOpen: state.settingsOpen,
         widgets: state.widgets,
+        // Persist Market Watch Panel state
+        marketWatchPanel: state.marketWatchPanel,
       }),
     }
   )

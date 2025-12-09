@@ -15,6 +15,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePredictionMarkets, type FeedType } from '@/hooks/usePredictionMarkets';
+import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,8 +62,10 @@ export function PredictionMarketsPanel() {
         isInWatchlist,
     } = usePredictionMarkets();
 
+    // Use Zustand store for selectedMarket (allows external components to pre-select)
+    const { selectedMarket, setSelectedMarket } = usePredictionMarketsStore();
+
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedMarket, setSelectedMarket] = useState<PredictionMarket | null>(null);
     const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
     const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
 

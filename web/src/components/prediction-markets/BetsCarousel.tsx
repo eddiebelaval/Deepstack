@@ -9,16 +9,19 @@ import type { PredictionMarket } from '@/lib/types/prediction-markets';
 import { ChevronLeft, ChevronRight, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
 
 /**
- * BetsCarousel - Carousel of large market cards with probability charts
+ * BetsCarousel - Grid of market cards with probability charts
  *
  * Features:
- * - Shows 2 cards side by side per page
- * - Touch swipe navigation (mobile)
+ * - Shows 10 cards in a 5x2 grid to fill the panel height
+ * - Touch swipe navigation for pages (mobile)
  * - Dot indicators for pages
  * - Arrow buttons for navigation
  * - Watchlist-first data source (falls back to trending)
  * - "View All" button to open full panel
  */
+
+// Number of cards per page - 5 columns x 2 rows = 10 cards fills 580px panel nicely
+const CARDS_PER_PAGE = 10;
 
 interface BetsCarouselProps {
   onMarketSelect?: (market: PredictionMarket) => void;
@@ -48,7 +51,8 @@ export function BetsCarousel({
     try {
       setError(null);
       setLoading(true);
-      const { markets } = await fetchTrendingMarkets({ limit: 10 });
+      // Fetch enough markets for multiple pages (50 markets = 5 pages of 10)
+      const { markets } = await fetchTrendingMarkets({ limit: 50 });
       setTrendingMarkets(markets);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load markets');
@@ -78,7 +82,7 @@ export function BetsCarousel({
   }, [trendingMarkets]);
 
   const displayMarkets = getDisplayMarkets();
-  const totalPages = Math.ceil(displayMarkets.length / 2);
+  const totalPages = Math.ceil(displayMarkets.length / CARDS_PER_PAGE);
 
   // Handle pagination
   const goToPage = (page: number) => {
@@ -202,13 +206,13 @@ export function BetsCarousel({
               className="flex transition-transform duration-300 ease-out h-full"
               style={{ transform: `translateX(-${currentPage * 100}%)` }}
             >
-              {/* Render all pages */}
+              {/* Render all pages - 5 columns x 2 rows = 10 cards per page */}
               {Array.from({ length: totalPages }).map((_, pageIndex) => (
                 <div
                   key={pageIndex}
-                  className="flex-shrink-0 w-full grid grid-cols-2 gap-3 px-0.5"
+                  className="flex-shrink-0 w-full grid grid-cols-5 grid-rows-2 gap-3 px-0.5 h-full"
                 >
-                  {displayMarkets.slice(pageIndex * 2, pageIndex * 2 + 2).map((market) => (
+                  {displayMarkets.slice(pageIndex * CARDS_PER_PAGE, pageIndex * CARDS_PER_PAGE + CARDS_PER_PAGE).map((market) => (
                     <BetsCarouselCard
                       key={`${market.platform}-${market.id}`}
                       market={market}
