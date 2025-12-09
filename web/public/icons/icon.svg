@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1613"/>
+      <stop offset="100%" style="stop-color:#2d2620"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4a574"/>
+      <stop offset="100%" style="stop-color:#b8860b"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  <!-- Stack layers icon -->
+  <g transform="translate(256, 256)">
+    <!-- Bottom layer -->
+    <path d="M-120 40 L0 100 L120 40 L0 -20 Z" fill="url(#gold)" opacity="0.5"/>
+    <!-- Middle layer -->
+    <path d="M-120 0 L0 60 L120 0 L0 -60 Z" fill="url(#gold)" opacity="0.75"/>
+    <!-- Top layer -->
+    <path d="M-120 -40 L0 20 L120 -40 L0 -100 Z" fill="url(#gold)"/>
+  </g>
+</svg>

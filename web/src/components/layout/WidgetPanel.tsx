@@ -17,7 +17,9 @@ import {
     Activity,
     TrendingUp,
     TrendingDown,
-    Settings2
+    Settings2,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -29,12 +31,13 @@ type WidgetConfig = {
     type: WidgetType;
     title: string;
     icon: React.ElementType;
+    isCollapsed: boolean;
 };
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
-    { id: '1', type: 'watchlist', title: 'Watchlist', icon: List },
-    { id: '2', type: 'quickStats', title: 'Quick Stats', icon: BarChart3 },
-    { id: '3', type: 'marketStatus', title: 'Market Status', icon: Activity },
+    { id: '1', type: 'watchlist', title: 'Watchlist', icon: List, isCollapsed: false },
+    { id: '2', type: 'quickStats', title: 'Quick Stats', icon: BarChart3, isCollapsed: false },
+    { id: '3', type: 'marketStatus', title: 'Market Status', icon: Activity, isCollapsed: false },
 ];
 
 // Watchlist Widget Component
@@ -152,7 +155,17 @@ function MarketStatusWidget() {
 }
 
 // Single Widget Card
-function WidgetCard({ config, onRemove }: { config: WidgetConfig; onRemove: () => void }) {
+function WidgetCard({
+    config,
+    onRemove,
+    isCollapsed,
+    onToggleCollapse
+}: {
+    config: WidgetConfig;
+    onRemove: () => void;
+    isCollapsed: boolean;
+    onToggleCollapse: () => void;
+}) {
     const renderContent = () => {
         switch (config.type) {
             case 'watchlist':
@@ -167,11 +180,19 @@ function WidgetCard({ config, onRemove }: { config: WidgetConfig; onRemove: () =
     };
 
     return (
-        <Card className="glass-surface rounded-2xl overflow-hidden">
+        <Card className="glass-surface rounded-2xl overflow-hidden transition-all duration-200">
             <CardHeader className="p-3 pb-2 flex flex-row items-center gap-2">
                 <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                 <config.icon className="h-4 w-4 text-primary" />
                 <CardTitle className="text-sm font-medium flex-1">{config.title}</CardTitle>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-md"
+                    onClick={onToggleCollapse}
+                >
+                    {isCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+                </Button>
                 <Button
                     variant="ghost"
                     size="icon"
@@ -181,11 +202,13 @@ function WidgetCard({ config, onRemove }: { config: WidgetConfig; onRemove: () =
                     <X className="h-3 w-3" />
                 </Button>
             </CardHeader>
-            <CardContent className="p-3 pt-0">
-                <ErrorBoundary variant="inline">
-                    {renderContent()}
-                </ErrorBoundary>
-            </CardContent>
+            {!isCollapsed && (
+                <CardContent className="p-3 pt-0">
+                    <ErrorBoundary variant="inline">
+                        {renderContent()}
+                    </ErrorBoundary>
+                </CardContent>
+            )}
         </Card>
     );
 }
@@ -197,6 +220,12 @@ export function WidgetPanel() {
 
     const removeWidget = (id: string) => {
         setWidgets(widgets.filter(w => w.id !== id));
+    };
+
+    const toggleCollapse = (id: string) => {
+        setWidgets(widgets.map(w =>
+            w.id === id ? { ...w, isCollapsed: !w.isCollapsed } : w
+        ));
     };
 
     if (!rightSidebarOpen) return null;
@@ -241,6 +270,8 @@ export function WidgetPanel() {
                                     key={widget.id}
                                     config={widget}
                                     onRemove={() => removeWidget(widget.id)}
+                                    isCollapsed={widget.isCollapsed}
+                                    onToggleCollapse={() => toggleCollapse(widget.id)}
                                 />
                             ))}
 

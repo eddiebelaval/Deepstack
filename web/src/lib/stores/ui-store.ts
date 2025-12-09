@@ -18,6 +18,7 @@ interface UIState {
   // Chart Panel State (persistent during chat)
   chartPanelOpen: boolean;
   chartPanelCollapsed: boolean;
+  chartWasOpenBeforeTool: boolean; // Track chart state before tool panel opened
   setChartPanelOpen: (isOpen: boolean) => void;
   toggleChartCollapsed: () => void;
 
@@ -55,6 +56,7 @@ export const useUIStore = create<UIState>()(
       activeContent: 'none',
       chartPanelOpen: true, // Chart visible by default
       chartPanelCollapsed: false, // Not collapsed by default
+      chartWasOpenBeforeTool: true, // Track for restore when tool closes
       leftSidebarOpen: false, // Collapsed by default as per spec
       rightSidebarOpen: true, // Visible by default as per spec
       profileOpen: false,
@@ -68,7 +70,31 @@ export const useUIStore = create<UIState>()(
       paywallOpen: false,
 
       // Actions
-      setActiveContent: (content) => set({ activeContent: content }),
+      // Smart chart persistence: when a tool opens, hide chart; when returning to 'none', restore chart
+      setActiveContent: (content) => set((state) => {
+        const wasNone = state.activeContent === 'none';
+        const isNone = content === 'none';
+
+        // Opening a tool (transitioning from 'none' to something else)
+        if (wasNone && !isNone && content !== 'chart') {
+          return {
+            activeContent: content,
+            chartWasOpenBeforeTool: state.chartPanelOpen, // Save current chart state
+            chartPanelCollapsed: true, // Collapse chart when tool opens (not fully hide)
+          };
+        }
+
+        // Closing a tool (transitioning back to 'none')
+        if (!wasNone && isNone) {
+          return {
+            activeContent: content,
+            chartPanelCollapsed: !state.chartWasOpenBeforeTool, // Restore to previous state (collapsed = !open)
+          };
+        }
+
+        // Switching between tools or to 'chart' explicitly
+        return { activeContent: content };
+      }),
       setChartPanelOpen: (isOpen) => set({ chartPanelOpen: isOpen }),
       toggleChartCollapsed: () => set((state) => ({ chartPanelCollapsed: !state.chartPanelCollapsed })),
 

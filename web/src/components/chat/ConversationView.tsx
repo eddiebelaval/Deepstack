@@ -448,14 +448,14 @@ export function ConversationView() {
     if (!hasMessages && !hasActiveContent) {
         return (
             <div className={cn(
-                "flex flex-col h-full",
+                "flex flex-col h-full overflow-hidden",
                 isMobile ? "p-3" : "p-8"
             )}>
                 {/* Top Widgets Section - hide on mobile to save space */}
-                {isDesktop && <HomeWidgets />}
+                {isDesktop && <div className="flex-shrink-0"><HomeWidgets /></div>}
 
-                {/* Centered Welcome Message */}
-                <div className="flex-1 flex flex-col items-center justify-center">
+                {/* Centered Welcome Message - scrollable if content overflows */}
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center" style={{ overscrollBehavior: 'contain' }}>
                     <div className="text-center space-y-3 max-w-2xl px-4">
                         <div className="flex justify-center mb-4">
                             <div className={cn(
@@ -513,9 +513,9 @@ export function ConversationView() {
                     </div>
                 )}
 
-                {/* Bottom Section: Presets and Input */}
+                {/* Bottom Section: Presets and Input - Fixed at bottom */}
                 <div className={cn(
-                    "flex flex-col items-center w-full max-w-2xl mx-auto",
+                    "flex flex-col items-center w-full max-w-2xl mx-auto flex-shrink-0",
                     isMobile ? "gap-3" : "gap-6"
                 )}>
                     {/* Preset Cards - simplified on mobile */}
