@@ -9,22 +9,22 @@ interface FrostedOverlayProps {
 }
 
 export function FrostedOverlay({ className, intensity = 'medium' }: FrostedOverlayProps) {
-    // Map intensity to specific backdrop-blur values
+    // Map intensity to specific backdrop-blur values (reduced for better background visibility)
     const blurMap = {
-        light: 'backdrop-blur-[8px]',
-        medium: 'backdrop-blur-[16px]',
-        heavy: 'backdrop-blur-[24px]',
+        light: 'backdrop-blur-[4px]',
+        medium: 'backdrop-blur-[8px]',
+        heavy: 'backdrop-blur-[16px]',
     };
 
     return (
         <div
             className={cn(
                 "absolute inset-0 z-10 w-full h-full pointer-events-none",
-                "bg-background/5", // Reduced to ~5% to be very clear but still present; user asked for "bring to 10%" but "black wallpaper is to dark" implies we should lighter touches.
+                "bg-background/3", // Minimal tint to let topographic background show through
                 blurMap[intensity],
                 "border-b border-border/10",
-                // Add a subtle vignette/gradient to make it feel like glass
-                "after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-b after:from-transparent after:via-background/10 after:to-background/80",
+                // Add a subtle vignette/gradient - reduced opacity to show background
+                "after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-b after:from-transparent after:via-background/5 after:to-background/60",
                 className
             )}
         />

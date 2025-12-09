@@ -17,38 +17,79 @@ export function IntelligentBackground() {
         pingInterval: 180, // ~3 seconds at 60fps
     });
 
-    // Topography state - simplified to math function, no large arrays
-    const topoRef = useRef({
+    // Terrain state - Perlin-like noise for topographical elevation
+    const terrainRef = useRef({
         offset: 0,
-        speed: 0.002,
-        // Random seeds for terrain generation to ensure every reload is unique
-        seeds: {
-            x1: 1, y1: 1, t1: 0,
-            x2: 1, y2: 1, t2: 0,
-            x3: 1, y3: 1,
-        }
+        speed: 0.0008,
+        // Seeds for unique terrain generation
+        octaves: [
+            { freq: 0.003, amp: 1.0, seed: Math.random() * 1000 },
+            { freq: 0.006, amp: 0.5, seed: Math.random() * 1000 },
+            { freq: 0.012, amp: 0.25, seed: Math.random() * 1000 },
+        ]
     });
 
     // Colors
     const AMBER = { r: 255, g: 170, b: 50 };
+    const GRID_COLOR = { r: 255, g: 170, b: 50 };
 
-    // Initialize radar origin and terrain seeds on mount
+    // Initialize radar origin on mount
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const width = window.innerWidth;
             const height = window.innerHeight;
 
-            radarRef.current.originX = Math.random() * width;
-            radarRef.current.originY = Math.random() * height;
-
-            // Randomize terrain coefficients
-            topoRef.current.seeds = {
-                x1: 0.5 + Math.random(), y1: 0.5 + Math.random(), t1: Math.random() * 100,
-                x2: 0.5 + Math.random(), y2: 0.5 + Math.random(), t2: Math.random() * 100,
-                x3: 0.5 + Math.random(), y3: 0.5 + Math.random()
-            };
+            radarRef.current.originX = width * (0.2 + Math.random() * 0.6);
+            radarRef.current.originY = height * (0.2 + Math.random() * 0.6);
         }
     }, []);
+
+    // Simplex-like noise function (faster than true Perlin)
+    const noise2D = useCallback((x: number, y: number, seed: number): number => {
+        // Hash function for pseudo-random gradients
+        const hash = (xi: number, yi: number) => {
+            const n = Math.sin(xi * 12.9898 + yi * 78.233 + seed) * 43758.5453;
+            return n - Math.floor(n);
+        };
+
+        const xi = Math.floor(x);
+        const yi = Math.floor(y);
+        const xf = x - xi;
+        const yf = y - yi;
+
+        // Smoothstep interpolation
+        const u = xf * xf * (3 - 2 * xf);
+        const v = yf * yf * (3 - 2 * yf);
+
+        // Bilinear interpolation of corner values
+        const n00 = hash(xi, yi) * 2 - 1;
+        const n10 = hash(xi + 1, yi) * 2 - 1;
+        const n01 = hash(xi, yi + 1) * 2 - 1;
+        const n11 = hash(xi + 1, yi + 1) * 2 - 1;
+
+        const nx0 = n00 * (1 - u) + n10 * u;
+        const nx1 = n01 * (1 - u) + n11 * u;
+
+        return nx0 * (1 - v) + nx1 * v;
+    }, []);
+
+    // Multi-octave elevation function
+    const getElevation = useCallback((x: number, y: number, time: number): number => {
+        const octaves = terrainRef.current.octaves;
+        let elevation = 0;
+        let totalAmp = 0;
+
+        for (const oct of octaves) {
+            elevation += noise2D(
+                x * oct.freq + time * 0.1,
+                y * oct.freq + time * 0.05,
+                oct.seed
+            ) * oct.amp;
+            totalAmp += oct.amp;
+        }
+
+        return elevation / totalAmp; // Normalize to [-1, 1]
+    }, [noise2D]);
 
     const animate = useCallback(() => {
         const canvas = canvasRef.current;
@@ -57,50 +98,127 @@ export function IntelligentBackground() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const width = canvas.width;
-        const height = canvas.height;
-        const time = timeRef.current;
-        const seeds = topoRef.current.seeds;
+        const width = canvas.width / window.devicePixelRatio;
+        const height = canvas.height / window.devicePixelRatio;
+        const time = timeRef.current * 0.01;
 
         // 1. Clear background (Deep charcoal)
         ctx.fillStyle = 'rgb(10, 9, 8)';
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 2. Draw Topographical Lines
-        ctx.lineWidth = 1.5;
-        topoRef.current.offset += topoRef.current.speed;
+        terrainRef.current.offset += terrainRef.current.speed;
 
-        // Elevation function with random seeds
-        const getElevation = (x: number, y: number, t: number) => {
-            const scale = 0.002;
-            // Use random seeds to vary the terrain shape
-            const v1 = Math.sin(x * scale * seeds.x1 + t + seeds.t1) * Math.cos(y * scale * seeds.y1 + t);
-            const v2 = Math.sin(x * scale * 2 * seeds.x2 - t + seeds.t2) * Math.cos(y * scale * 2 * seeds.y2 + t * 0.5) * 0.5;
-            const v3 = Math.sin(x * scale * 4 * seeds.x3 + t * 2) * Math.sin(y * scale * 4 * seeds.y3) * 0.25;
-            return v1 + v2 + v3; // Range approx -1.75 to 1.75
-        };
+        // 2. Draw Grid Lines (underneath everything)
+        const gridSpacing = 50;
+        ctx.strokeStyle = `rgba(${GRID_COLOR.r}, ${GRID_COLOR.g}, ${GRID_COLOR.b}, 0.18)`;
+        ctx.lineWidth = 0.8;
 
-        // We will trace paths.
-        ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0.15)`; // Faint map lines
-
-        for (let i = 0; i < 15; i++) { // Number of primary contours
+        // Vertical grid lines
+        for (let x = 0; x < width; x += gridSpacing) {
             ctx.beginPath();
-            const baseY = (height / 15) * i;
-
-            for (let x = 0; x < width; x += 10) {
-                const elevation = getElevation(x, baseY, time * 0.005);
-                const yOffset = elevation * 150; // Amplitude
-
-                // Apply parallax
-                const parallax = scrollYRef.current * 0.1;
-
-                if (x === 0) ctx.moveTo(x, baseY + yOffset - parallax);
-                else ctx.lineTo(x, baseY + yOffset - parallax);
-            }
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
             ctx.stroke();
         }
 
-        // 3. Update Radar
+        // Horizontal grid lines
+        for (let y = 0; y < height; y += gridSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+
+        // 3. Draw Topographical Contour Lines (using marching squares concept)
+        const contourLevels = [-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6];
+        const sampleStep = 15; // Resolution of sampling grid
+        const parallax = scrollYRef.current * 0.1;
+
+        // Pre-compute elevation grid
+        const cols = Math.ceil(width / sampleStep) + 2;
+        const rows = Math.ceil(height / sampleStep) + 2;
+        const elevationGrid: number[][] = [];
+
+        for (let row = 0; row < rows; row++) {
+            elevationGrid[row] = [];
+            for (let col = 0; col < cols; col++) {
+                const x = col * sampleStep;
+                const y = row * sampleStep - parallax;
+                elevationGrid[row][col] = getElevation(x, y, time);
+            }
+        }
+
+        // Draw contour lines using linear interpolation
+        ctx.lineWidth = 1.2;
+
+        for (let levelIdx = 0; levelIdx < contourLevels.length; levelIdx++) {
+            const level = contourLevels[levelIdx];
+            // Vary opacity - bolder lines for major contours (level 0)
+            const isMajor = level === 0;
+            const alpha = isMajor ? 0.45 : 0.25;
+
+            ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${alpha})`;
+            ctx.lineWidth = isMajor ? 2.5 : 1.5;
+
+            // March through the grid looking for contour crossings
+            for (let row = 0; row < rows - 1; row++) {
+                for (let col = 0; col < cols - 1; col++) {
+                    const x0 = col * sampleStep;
+                    const y0 = row * sampleStep;
+
+                    // Get corner elevations
+                    const e00 = elevationGrid[row][col];
+                    const e10 = elevationGrid[row][col + 1];
+                    const e01 = elevationGrid[row + 1][col];
+                    const e11 = elevationGrid[row + 1][col + 1];
+
+                    // Find edge crossings
+                    const crossings: { x: number; y: number }[] = [];
+
+                    // Top edge (e00 to e10)
+                    if ((e00 - level) * (e10 - level) < 0) {
+                        const t = (level - e00) / (e10 - e00);
+                        crossings.push({ x: x0 + t * sampleStep, y: y0 });
+                    }
+
+                    // Bottom edge (e01 to e11)
+                    if ((e01 - level) * (e11 - level) < 0) {
+                        const t = (level - e01) / (e11 - e01);
+                        crossings.push({ x: x0 + t * sampleStep, y: y0 + sampleStep });
+                    }
+
+                    // Left edge (e00 to e01)
+                    if ((e00 - level) * (e01 - level) < 0) {
+                        const t = (level - e00) / (e01 - e00);
+                        crossings.push({ x: x0, y: y0 + t * sampleStep });
+                    }
+
+                    // Right edge (e10 to e11)
+                    if ((e10 - level) * (e11 - level) < 0) {
+                        const t = (level - e10) / (e11 - e10);
+                        crossings.push({ x: x0 + sampleStep, y: y0 + t * sampleStep });
+                    }
+
+                    // Draw line segments between crossings
+                    if (crossings.length >= 2) {
+                        ctx.beginPath();
+                        ctx.moveTo(crossings[0].x, crossings[0].y);
+                        ctx.lineTo(crossings[1].x, crossings[1].y);
+                        ctx.stroke();
+
+                        // Handle ambiguous case (4 crossings)
+                        if (crossings.length === 4) {
+                            ctx.beginPath();
+                            ctx.moveTo(crossings[2].x, crossings[2].y);
+                            ctx.lineTo(crossings[3].x, crossings[3].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Update and Draw Radar Pings (terrain-morphing)
         radarRef.current.lastPingTime++;
         if (radarRef.current.lastPingTime >= radarRef.current.pingInterval) {
             radarRef.current.pings.push({
@@ -112,43 +230,42 @@ export function IntelligentBackground() {
         }
 
         const maxRadius = Math.max(width, height) * 1.2;
-        const spreadSpeed = 3; // Pixels per frame
+        const spreadSpeed = 2.5; // Pixels per frame
 
         // Update pings
         radarRef.current.pings = radarRef.current.pings.filter(ping => ping.alpha > 0.01);
 
         radarRef.current.pings.forEach(ping => {
             ping.radius += spreadSpeed;
+
             // Fade out based on size/distance
-            if (ping.radius > maxRadius * 0.5) {
-                ping.alpha *= 0.99;
+            if (ping.radius > maxRadius * 0.4) {
+                ping.alpha *= 0.985;
             }
 
             const centerX = radarRef.current.originX;
             const centerY = radarRef.current.originY;
 
-            // Draw the ping ring DISTORTED by the terrain
-            // We sample points around the circle and offset radius by elevation
+            // Draw the ping ring DISTORTED by terrain elevation
             ctx.beginPath();
-            const numPoints = 120; // Resolution of the ring
+            const numPoints = 180; // High resolution for smooth contour-following
 
             for (let i = 0; i <= numPoints; i++) {
                 const angle = (i / numPoints) * Math.PI * 2;
                 const cos = Math.cos(angle);
                 const sin = Math.sin(angle);
 
-                // Base position on the perfect circle
+                // Base position on perfect circle
                 const baseX = centerX + cos * ping.radius;
                 const baseY = centerY + sin * ping.radius;
 
                 // Sample elevation at this point
-                // Note: We use the same time as the map to sync the movement
-                const elevation = getElevation(baseX, baseY, time * 0.005);
+                const elevation = getElevation(baseX, baseY - parallax, time);
 
-                // Distort the radius based on elevation
-                // The distortion amount scales with the "height" of the terrain
-                const distortion = elevation * 40; // 40px variation
-                const distortedRadius = ping.radius + distortion;
+                // Distort radius based on elevation
+                // Higher terrain pushes the ping outward, lower pulls it in
+                const distortionStrength = 30 + ping.radius * 0.08; // Scale with size
+                const distortedRadius = ping.radius + elevation * distortionStrength;
 
                 const finalX = centerX + cos * distortedRadius;
                 const finalY = centerY + sin * distortedRadius;
@@ -158,20 +275,41 @@ export function IntelligentBackground() {
             }
             ctx.closePath();
 
-            // Stroke
-            ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.8})`;
-            ctx.lineWidth = 2;
+            // Gradient stroke effect - brighter at edges
+            const gradient = ctx.createRadialGradient(
+                centerX, centerY, ping.radius * 0.8,
+                centerX, centerY, ping.radius * 1.2
+            );
+            gradient.addColorStop(0, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0)`);
+            gradient.addColorStop(0.5, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.6})`);
+            gradient.addColorStop(1, `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, 0)`);
+
+            ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.7})`;
+            ctx.lineWidth = 2.5;
             ctx.stroke();
 
-            // Fill using same path (slightly inefficient to recalc but safer for closed path)
-            // Ideally we'd reuse the path object if creating 2D One
-            ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.05})`;
+            // Subtle fill
+            ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${ping.alpha * 0.03})`;
             ctx.fill();
         });
 
+        // 5. Draw ping origin point (small glowing dot)
+        const pulseAlpha = 0.4 + Math.sin(time * 5) * 0.2;
+        ctx.beginPath();
+        ctx.arc(radarRef.current.originX, radarRef.current.originY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${pulseAlpha})`;
+        ctx.fill();
+
+        // Glow ring
+        ctx.beginPath();
+        ctx.arc(radarRef.current.originX, radarRef.current.originY, 8, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${AMBER.r}, ${AMBER.g}, ${AMBER.b}, ${pulseAlpha * 0.5})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
         timeRef.current++;
         animationRef.current = requestAnimationFrame(animate);
-    }, [AMBER]);
+    }, [getElevation, AMBER, GRID_COLOR]);
 
     const handleResize = useCallback(() => {
         const canvas = canvasRef.current;
