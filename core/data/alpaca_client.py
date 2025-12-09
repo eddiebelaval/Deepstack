@@ -175,7 +175,7 @@ class AlpacaClient:
                     print(f"DEBUG: news_set.data keys: {list(news_set.data.keys())}")
 
             results = []
-            # NewsSet stores articles in data["news"] as raw dicts
+            # NewsSet stores articles in data["news"] as News objects
             news_list = []
             if hasattr(news_set, "data") and isinstance(news_set.data, dict):
                 news_list = news_set.data.get("news", [])
@@ -183,25 +183,25 @@ class AlpacaClient:
             logger.info(f"Alpaca News API returned {len(news_list)} articles")
 
             for article in news_list:
-                # Articles are raw dicts, access with [] not .attribute
-                created_at = article.get("created_at")
+                # Articles are News objects - use attribute access, not dict
+                created_at = getattr(article, "created_at", None)
                 published_at = (
                     created_at.isoformat()
                     if hasattr(created_at, "isoformat")
-                    else str(created_at)
+                    else str(created_at) if created_at else ""
                 )
 
                 results.append(
                     {
-                        "id": str(article.get("id", "")),
-                        "headline": article.get("headline", ""),
-                        "summary": article.get("summary", ""),
-                        "url": article.get("url", ""),
-                        "source": article.get("source", ""),
+                        "id": str(getattr(article, "id", "")),
+                        "headline": getattr(article, "headline", "") or "",
+                        "summary": getattr(article, "summary", "") or "",
+                        "url": getattr(article, "url", "") or "",
+                        "source": getattr(article, "source", "") or "",
                         "publishedAt": published_at,
-                        "symbols": article.get("symbols", []),
-                        "author": article.get("author", ""),
-                        "sentiment": "neutral",  # Alpaca: no sentiment, infer on FE
+                        "symbols": list(getattr(article, "symbols", []) or []),
+                        "author": getattr(article, "author", "") or "",
+                        "sentiment": "neutral",  # Alpaca: no sentiment
                     }
                 )
 
