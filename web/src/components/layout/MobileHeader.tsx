@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { Menu, Plus, Search } from 'lucide-react';
+import NextImage from "next/image";
 
 /**
  * Mobile Header - Claude/Perplexity style header with hamburger menu
@@ -27,12 +28,15 @@ export function MobileHeader() {
 
             {/* Center: Logo */}
             <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10">
-                    <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                    </svg>
+                <div className="relative h-8 w-32">
+                    <NextImage
+                        src="/logo-full.png"
+                        alt="DeepStack"
+                        fill
+                        className="object-contain"
+                        priority
+                    />
                 </div>
-                <span className="font-semibold text-foreground">DeepStack</span>
             </div>
 
             {/* Right: Quick Actions */}

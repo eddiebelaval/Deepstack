@@ -35,7 +35,8 @@ import { InsightsPanel } from '@/components/insights/InsightsPanel';
 import { PresetGrid } from './PresetGrid';
 import { HomeWidgets } from './HomeWidgets';
 import { cn } from '@/lib/utils';
-import { LineChart, X, Maximize2, Minimize2, Square, RectangleHorizontal, Search, Loader2 } from 'lucide-react';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { LineChart, X, Search, Loader2 } from 'lucide-react';
 
 // Simple message type for our use case
 type SimpleMessage = {
@@ -65,15 +66,7 @@ export function ConversationView() {
     const isChartLoading = activeSymbol ? isLoadingBars[activeSymbol] ?? false : false;
     const hasChartData = activeSymbol ? (bars[activeSymbol]?.length ?? 0) > 0 : false;
 
-    // Panel size presets (in pixels)
-    type PanelSize = 'compact' | 'default' | 'large' | 'full';
-    const PANEL_SIZES: Record<PanelSize, number> = {
-        compact: 300,
-        default: 600,
-        large: 800,
-        full: 1000,
-    };
-    const [panelSize, setPanelSize] = useState<PanelSize>('default');
+    // Symbol search state
 
     // Symbol search state
     const [isSearchingSymbol, setIsSearchingSymbol] = useState(false);
@@ -105,14 +98,23 @@ export function ConversationView() {
     };
 
     // Basic intent detection
+    // NOTE: We intentionally do NOT set activeContent to 'chart' here.
+    // The front page HomeWidgets chart should persist when mentioning stocks.
+    // We only update activeSymbol so the sidebar chart can react to it.
+    // For other tools (portfolio, orders, etc.) we still set activeContent as those
+    // should replace the content area.
     const detectIntent = (content: string) => {
         const lower = content.toLowerCase();
-        if (lower.includes('chart') || lower.includes('spy') || lower.includes('aapl') || lower.includes('nvda')) {
-            setActiveContent('chart');
-            if (lower.includes('spy')) setActiveSymbol('SPY');
-            if (lower.includes('aapl')) setActiveSymbol('AAPL');
-            if (lower.includes('nvda')) setActiveSymbol('NVDA');
-        } else if (lower.includes('portfolio') || lower.includes('positions')) {
+        // For stock mentions, only update activeSymbol (sidebar chart updates)
+        // Don't replace the front page chart by setting activeContent='chart'
+        if (lower.includes('spy')) setActiveSymbol('SPY');
+        if (lower.includes('aapl')) setActiveSymbol('AAPL');
+        if (lower.includes('nvda')) setActiveSymbol('NVDA');
+        if (lower.includes('tsla')) setActiveSymbol('TSLA');
+        if (lower.includes('msft')) setActiveSymbol('MSFT');
+
+        // For explicit tool panels, we do want to show them
+        if (lower.includes('portfolio') || lower.includes('positions')) {
             setActiveContent('portfolio');
         } else if (lower.includes('buy') || lower.includes('sell') || lower.includes('order')) {
             setActiveContent('orders');
@@ -124,6 +126,8 @@ export function ConversationView() {
     };
 
     // Handle tool results that control UI
+    // NOTE: 'show_chart' tool explicitly swaps to the TradingChart view.
+    // 'detectIntent' (mentions) does NOT swap, keeping HomeWidgets visible.
     const handleToolResult = useCallback((toolName: string, result: any) => {
         if (result?.action === 'show_panel') {
             const panelMap: Record<string, typeof activeContent> = {
@@ -140,6 +144,7 @@ export function ConversationView() {
                 'options-builder': 'options-builder',
             };
 
+            // Allow tool calls to switch content (including to 'chart')
             if (result.panel && panelMap[result.panel]) {
                 setActiveContent(panelMap[result.panel]);
             }
@@ -303,12 +308,13 @@ export function ConversationView() {
 
     const closeContentZone = () => {
         setActiveContent('none');
-        setPanelSize('default');
     };
 
     // Render the active content (chart, orders, etc.)
     // Note: Parent container must have explicit height for flex-1 to work
     const renderActiveContent = () => {
+        // NOTE: 'chart' content is now rendered in the persistent panel above
+        // But if we ever need it here (e.g. mobile?), we can keep it
         if (activeContent === 'chart') {
             return (
                 <div className="flex-1 min-h-0 rounded-2xl overflow-hidden bg-card border border-border/50 relative">
@@ -529,7 +535,12 @@ export function ConversationView() {
     // Workspace view with active content and/or messages
     // NEW LAYOUT: Persistent chart panel (collapsible) + Chat area + Tool panels
     const showPersistentChart = chartPanelOpen && !chartPanelCollapsed;
-    const chartPanelHeight = isMobile ? 280 : 350;
+    // Taller default panel to fit HomeWidgets (approx 450px needed)
+    // If activeContent is explicitly 'chart', we can use standard height
+    const isShowingHomeWidgets = activeContent !== 'chart';
+    const chartPanelHeight = isMobile
+        ? (isShowingHomeWidgets ? 450 : 280)
+        : (isShowingHomeWidgets ? 500 : 350);
     const collapsedBarHeight = 40;
 
     return (
@@ -540,151 +551,162 @@ export function ConversationView() {
                     className="flex-shrink-0 border-b border-border/30 transition-all duration-300 ease-in-out overflow-hidden"
                     style={{ height: showPersistentChart ? chartPanelHeight : collapsedBarHeight }}
                 >
-                    {/* Chart Toolbar - Always visible for controls */}
-                    <ChartToolbar />
-
-                    {/* Drawing Toolbar - Only when chart is expanded */}
-                    {showPersistentChart && <DrawingToolbar />}
-
-                    {/* Chart Content - Only when not collapsed */}
-                    {showPersistentChart && (
-                        <div className="h-[calc(100%-80px)] relative">
-                            <TradingChart className="w-full h-full" />
-                            {/* Loading overlay */}
-                            {isChartLoading && (
-                                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                        <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
-                                    </div>
+                    {/* Render different content based on state */}
+                    {activeContent === 'chart' ? (
+                        <>
+                            {/* Standard Trading Chart with toolbars */}
+                            <ChartToolbar />
+                            {showPersistentChart && <DrawingToolbar />}
+                            {showPersistentChart && (
+                                <div className="h-[calc(100%-80px)] relative">
+                                    <TradingChart className="w-full h-full" />
+                                    {isChartLoading && (
+                                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                                <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!isChartLoading && !hasChartData && (
+                                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
+                                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                                <LineChart className="h-8 w-8 opacity-50" />
+                                                <span className="text-sm">No data available for {activeSymbol}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                            {/* No data message */}
-                            {!isChartLoading && !hasChartData && (
-                                <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
-                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                        <LineChart className="h-8 w-8 opacity-50" />
-                                        <span className="text-sm">No data available for {activeSymbol}</span>
-                                    </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Home Widgets (Multi-series chart) - Persisted from front page */}
+                            {/* We wrap it to handle the layout nicely */}
+                            <div className="h-full flex flex-col">
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-background/50 backdrop-blur-sm">
+                                    <span className="text-sm font-medium text-muted-foreground">Market Overview</span>
+                                    {/* Collapse button */}
+                                    {/* We could reuse ChartToolbar here but it has specific chart controls */}
                                 </div>
-                            )}
-                        </div>
+                                {showPersistentChart && (
+                                    <div className="flex-1 overflow-hidden p-4">
+                                        <div className="h-full">
+                                            <HomeWidgets />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </>
                     )}
                 </div>
             )}
 
             {/* Other Tool Panels - Slide down when active (non-chart tools) */}
-            {hasActiveContent && activeContent !== 'chart' && (
-                <div
-                    className={cn(
-                        "flex-shrink-0 bg-background border-b border-border/30 transition-all duration-300 ease-in-out",
-                        isMobile ? "p-2" : "p-3"
-                    )}
-                    style={{ height: isMobile ? `${Math.min(PANEL_SIZES[panelSize], 400)}px` : `${PANEL_SIZES[panelSize]}px` }}
-                >
-                    <div className="h-full flex flex-col min-h-0">
-                        {/* Tool Header with controls */}
-                        <div className="flex items-center justify-between mb-2 px-1 flex-shrink-0 h-8">
-                            <span className="text-sm font-medium text-muted-foreground">
-                                {activeContent === 'orders' && 'Order Entry'}
-                                {activeContent === 'portfolio' && 'Positions'}
-                                {activeContent === 'deep-value' && 'Deep Value Screener'}
-                                {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
-                                {activeContent === 'options-screener' && 'Options Screener'}
-                                {activeContent === 'options-builder' && 'Strategy Builder'}
-                                {activeContent === 'screener' && 'Stock Screener'}
-                                {activeContent === 'alerts' && 'Price Alerts'}
-                                {activeContent === 'calendar' && 'Market Calendar'}
-                                {activeContent === 'news' && 'Market News'}
-                                {activeContent === 'prediction-markets' && 'Prediction Markets'}
-                                {activeContent === 'thesis' && 'Thesis Engine'}
-                                {activeContent === 'journal' && 'Trade Journal'}
-                                {activeContent === 'insights' && 'AI Insights'}
-                            </span>
-                            <div className="flex items-center gap-1">
-                                {/* Size preset buttons */}
-                                <div className="flex items-center gap-0.5 mr-1 border-r border-border/50 pr-2">
-                                    <Button
-                                        variant={panelSize === 'compact' ? 'secondary' : 'ghost'}
-                                        size="icon"
-                                        className="h-6 w-6 rounded"
-                                        onClick={() => setPanelSize('compact')}
-                                        title="Compact"
-                                    >
-                                        <Minimize2 className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                        variant={panelSize === 'default' ? 'secondary' : 'ghost'}
-                                        size="icon"
-                                        className="h-6 w-6 rounded"
-                                        onClick={() => setPanelSize('default')}
-                                        title="Default"
-                                    >
-                                        <Square className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                        variant={panelSize === 'large' ? 'secondary' : 'ghost'}
-                                        size="icon"
-                                        className="h-6 w-6 rounded"
-                                        onClick={() => setPanelSize('large')}
-                                        title="Large"
-                                    >
-                                        <RectangleHorizontal className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                        variant={panelSize === 'full' ? 'secondary' : 'ghost'}
-                                        size="icon"
-                                        className="h-6 w-6 rounded"
-                                        onClick={() => setPanelSize('full')}
-                                        title="Full"
-                                    >
-                                        <Maximize2 className="h-3 w-3" />
-                                    </Button>
-                                </div>
+            {hasActiveContent && activeContent !== 'chart' ? (
+                <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
+                    {/* Tool Panel (Top) */}
+                    <ResizablePanel defaultSize={50} minSize={20} className="flex flex-col min-h-0">
+                        <div className="flex flex-col h-full bg-background border-b border-border/30">
+                            {/* Tool Header */}
+                            <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 flex-shrink-0 h-10">
+                                <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    {activeContent === 'orders' && 'Order Entry'}
+                                    {activeContent === 'portfolio' && 'Positions'}
+                                    {activeContent === 'deep-value' && 'Deep Value Screener'}
+                                    {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
+                                    {activeContent === 'options-screener' && 'Options Screener'}
+                                    {activeContent === 'options-builder' && 'Strategy Builder'}
+                                    {activeContent === 'screener' && 'Stock Screener'}
+                                    {activeContent === 'alerts' && 'Price Alerts'}
+                                    {activeContent === 'calendar' && 'Market Calendar'}
+                                    {activeContent === 'news' && 'Market News'}
+                                    {activeContent === 'prediction-markets' && 'Prediction Markets'}
+                                    {activeContent === 'thesis' && 'Thesis Engine'}
+                                    {activeContent === 'journal' && 'Trade Journal'}
+                                    {activeContent === 'insights' && 'AI Insights'}
+                                </span>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 rounded-lg"
+                                    className="h-7 w-7 rounded-lg hover:bg-destructive/10 hover:text-destructive"
                                     onClick={closeContentZone}
                                 >
-                                    <X className="h-3.5 w-3.5" />
+                                    <X className="h-4 w-4" />
                                 </Button>
                             </div>
+                            {/* Tool Content */}
+                            <div className="flex-1 min-h-0 overflow-hidden">
+                                {renderActiveContent()}
+                            </div>
+                        </div>
+                    </ResizablePanel>
+
+                    <ResizableHandle withHandle />
+
+                    {/* Chat Area (Bottom) */}
+                    <ResizablePanel defaultSize={50} minSize={20} className="flex flex-col min-h-0">
+                        {/* Chat Messages */}
+                        <div className="flex-1 overflow-hidden min-h-0 relative">
+                            <ScrollArea className="h-full" viewportRef={chatScrollRef} hideScrollbar>
+                                <div className="p-4 min-h-full flex flex-col">
+                                    <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
+                                        <MessageList
+                                            messages={messages as any}
+                                            isStreaming={isLoading}
+                                        />
+                                    </div>
+                                </div>
+                            </ScrollArea>
+                            <DotScrollIndicator
+                                scrollRef={chatScrollRef}
+                                maxDots={7}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                minHeightGrowth={0}
+                            />
                         </div>
 
-                        {/* Tool Content Area */}
-                        {renderActiveContent()}
+                        {/* Chat Input */}
+                        <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
+                            <div className="max-w-3xl mx-auto w-full space-y-3">
+                                <PresetGrid onSelect={handlePresetClick} />
+                                <ChatInput onSend={handleSend} disabled={isLoading} />
+                            </div>
+                        </div>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            ) : (
+                /* Chat Only View (Full Height) - Used when chart is top panel or no active content */
+                <div className="flex-1 flex flex-col min-h-0">
+                    {/* Chat Messages */}
+                    <div className="flex-1 overflow-hidden min-h-0 relative">
+                        <ScrollArea className="h-full" viewportRef={chatScrollRef} hideScrollbar>
+                            <div className="p-4 min-h-full flex flex-col">
+                                <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
+                                    <MessageList
+                                        messages={messages as any}
+                                        isStreaming={isLoading}
+                                    />
+                                </div>
+                            </div>
+                        </ScrollArea>
+                        <DotScrollIndicator
+                            scrollRef={chatScrollRef}
+                            maxDots={7}
+                            className="absolute right-3 top-1/2 -translate-y-1/2"
+                            minHeightGrowth={0}
+                        />
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
+                        <div className="max-w-3xl mx-auto w-full space-y-3">
+                            <PresetGrid onSelect={handlePresetClick} />
+                            <ChatInput onSend={handleSend} disabled={isLoading} />
+                        </div>
                     </div>
                 </div>
             )}
-
-            {/* Chat Area - Scrollable, takes remaining space */}
-            <div className="flex-1 overflow-hidden min-h-0 relative">
-                <ScrollArea className="h-full" viewportRef={chatScrollRef} hideScrollbar>
-                    <div className="p-4 min-h-full flex flex-col">
-                        <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
-                            <MessageList
-                                messages={messages as any}
-                                isStreaming={isLoading}
-                            />
-                        </div>
-                    </div>
-                </ScrollArea>
-                <DotScrollIndicator
-                    scrollRef={chatScrollRef}
-                    maxDots={7}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                    minHeightGrowth={0}
-                />
-            </div>
-
-            {/* Input Bar - Fixed at bottom */}
-            <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
-                <div className="max-w-3xl mx-auto w-full space-y-3">
-                    <PresetGrid onSelect={handlePresetClick} />
-                    <ChatInput onSend={handleSend} disabled={isLoading} />
-                </div>
-            </div>
         </div>
     );
 }

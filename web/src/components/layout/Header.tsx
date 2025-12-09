@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useUIStore } from "@/lib/stores/ui-store";
 import Link from "next/link";
+import NextImage from "next/image";
 import { Badge } from "@/components/ui/badge";
 
 // Type for asset search results
@@ -154,9 +155,15 @@ export function Header() {
         {/* Left: Logo */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-mono font-bold text-lg text-primary">
-              DEEPSTACK
-            </span>
+            <div className="relative h-8 w-32">
+              <NextImage
+                src="/logo-full.png"
+                alt="DeepStack"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
           </Link>
 
           {/* Active Symbol Display */}
