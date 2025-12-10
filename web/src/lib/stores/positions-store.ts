@@ -75,7 +75,7 @@ const DEFAULT_POSITIONS: Position[] = [
 // Zustand store with persist middleware
 export const usePositionsStore = create<PositionsState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       positions: DEFAULT_POSITIONS,
 
       addPosition: (position) => {

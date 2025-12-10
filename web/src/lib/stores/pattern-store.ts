@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useJournalStore, type JournalEntry, type EmotionType } from './journal-store';
+import { useJournalStore, type EmotionType } from './journal-store';
 
 export interface UserPattern {
     id: string;

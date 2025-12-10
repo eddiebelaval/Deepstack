@@ -1,4 +1,4 @@
-import { Briefcase, LineChart, TrendingUp, Target, BarChart3, Newspaper } from 'lucide-react';
+import { Briefcase, LineChart, TrendingUp, Target } from 'lucide-react';
 
 export const PRESETS = [
     {
