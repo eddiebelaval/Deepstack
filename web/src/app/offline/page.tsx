@@ -24,7 +24,7 @@ export default function OfflinePage() {
             You're Offline
           </h1>
           <p className="text-muted-foreground">
-            DeepStack requires an internet connection for real-time market data and trading.
+            deepstack requires an internet connection for real-time market data and trading.
           </p>
         </div>
 

@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-    title: 'Terms of Service | DeepStack',
-    description: 'DeepStack Terms of Service and User Agreement',
+    title: 'Terms of Service | deepstack',
+    description: 'deepstack Terms of Service and User Agreement',
 };
 
 export default function TermsPage() {
@@ -11,7 +11,7 @@ export default function TermsPage() {
         <div className="min-h-screen bg-background">
             <div className="container max-w-3xl mx-auto py-12 px-4">
                 <Link href="/" className="text-primary hover:underline text-sm mb-8 inline-block">
-                    &larr; Back to DeepStack
+                    &larr; Back to deepstack
                 </Link>
 
                 <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
@@ -21,7 +21,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            By accessing or using DeepStack (&quot;the Service&quot;), you agree to be bound by these Terms of Service.
+                            By accessing or using deepstack (&quot;the Service&quot;), you agree to be bound by these Terms of Service.
                             If you do not agree to these terms, please do not use the Service.
                         </p>
                     </section>
@@ -29,7 +29,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-semibold mb-3">2. Description of Service</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            DeepStack is a financial research and analysis platform that provides AI-powered market insights,
+                            deepstack is a financial research and analysis platform that provides AI-powered market insights,
                             portfolio tracking, and trading analysis tools. The Service is designed for <strong>informational
                             and educational purposes only</strong>.
                         </p>
@@ -38,7 +38,7 @@ export default function TermsPage() {
                     <section className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                         <h2 className="text-xl font-semibold mb-3 text-destructive">3. NOT FINANCIAL ADVICE</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            <strong>IMPORTANT:</strong> DeepStack does NOT provide financial, investment, legal, or tax advice.
+                            <strong>IMPORTANT:</strong> deepstack does NOT provide financial, investment, legal, or tax advice.
                             All information, analysis, and insights provided through the Service are for informational purposes only
                             and should not be construed as a recommendation to buy, sell, or hold any security or investment.
                         </p>
@@ -52,7 +52,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-semibold mb-3">4. No Trade Execution</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            DeepStack does NOT execute trades on your behalf. The Service provides analysis tools and
+                            deepstack does NOT execute trades on your behalf. The Service provides analysis tools and
                             paper trading simulations only. Any actual trading must be done through your own brokerage
                             account at your own risk.
                         </p>
@@ -98,7 +98,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-semibold mb-3">9. Intellectual Property</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            All content, features, and functionality of the Service are owned by DeepStack and are protected
+                            All content, features, and functionality of the Service are owned by deepstack and are protected
                             by copyright, trademark, and other intellectual property laws.
                         </p>
                     </section>
@@ -124,7 +124,7 @@ export default function TermsPage() {
 
                 <div className="mt-12 pt-8 border-t border-border">
                     <p className="text-sm text-muted-foreground">
-                        By using DeepStack, you acknowledge that you have read, understood, and agree to these Terms of Service.
+                        By using deepstack, you acknowledge that you have read, understood, and agree to these Terms of Service.
                     </p>
                 </div>
             </div>

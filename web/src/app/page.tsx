@@ -292,7 +292,7 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="w-7 h-7 text-primary animate-pulse-soft" />
-              <span className="text-xl font-semibold tracking-tight">DeepStack</span>
+              <span className="text-xl font-semibold tracking-tight">deepstack</span>
             </div>
             <div className="flex items-center gap-4">
               <Link
@@ -474,7 +474,7 @@ export default function LandingPage() {
           id="firewall"
           title="Your Psychological Guardrails"
           subtitle="The Emotional Firewall detects destructive trading patterns before they cost you money. It's like having a mentor who stops you from yourself."
-          badge="Only in DeepStack"
+          badge="Only in deepstack"
           badgeIcon={<Shield className="w-4 h-4" />}
           badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
           titleAccent="text-orange-400"
@@ -603,7 +603,7 @@ export default function LandingPage() {
         <StickySection
           id="ai-assistant"
           title="Not a chatbot. A research partner."
-          subtitle="Most AI tools are generic chatbots with stock data bolted on. DeepStack's AI knows your complete context."
+          subtitle="Most AI tools are generic chatbots with stock data bolted on. deepstack's AI knows your complete context."
           badge="Context-Aware AI"
           badgeIcon={<Brain className="w-4 h-4" />}
           badgeColor="bg-primary/10 text-primary border-primary/20"
@@ -641,7 +641,7 @@ export default function LandingPage() {
                     <Brain className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">DeepStack AI</p>
+                    <p className="text-sm font-medium">deepstack AI</p>
                     <p className="text-xs text-muted-foreground">Knows your portfolio context</p>
                   </div>
                 </div>
@@ -800,7 +800,7 @@ export default function LandingPage() {
         <StickySection
           id="predictions"
           title="Validate Before You Commit Capital"
-          subtitle="What if you could see how thousands of traders are betting on your thesis? DeepStack links prediction markets directly to your investment ideas."
+          subtitle="What if you could see how thousands of traders are betting on your thesis? deepstack links prediction markets directly to your investment ideas."
           badge="Prediction Markets"
           badgeIcon={<BarChart3 className="w-4 h-4" />}
           badgeColor="bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
@@ -1053,7 +1053,7 @@ export default function LandingPage() {
                   href="/"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_50px_rgba(251,146,60,0.6)] hover:scale-105"
                 >
-                  Launch DeepStack
+                  Launch deepstack
                   <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
@@ -1073,7 +1073,7 @@ export default function LandingPage() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-2">
                 <Brain className="w-5 h-5 text-primary" />
-                <span className="font-semibold tracking-tight">DeepStack</span>
+                <span className="font-semibold tracking-tight">deepstack</span>
                 <span className="text-muted-foreground text-sm ml-2 px-2 py-0.5 bg-muted rounded-full">
                   Research Platform
                 </span>
@@ -1100,7 +1100,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="mt-8 text-center text-xs text-muted-foreground/60 max-w-2xl mx-auto leading-relaxed">
-              DeepStack is a research platform powered by AI. It does not execute trades or provide
+              deepstack is a research platform powered by AI. It does not execute trades or provide
               personalized financial advice. All investing involves risk.
             </div>
           </div>

@@ -8,8 +8,8 @@ interface LogoProps {
 }
 
 /**
- * Text-based logo with BIOS/terminal aesthetic
- * Uses Geist Mono for that DOS command-line feel
+ * Brand logo using Urbanist Regular 400
+ * All lowercase "deepstack" for modern, clean aesthetic
  */
 export function Logo({ className, size = 'md' }: LogoProps) {
   const sizeClasses = {
@@ -22,11 +22,23 @@ export function Logo({ className, size = 'md' }: LogoProps) {
   return (
     <span
       className={cn(
-        'font-mono font-bold tracking-tight text-foreground',
+        'font-urbanist font-normal tracking-tight text-foreground',
         sizeClasses[size],
         className
       )}
     >
+      deepstack
+    </span>
+  );
+}
+
+/**
+ * Standalone brand name component for use anywhere in the app
+ * Uses Urbanist Regular 400, always lowercase
+ */
+export function BrandName({ className }: { className?: string }) {
+  return (
+    <span className={cn('font-urbanist font-normal', className)}>
       deepstack
     </span>
   );

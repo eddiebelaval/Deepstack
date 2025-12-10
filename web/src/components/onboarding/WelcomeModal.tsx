@@ -15,7 +15,7 @@ interface Step {
 const STEPS: Step[] = [
     {
         icon: <Sparkles className="w-10 h-10 text-primary" />,
-        title: "Welcome to DeepStack",
+        title: "Welcome to deepstack",
         description: "Your AI-powered trading assistant with emotional discipline frameworks. Let's take a quick tour of what you can do.",
         tip: "You can revisit this guide anytime from the Help page.",
     },

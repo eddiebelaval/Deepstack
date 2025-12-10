@@ -32,7 +32,7 @@ export function DisclaimerBanner() {
                         Disclaimer: Research Only. Not Financial Advice.
                     </p>
                     <p className="opacity-90 leading-relaxed text-xs">
-                        DeepStack is a financial research and analysis platform providing data and AI-driven insights for informational purposes only.
+                        deepstack is a financial research and analysis platform providing data and AI-driven insights for informational purposes only.
                         <strong> This platform does NOT execute trades on your behalf.</strong> Trading in financial markets involves significant risk.
                         You should consult a qualified financial advisor before making any investment decisions.
                         {' '}

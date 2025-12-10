@@ -54,8 +54,8 @@ const FEATURES = [
 
 const FAQ = [
     {
-        question: 'Is DeepStack a brokerage?',
-        answer: 'No. DeepStack is a research and analysis platform, not a brokerage. We help you research and track investment ideas, but do not execute trades or manage money.',
+        question: 'Is deepstack a brokerage?',
+        answer: 'No. deepstack is a research and analysis platform, not a brokerage. We help you research and track investment ideas, but do not execute trades or manage money.',
     },
     {
         question: 'How do I add symbols to my watchlist?',
@@ -94,7 +94,7 @@ export default function HelpPage() {
         <div className="min-h-screen bg-background">
             <div className="container max-w-4xl mx-auto py-12 px-4">
                 <Link href="/" className="text-primary hover:underline text-sm mb-8 inline-block">
-                    &larr; Back to DeepStack
+                    &larr; Back to deepstack
                 </Link>
 
                 <div className="flex items-center justify-between mb-2">
@@ -110,7 +110,7 @@ export default function HelpPage() {
                     </Button>
                 </div>
                 <p className="text-muted-foreground mb-12">
-                    Everything you need to know to get the most out of DeepStack.
+                    Everything you need to know to get the most out of deepstack.
                 </p>
 
                 {/* Quick Start */}

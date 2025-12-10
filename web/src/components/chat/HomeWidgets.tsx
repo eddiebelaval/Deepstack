@@ -21,7 +21,7 @@ import { SymbolSearchDialog } from '@/components/trading/SymbolSearchDialog';
 import { PositionsPanel } from '@/components/trading/PositionsPanel';
 import { PositionEntryForm } from '@/components/trading/PositionEntryForm';
 
-// DeepStack Brand Palette for Series
+// deepstack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
 const SERIES_COLORS = [
     '#F59E0B', // Brand Amber (matches --primary/--ds-claude)
