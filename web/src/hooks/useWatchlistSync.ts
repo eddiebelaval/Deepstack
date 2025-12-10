@@ -21,6 +21,12 @@ export function useWatchlistSync() {
   const [error, setError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(isSupabaseConfigured());
 
+  // Extract stable store methods
+  const setWatchlists = store.setWatchlists;
+  const activeWatchlistId = store.activeWatchlistId;
+  const setActiveWatchlist = store.setActiveWatchlist;
+  const setLastSyncedAt = store.setLastSyncedAt;
+
   // Load watchlists from Supabase on mount
   useEffect(() => {
     async function loadWatchlists() {
@@ -34,15 +40,15 @@ export function useWatchlistSync() {
         const watchlists = await fetchWatchlists();
         if (watchlists.length > 0) {
           // Replace local watchlists with remote ones
-          store.setWatchlists(watchlists);
+          setWatchlists(watchlists);
           // Set active watchlist if not set
-          if (!store.activeWatchlistId) {
-            store.setActiveWatchlist(watchlists[0].id);
+          if (!activeWatchlistId) {
+            setActiveWatchlist(watchlists[0].id);
           }
         }
         setIsOnline(true);
         setError(null);
-        store.setLastSyncedAt(new Date().toISOString());
+        setLastSyncedAt(new Date().toISOString());
       } catch (err) {
         console.error('Failed to load watchlists:', err);
         setError('Failed to load watchlists. Using local data.');
@@ -53,7 +59,7 @@ export function useWatchlistSync() {
     }
 
     loadWatchlists();
-  }, []);
+  }, [setWatchlists, activeWatchlistId, setActiveWatchlist, setLastSyncedAt]);
 
   // Subscribe to real-time updates
   useEffect(() => {
@@ -62,15 +68,15 @@ export function useWatchlistSync() {
     const unsubscribe = subscribeToWatchlists(async () => {
       try {
         const watchlists = await fetchWatchlists();
-        store.setWatchlists(watchlists);
-        store.setLastSyncedAt(new Date().toISOString());
+        setWatchlists(watchlists);
+        setLastSyncedAt(new Date().toISOString());
       } catch (err) {
         console.error('Failed to sync watchlists:', err);
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [setWatchlists, setLastSyncedAt]);
 
   // Wrapped createWatchlist that syncs to Supabase
   const createWatchlist = useCallback(async (name: string): Promise<string> => {

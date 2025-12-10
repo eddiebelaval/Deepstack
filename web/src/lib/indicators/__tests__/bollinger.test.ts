@@ -17,7 +17,7 @@ function createMockBars(closePrices: number[]): OHLCVBar[] {
 describe('calculateBollingerBands', () => {
   describe('basic calculations', () => {
     it('returns upper, middle, and lower bands', () => {
-      const prices = Array.from({ length: 25 }, (_, i) => 100 + Math.random() * 10);
+      const prices = Array.from({ length: 25 }, () => 100 + Math.random() * 10);
       const bars = createMockBars(prices);
       const result = calculateBollingerBands(bars);
 
@@ -47,7 +47,7 @@ describe('calculateBollingerBands', () => {
     });
 
     it('bands are symmetric around middle', () => {
-      const prices = Array.from({ length: 25 }, (_, i) => 100 + i);
+      const prices = Array.from({ length: 25 }, (_unused, i) => 100 + i);
       const bars = createMockBars(prices);
       const result = calculateBollingerBands(bars);
 
@@ -59,7 +59,7 @@ describe('calculateBollingerBands', () => {
     });
 
     it('returns correct timestamps', () => {
-      const prices = Array.from({ length: 25 }, (_, i) => 100 + i);
+      const prices = Array.from({ length: 25 }, (_unused, i) => 100 + i);
       const bars = createMockBars(prices);
       const result = calculateBollingerBands(bars);
 
@@ -70,7 +70,7 @@ describe('calculateBollingerBands', () => {
 
   describe('default parameters', () => {
     it('uses default period=20, stdDev=2', () => {
-      const prices = Array.from({ length: 30 }, (_, i) => 100 + i);
+      const prices = Array.from({ length: 30 }, (_unused, i) => 100 + i);
       const bars = createMockBars(prices);
 
       const defaultResult = calculateBollingerBands(bars);
@@ -142,7 +142,7 @@ describe('calculateBollingerBands', () => {
     });
 
     it('returns single result when bars === period', () => {
-      const prices = Array.from({ length: 20 }, (_, i) => 100 + i);
+      const prices = Array.from({ length: 20 }, (_unused, i) => 100 + i);
       const bars = createMockBars(prices);
       const result = calculateBollingerBands(bars, 20);
 
@@ -158,7 +158,7 @@ describe('calculateBollingerBands', () => {
   describe('trading signals', () => {
     it('price touches upper band in strong uptrend', () => {
       // Strong uptrend
-      const prices = Array.from({ length: 30 }, (_, i) => 100 + i * 3);
+      const prices = Array.from({ length: 30 }, (_unused, i) => 100 + i * 3);
       const bars = createMockBars(prices);
       const result = calculateBollingerBands(bars);
 
@@ -172,7 +172,7 @@ describe('calculateBollingerBands', () => {
 
     it('price touches lower band in strong downtrend', () => {
       // Strong downtrend
-      const prices = Array.from({ length: 30 }, (_, i) => 200 - i * 3);
+      const prices = Array.from({ length: 30 }, (_unused, i) => 200 - i * 3);
       const bars = createMockBars(prices);
       const result = calculateBollingerBands(bars);
 
