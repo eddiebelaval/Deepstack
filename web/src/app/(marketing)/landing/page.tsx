@@ -143,12 +143,106 @@ const AI_PROMPTS = [
   },
 ];
 
-// Data sources for credibility
+// AI Models powering the chat
+const AI_MODELS = [
+  {
+    name: 'Claude',
+    company: 'Anthropic',
+    description: 'Sonnet, Opus & Haiku',
+    // Anthropic logo style
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+        <path d="M17.305 8.73l-4.43 11.54h2.601l4.43-11.54zm-6.18 0L6.695 20.27H4.094l4.43-11.54zm3.09-5l-1.554 4.04h2.6l1.555-4.04zM9.125 3.73l-1.555 4.04h2.6l1.555-4.04z" />
+      </svg>
+    ),
+    color: 'text-amber-400',
+  },
+  {
+    name: 'Grok',
+    company: 'xAI',
+    description: 'Fast analysis',
+    // X/xAI style
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    ),
+    color: 'text-white',
+  },
+  {
+    name: 'Perplexity',
+    company: 'Perplexity AI',
+    description: 'Real-time search',
+    // Perplexity style circle
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M12 6v12M6 12h12" stroke="currentColor" strokeWidth="2" />
+      </svg>
+    ),
+    color: 'text-cyan-400',
+  },
+  {
+    name: 'DeepSeek R1',
+    company: 'via Perplexity',
+    description: 'Advanced reasoning',
+    // DeepSeek style brain
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2a9 9 0 0 1 9 9c0 3.074-1.54 5.786-3.894 7.407l-.106.07V21a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-2.523l-.106-.07A8.962 8.962 0 0 1 3 11a9 9 0 0 1 9-9z" />
+        <path d="M9 18h6" strokeLinecap="round" />
+      </svg>
+    ),
+    color: 'text-blue-400',
+  },
+];
+
+// Data sources powering the platform
 const DATA_SOURCES = [
-  { name: 'Alpaca', description: 'Real-time market data' },
-  { name: 'Kalshi', description: 'CFTC-regulated predictions' },
-  { name: 'Polymarket', description: 'Crypto prediction markets' },
-  { name: 'Claude AI', description: 'Advanced reasoning' },
+  {
+    name: 'Alpaca',
+    description: 'Market data & news',
+    // Alpaca llama style
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+        <path d="M5 10c0-1.5.5-3 2-4s3-1.5 4.5-1.5c1 0 2 .2 3 .5.5.2 1 .5 1.5 1 1 1 1.5 2 1.5 3.5 0 .5 0 1-.2 1.5l2.7 3c.3.3.5.7.5 1.2v4.8c0 .3-.1.5-.3.7-.2.2-.4.3-.7.3h-3c-.3 0-.5-.1-.7-.3-.2-.2-.3-.4-.3-.7v-2l-2 1v1c0 .3-.1.5-.3.7-.2.2-.4.3-.7.3h-3c-.3 0-.5-.1-.7-.3-.2-.2-.3-.4-.3-.7v-3.5c-1-.5-2-1.5-2.5-2.5-.5-1-.5-2-.5-3zm4 1c.6 0 1-.4 1-1s-.4-1-1-1-1 .4-1 1 .4 1 1 1z" />
+      </svg>
+    ),
+    color: 'text-yellow-400',
+  },
+  {
+    name: 'Kalshi',
+    description: 'CFTC-regulated markets',
+    // K logo style
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+        <path d="M6 4h3v7l6-7h4l-7 8 7 8h-4l-6-7v7H6z" />
+      </svg>
+    ),
+    color: 'text-green-400',
+  },
+  {
+    name: 'Polymarket',
+    description: 'Prediction markets',
+    // P with market chart
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+        <path d="M7 4h5c3 0 5 2 5 5s-2 5-5 5H9v6H7V4zm2 8h3c1.7 0 3-1.3 3-3s-1.3-3-3-3H9v6z" />
+      </svg>
+    ),
+    color: 'text-purple-400',
+  },
+  {
+    name: 'Supabase',
+    description: 'Auth & database',
+    // Supabase style
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+        <path d="M13.5 21.5c-.4.6-1.4.2-1.4-.5V14h8.4c.9 0 1.4 1 .8 1.7l-7.8 5.8zM10.5 2.5c.4-.6 1.4-.2 1.4.5V10H3.5c-.9 0-1.4-1-.8-1.7l7.8-5.8z" />
+      </svg>
+    ),
+    color: 'text-emerald-400',
+  },
 ];
 
 export default function LandingPage() {
@@ -847,20 +941,53 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* CREDIBILITY Section */}
+        {/* CREDIBILITY Section - Powered By */}
         {/* ================================================================== */}
-        <section id="credibility" className="py-16 px-4">
-          <div className="max-w-4xl mx-auto">
-            <ScrollReveal className="text-center mb-8">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-6">
-                Powered by industry-leading data sources
+        <section id="credibility" className="py-20 px-4">
+          <div className="max-w-5xl mx-auto">
+            {/* AI Models Section */}
+            <ScrollReveal className="text-center mb-10">
+              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-2">
+                Powered by leading AI models
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Choose your reasoning engine
               </p>
             </ScrollReveal>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+              {AI_MODELS.map((model, i) => (
+                <ScrollReveal key={model.name} delay={i * 0.1}>
+                  <div className="group p-5 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 hover:bg-card/50 transition-all duration-300">
+                    <div
+                      className={`${model.color} mb-3 flex justify-center opacity-70 group-hover:opacity-100 transition-opacity`}
+                    >
+                      {model.icon}
+                    </div>
+                    <p className="font-semibold mb-0.5">{model.name}</p>
+                    <p className="text-[10px] text-muted-foreground/70 mb-1">{model.company}</p>
+                    <p className="text-xs text-muted-foreground">{model.description}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+
+            {/* Data Sources Section */}
+            <ScrollReveal className="text-center mb-10">
+              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-2">
+                Real-time data from
+              </p>
+            </ScrollReveal>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
               {DATA_SOURCES.map((source, i) => (
                 <ScrollReveal key={source.name} delay={i * 0.1}>
-                  <div className="p-4 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 transition-colors">
+                  <div className="group p-5 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 hover:bg-card/50 transition-all duration-300">
+                    <div
+                      className={`${source.color} mb-3 flex justify-center opacity-70 group-hover:opacity-100 transition-opacity`}
+                    >
+                      {source.icon}
+                    </div>
                     <p className="font-semibold mb-1">{source.name}</p>
                     <p className="text-xs text-muted-foreground">{source.description}</p>
                   </div>
@@ -869,8 +996,8 @@ export default function LandingPage() {
             </div>
 
             {/* Trust badges */}
-            <ScrollReveal delay={0.4} className="mt-8">
-              <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+            <ScrollReveal delay={0.4}>
+              <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
                   <span>Enterprise-grade security</span>
