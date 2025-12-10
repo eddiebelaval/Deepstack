@@ -14,6 +14,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover', // Enables safe-area-inset-* CSS env() variables for notch
+  themeColor: '#b8860b', // Theme color for browser chrome
 }
 
 export const metadata: Metadata = {
@@ -72,9 +73,6 @@ export const metadata: Metadata = {
       { url: '/splash/splash-1290x2796.png', media: '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)' },
     ],
   },
-
-  // Theme color for browser chrome
-  themeColor: '#b8860b',
 }
 
 
