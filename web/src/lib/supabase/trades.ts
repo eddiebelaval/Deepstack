@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { TradeEntry, useTradesStore } from '../stores/trades-store';
+import { TradeEntry } from '../stores/trades-store';
 
 // Types matching the trade_journal table (snake_case)
 // Columns: id, user_id, symbol, action, quantity, price, order_type, notes, tags, pnl, created_at

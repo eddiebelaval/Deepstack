@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   extractRateLimitInfo,
   isRateLimited,
@@ -95,7 +95,6 @@ describe('updateRateLimitState', () => {
 
   it('uses default 1 minute timeout when no Retry-After header', () => {
     const response = new Response(null, { status: 429 });
-    const now = Date.now();
 
     updateRateLimitState('/test-api', response);
 

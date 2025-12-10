@@ -237,6 +237,7 @@ export async function syncJournalToSupabase(): Promise<void> {
     if (remote.length === 0 && store.entries.length > 0) {
       // No remote data - push local to remote
       for (const local of store.entries) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, createdAt, updatedAt, ...rest } = local;
         await createJournalEntry(rest);
       }

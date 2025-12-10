@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useWatchlistStore } from '../watchlist-store';
 import { act } from '@testing-library/react';
 
@@ -66,7 +66,6 @@ describe('useWatchlistStore', () => {
 
     it('sets timestamps on creation', () => {
       const { createWatchlist } = useWatchlistStore.getState();
-      const before = new Date().toISOString();
 
       let newId: string = '';
       act(() => {

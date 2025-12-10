@@ -287,6 +287,7 @@ export async function syncThesesToSupabase(): Promise<void> {
     if (remote.length === 0 && store.theses.length > 0) {
       // No remote data - push local to remote
       for (const local of store.theses) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, createdAt, updatedAt, ...rest } = local;
         await createThesis(rest);
       }

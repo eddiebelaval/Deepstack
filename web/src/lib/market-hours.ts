@@ -87,7 +87,7 @@ export function isWeekend(date: Date = new Date()): boolean {
 /**
  * Get the current market session
  */
-export function getMarketSession(date: Date = new Date()): MarketSession {
+export function getMarketSession(): MarketSession {
   const et = getEasternTime();
 
   // Check if weekend or holiday

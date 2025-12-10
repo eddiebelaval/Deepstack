@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useMarketDataStore, QuoteData, OHLCVBar } from '../market-data-store';
 import { act } from '@testing-library/react';
 

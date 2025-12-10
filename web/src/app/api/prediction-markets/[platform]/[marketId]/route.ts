@@ -65,7 +65,7 @@ function generatePriceHistory(currentPrice: number): Array<{ timestamp: string; 
   // Start from a random offset from current price (within reasonable range)
   const volatility = 0.15; // 15% max historical volatility
   const startOffset = (Math.random() - 0.5) * volatility;
-  let startPrice = Math.max(0.01, Math.min(0.99, currentPrice + startOffset));
+  const startPrice = Math.max(0.01, Math.min(0.99, currentPrice + startOffset));
 
   // Generate smooth price path using random walk with drift toward current price
   for (let i = 0; i < points; i++) {
