@@ -500,7 +500,7 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
         <span
           className="font-extrabold"
           style={{
-            fontSize: 'clamp(6rem, 22vw, 18rem)',
+            fontSize: 'clamp(1.8rem, 6.6vw, 5.4rem)',
             color: 'rgba(255, 255, 255, 0.12)',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             letterSpacing: '0.25em',
