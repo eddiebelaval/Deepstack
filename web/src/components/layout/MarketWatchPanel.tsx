@@ -6,7 +6,9 @@ import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { HomeWidgets } from '@/components/chat/HomeWidgets';
 import { cn } from '@/lib/utils';
-import { ChevronDown, LineChart } from 'lucide-react';
+import { ChevronDown, LineChart, Maximize2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Fixed dimensions - no resizing, solid panel feel
 const COLLAPSED_TAB_HEIGHT = 44; // Height of the tab when collapsed
@@ -25,6 +27,8 @@ export function MarketWatchPanel() {
     toggleMarketWatchPanel,
     leftSidebarOpen,
     rightSidebarOpen,
+    setActiveContent,
+    collapseMarketWatchPanel,
   } = useUIStore();
 
   const { wsConnected, wsReconnecting, lastError } = useMarketDataStore();
@@ -71,7 +75,14 @@ export function MarketWatchPanel() {
   const leftMargin = leftSidebarOpen ? LEFT_SIDEBAR_EXPANDED : LEFT_SIDEBAR_COLLAPSED;
   const rightMargin = rightSidebarOpen ? RIGHT_SIDEBAR_EXPANDED : RIGHT_SIDEBAR_COLLAPSED;
 
+  // Open full chart in center panel
+  const handleOpenFullChart = () => {
+    setActiveContent('chart');
+    collapseMarketWatchPanel(); // Collapse Market Watch when opening full chart
+  };
+
   return (
+    <TooltipProvider>
     <div
       className={cn(
         // Fixed positioning within center content area
@@ -178,10 +189,26 @@ export function MarketWatchPanel() {
           )}
         </div>
 
-        {/* Right: Time */}
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {currentTime || "--:--:-- --"}
-        </span>
+        {/* Right: Full Chart + Time */}
+        <div className="flex items-center gap-3">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-primary"
+                onClick={handleOpenFullChart}
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                Full Chart
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Open full chart for detailed analysis</TooltipContent>
+          </Tooltip>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {currentTime || "--:--:-- --"}
+          </span>
+        </div>
       </div>
 
       {/* Content - Only visible when expanded, no scroll needed */}
@@ -205,6 +232,7 @@ export function MarketWatchPanel() {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 

@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { TradingChart } from '@/components/charts/TradingChart';
 import { ChartToolbar } from '@/components/charts/ChartToolbar';
 import { DrawingToolbar } from '@/components/charts/DrawingToolbar';
+import { ChartPanel } from '@/components/trading/ChartPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { DeepValuePanel } from '@/components/trading/DeepValuePanel';
 import { HedgedPositionsPanel } from '@/components/trading/HedgedPositionsPanel';
@@ -336,30 +337,11 @@ export function ConversationView() {
     // Render the active content (chart, orders, etc.)
     // Note: Parent container must have explicit height for flex-1 to work
     const renderActiveContent = () => {
-        // NOTE: 'chart' content is now rendered in the persistent panel above
-        // But if we ever need it here (e.g. mobile?), we can keep it
+        // Full Chart with toolbar, timeframes, indicators
         if (activeContent === 'chart') {
             return (
-                <div className="flex-1 min-h-0 rounded-2xl overflow-hidden bg-card border border-border/50 relative">
-                    <TradingChart className="w-full h-full" />
-                    {/* Loading overlay */}
-                    {isChartLoading && (
-                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
-                            <div className="flex flex-col items-center gap-2">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
-                            </div>
-                        </div>
-                    )}
-                    {/* No data message */}
-                    {!isChartLoading && !hasChartData && (
-                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
-                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                <LineChart className="h-8 w-8 opacity-50" />
-                                <span className="text-sm">No data available for {activeSymbol}</span>
-                            </div>
-                        </div>
-                    )}
+                <div className="h-full overflow-hidden bg-card">
+                    <ChartPanel />
                 </div>
             );
         }
@@ -549,52 +531,18 @@ export function ConversationView() {
     // Workspace view with active content and/or messages
     // Note: HomeWidgets moved to global MarketWatchPanel - this panel only shows TradingChart
     // On mobile, we hide the chart panel entirely for better usability
-    const showPersistentChart = !isMobile && chartPanelOpen && !chartPanelCollapsed && activeContent === 'chart';
-    const chartPanelHeight = 350;
-    const collapsedBarHeight = 40;
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Persistent Trading Chart Panel - Only shows when activeContent is 'chart' */}
-            {!isMobile && chartPanelOpen && activeContent === 'chart' && (
-                <div
-                    className="flex-shrink-0 border-b border-border/30 transition-all duration-300 ease-in-out overflow-hidden"
-                    style={{ height: showPersistentChart ? chartPanelHeight : collapsedBarHeight }}
-                >
-                    <ChartToolbar />
-                    {showPersistentChart && <DrawingToolbar />}
-                    {showPersistentChart && (
-                        <div className="h-[calc(100%-80px)] relative">
-                            <TradingChart className="w-full h-full" />
-                            {isChartLoading && (
-                                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                        <span className="text-sm text-muted-foreground">Loading {activeSymbol}...</span>
-                                    </div>
-                                </div>
-                            )}
-                            {!isChartLoading && !hasChartData && (
-                                <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
-                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                        <LineChart className="h-8 w-8 opacity-50" />
-                                        <span className="text-sm">No data available for {activeSymbol}</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
-
             {/* Mobile: Full-screen tool panel with close button, no resizable split */}
             {/* Desktop: Resizable split between tool panel and chat */}
-            {hasActiveContent && activeContent !== 'chart' && isMobile ? (
+            {hasActiveContent && isMobile ? (
                 // Mobile: Full-height tool panel with close button
                 <div className="flex-1 flex flex-col min-h-0">
                     {/* Tool Header */}
                     <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 flex-shrink-0 h-12 bg-background/95 backdrop-blur-sm">
                         <span className="text-sm font-semibold text-foreground">
+                            {activeContent === 'chart' && 'Chart'}
                             {activeContent === 'portfolio' && 'Positions'}
                             {activeContent === 'deep-value' && 'Deep Value'}
                             {activeContent === 'hedged-positions' && 'Hedged Positions'}
@@ -623,15 +571,16 @@ export function ConversationView() {
                         {renderActiveContent()}
                     </div>
                 </div>
-            ) : hasActiveContent && activeContent !== 'chart' ? (
+            ) : hasActiveContent ? (
                 // Desktop: Resizable split panels
                 <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
                     {/* Tool Panel (Top) */}
-                    <ResizablePanel defaultSize={50} minSize={20} className="flex flex-col min-h-0">
+                    <ResizablePanel defaultSize={55} minSize={25} className="flex flex-col min-h-0">
                         <div className="flex flex-col h-full bg-background border-b border-border/30">
                             {/* Tool Header */}
                             <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 flex-shrink-0 h-10">
                                 <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    {activeContent === 'chart' && 'Full Chart'}
                                     {activeContent === 'portfolio' && 'Positions'}
                                     {activeContent === 'deep-value' && 'Deep Value Screener'}
                                     {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
