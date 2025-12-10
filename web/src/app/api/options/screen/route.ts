@@ -5,6 +5,7 @@ import {
   ScreenerFilters,
   ScreenerResponse
 } from '@/lib/types/options';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit-server';
 
 // Helper to generate random number between min and max
 function random(min: number, max: number): number {
@@ -67,6 +68,10 @@ function calculateMockGreeks(
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 30 requests per minute for heavy data
+  const rateLimit = checkRateLimit(req, { limit: 30, windowMs: 60000 });
+  if (!rateLimit.success) return rateLimitResponse(rateLimit.resetTime);
+
   try {
     const filters: ScreenerFilters = await req.json();
     const results: OptionContract[] = [];

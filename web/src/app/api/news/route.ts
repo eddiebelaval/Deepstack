@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit-server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -62,7 +63,11 @@ function inferSentiment(headline: string, summary: string): 'positive' | 'negati
   return 'neutral';
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute for external API
+  const rateLimit = checkRateLimit(request, { limit: 60, windowMs: 60000 });
+  if (!rateLimit.success) return rateLimitResponse(rateLimit.resetTime);
+
   try {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol')?.toUpperCase();

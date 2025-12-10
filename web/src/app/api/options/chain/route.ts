@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OptionChain, OptionContract } from '@/lib/types/options';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit-server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -87,6 +88,10 @@ function generateMockChain(symbol: string): OptionChain {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 30 requests per minute for heavy data
+  const rateLimit = checkRateLimit(request, { limit: 30, windowMs: 60000 });
+  if (!rateLimit.success) return rateLimitResponse(rateLimit.resetTime);
+
   const searchParams = request.nextUrl.searchParams;
   const symbol = searchParams.get('symbol');
   const expiration = searchParams.get('expiration');

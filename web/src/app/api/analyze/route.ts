@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit-server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -87,6 +88,10 @@ function calculateTechnicals(bars: any[], currentPrice: number) {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 60 requests per minute
+  const rateLimit = checkRateLimit(request, { limit: 60, windowMs: 60000 });
+  if (!rateLimit.success) return rateLimitResponse(rateLimit.resetTime);
+
   try {
     const body = await request.json();
 
