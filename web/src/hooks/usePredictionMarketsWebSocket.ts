@@ -130,7 +130,9 @@ export function usePredictionMarketsWebSocket() {
     // Attempt reconnection with exponential backoff
     const attemptReconnect = useCallback(() => {
         if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
-            console.log('Max reconnect attempts reached, falling back to polling');
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Max reconnect attempts reached, falling back to polling');
+            }
             startPollingFallback();
             return;
         }
@@ -138,7 +140,9 @@ export function usePredictionMarketsWebSocket() {
         const delay = INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttemptRef.current);
         reconnectAttemptRef.current += 1;
 
-        console.log(`Attempting WebSocket reconnect in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`Attempting WebSocket reconnect in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
+        }
 
         reconnectTimeoutRef.current = setTimeout(() => {
             connect();
@@ -150,7 +154,9 @@ export function usePredictionMarketsWebSocket() {
         if (pollingIntervalRef.current) return;
 
         setIsUsingPolling(true);
-        console.log('Starting polling fallback for prediction markets');
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Starting polling fallback for prediction markets');
+        }
 
         const poll = async () => {
             try {

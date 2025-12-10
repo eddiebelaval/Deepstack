@@ -47,7 +47,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       });
 
       const data = await response.json();
-      console.log('Command result:', data);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Command result:', data);
+      }
 
       // TODO: Display result in chat or a toast
       if (data.status === 'success') {

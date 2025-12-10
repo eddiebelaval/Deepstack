@@ -141,7 +141,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
           default:
             // Handle other message types (position, order) if needed
-            console.log("[WS] Unhandled message type:", message.type);
+            if (process.env.NODE_ENV === 'development') {
+              console.log("[WS] Unhandled message type:", message.type);
+            }
         }
       } catch (error) {
         console.error("[WS] Error parsing message:", error);
@@ -187,7 +189,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       const ws = new WebSocket(opts.url);
 
       ws.onopen = () => {
-        console.log("[WS] Connected to", opts.url);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[WS] Connected to", opts.url);
+        }
         setWsConnected(true);
         setWsReconnecting(false);
         setLastError(null);
@@ -216,7 +220,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.onclose = (event) => {
-        console.log("[WS] Disconnected:", event.code, event.reason);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[WS] Disconnected:", event.code, event.reason);
+        }
         setWsConnected(false);
         stopHeartbeat();
 
@@ -224,11 +230,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         if (!isManuallyClosedRef.current && opts.reconnectOnError) {
           if (reconnectAttemptsRef.current < opts.maxReconnectAttempts) {
             const delay = getReconnectDelay();
-            console.log(
-              `[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${
-                reconnectAttemptsRef.current + 1
-              }/${opts.maxReconnectAttempts})`
-            );
+            if (process.env.NODE_ENV === 'development') {
+              console.log(
+                `[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${
+                  reconnectAttemptsRef.current + 1
+                }/${opts.maxReconnectAttempts})`
+              );
+            }
 
             setWsReconnecting(true);
             reconnectAttemptsRef.current++;

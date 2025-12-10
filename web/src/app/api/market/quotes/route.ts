@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+// Zod schema for quotes request
+const quotesRequestSchema = z.object({
+  symbols: z.string()
+    .min(1, 'At least one symbol is required')
+    .transform(s => s.split(',').map(sym => sym.trim().toUpperCase()).join(','))
+    .refine(
+      s => s.split(',').every(sym => /^[A-Z0-9.-]+$/.test(sym)),
+      'All symbols must contain only letters, numbers, dots, and hyphens'
+    ),
+});
 
 // Generate mock quote data when backend is unavailable
 function generateMockQuotes(symbols: string[]): Record<string, object> {
@@ -35,16 +47,25 @@ function generateMockQuotes(symbols: string[]): Record<string, object> {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const symbols = searchParams.get('symbols');
+  const queryParams = {
+    symbols: searchParams.get('symbols'),
+  };
 
-  if (!symbols) {
+  // Validate query parameters with Zod
+  const validation = quotesRequestSchema.safeParse(queryParams);
+
+  if (!validation.success) {
     return NextResponse.json(
-      { error: 'Symbols parameter is required' },
+      {
+        error: 'Validation error',
+        message: 'Invalid query parameters',
+        details: validation.error.format()
+      },
       { status: 400 }
     );
   }
 
-  const symbolList = symbols.split(',').map(s => s.trim().toUpperCase());
+  const symbolList = validation.data.symbols.split(',');
 
   try {
     // Backend uses /quote/{symbol} endpoint for individual quotes

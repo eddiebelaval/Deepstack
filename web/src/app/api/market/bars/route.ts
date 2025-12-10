@@ -1,7 +1,30 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, MOCK_DATA_WARNING } from '@/lib/api-response';
+import { z } from 'zod';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+// Zod schema for bars request
+const barsRequestSchema = z.object({
+  symbol: z.string()
+    .min(1, 'Symbol is required')
+    .max(20, 'Symbol must be 20 characters or less')
+    .regex(/^[A-Z0-9./-]+$/i, 'Symbol must contain only letters, numbers, dots, slashes, and hyphens')
+    .transform((s: string) => s.toUpperCase()),
+  timeframe: z.string()
+    .regex(/^(1m|5m|15m|30m|1h|2h|4h|1d|1w|1M)$/, 'Invalid timeframe. Valid values: 1m, 5m, 15m, 30m, 1h, 2h, 4h, 1d, 1w, 1M')
+    .default('1d'),
+  limit: z.string()
+    .regex(/^\d+$/, 'Limit must be a number')
+    .default('100')
+    .transform((s: string) => {
+      const num = parseInt(s, 10);
+      if (num < 1 || num > 1000) {
+        throw new Error('Limit must be between 1 and 1000');
+      }
+      return num;
+    }),
+});
 
 // Realistic base prices for common symbols (as of late 2024)
 const SYMBOL_PRICES: Record<string, number> = {
@@ -47,13 +70,27 @@ function generateMockBars(symbol: string, limit: number) {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const symbol = searchParams.get('symbol');
-  const timeframe = searchParams.get('timeframe') || '1d';
-  const limit = searchParams.get('limit') || '100';
+  const queryParams = {
+    symbol: searchParams.get('symbol'),
+    timeframe: searchParams.get('timeframe') || '1d',
+    limit: searchParams.get('limit') || '100',
+  };
 
-  if (!symbol) {
-    return apiError('INVALID_PARAMETERS', 'Symbol is required', { status: 400 });
+  // Validate query parameters with Zod
+  const validation = barsRequestSchema.safeParse(queryParams);
+
+  if (!validation.success) {
+    return apiError(
+      'INVALID_PARAMETERS',
+      'Invalid query parameters',
+      {
+        status: 400,
+        details: validation.error.format()
+      }
+    );
   }
+
+  const { symbol, timeframe, limit } = validation.data;
 
   try {
     // Call the Python backend to get historical bars
@@ -80,7 +117,7 @@ export async function GET(request: NextRequest) {
     console.warn('Backend unavailable for bars, returning mock data:', error);
 
     // Generate mock bars data
-    const mockBars = generateMockBars(symbol, parseInt(limit));
+    const mockBars = generateMockBars(symbol, limit);
 
     return apiSuccess(
       { bars: mockBars },

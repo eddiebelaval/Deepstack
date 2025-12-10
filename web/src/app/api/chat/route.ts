@@ -3,6 +3,8 @@ import { getProviderModel, providerConfig } from '@/lib/llm/providers';
 import { TRADING_SYSTEM_PROMPT } from '@/lib/llm/system-prompt';
 import { tradingTools } from '@/lib/llm/tools';
 import type { LLMProvider } from '@/lib/stores/chat-store';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit-server';
+import type { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 export const maxDuration = 60;
@@ -84,6 +86,12 @@ function buildContextMessage(context?: TradingContext): string {
 
 export async function POST(req: Request) {
   try {
+    // Apply rate limiting: 20 requests per minute per IP
+    const rateLimit = checkRateLimit(req as NextRequest, { limit: 20, windowMs: 60000 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit.resetTime);
+    }
+
     const { messages, provider = 'claude', context, useExtendedThinking = false } = await req.json();
 
     // Validate provider

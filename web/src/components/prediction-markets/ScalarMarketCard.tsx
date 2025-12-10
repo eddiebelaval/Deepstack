@@ -49,6 +49,39 @@ export function ScalarMarketCard({
   const [priceHistory, setPriceHistory] = useState<MarketPricePoint[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+  // Fetch price history on mount - must be before early return
+  useEffect(() => {
+    // Guard clause: skip if no bounds (market is invalid)
+    if (!market.scalarBounds) {
+      return;
+    }
+
+    const loadHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const params = new URLSearchParams({
+          yesPrice: market.yesPrice.toString(),
+          title: market.title,
+        });
+        const response = await fetch(
+          `/api/prediction-markets/${market.platform}/${market.id}?${params.toString()}`
+        );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.statusText}`);
+        }
+        const { market: detail } = await response.json();
+        if (detail?.priceHistory) {
+          setPriceHistory(detail.priceHistory);
+        }
+      } catch (err) {
+        console.error('Failed to load price history:', err);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+    loadHistory();
+  }, [market.platform, market.id, market.yesPrice, market.title, market.scalarBounds]);
+
   const bounds = market.scalarBounds;
   if (!bounds) {
     // Fallback if no bounds - shouldn't happen for scalar markets
@@ -80,34 +113,6 @@ export function ScalarMarketCard({
     }
     return value.toFixed(0);
   };
-
-  // Fetch price history on mount
-  useEffect(() => {
-    const loadHistory = async () => {
-      setIsLoadingHistory(true);
-      try {
-        const params = new URLSearchParams({
-          yesPrice: market.yesPrice.toString(),
-          title: market.title,
-        });
-        const response = await fetch(
-          `/api/prediction-markets/${market.platform}/${market.id}?${params.toString()}`
-        );
-        if (!response.ok) {
-          throw new Error(`Failed to fetch: ${response.statusText}`);
-        }
-        const { market: detail } = await response.json();
-        if (detail?.priceHistory) {
-          setPriceHistory(detail.priceHistory);
-        }
-      } catch (err) {
-        console.error('Failed to load price history:', err);
-      } finally {
-        setIsLoadingHistory(false);
-      }
-    };
-    loadHistory();
-  }, [market.platform, market.id, market.yesPrice, market.title]);
 
   return (
     <SquareCard

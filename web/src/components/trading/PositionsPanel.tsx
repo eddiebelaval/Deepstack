@@ -238,7 +238,10 @@ function PositionCard({ position }: PositionCardProps) {
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log("Edit position:", position.id);
+    // TODO: Implement edit position functionality
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Edit position:", position.id);
+    }
   };
 
   const handleClose = (e: React.MouseEvent) => {

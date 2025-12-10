@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+// Zod schema for analyze request
+const analyzeRequestSchema = z.object({
+  symbol: z.string()
+    .min(1, 'Symbol is required')
+    .max(10, 'Symbol must be 10 characters or less')
+    .regex(/^[A-Z0-9.-]+$/i, 'Symbol must contain only letters, numbers, dots, and hyphens')
+    .transform(s => s.toUpperCase()),
+});
 
 interface StockAnalysis {
   symbol: string;
@@ -79,16 +89,21 @@ function calculateTechnicals(bars: any[], currentPrice: number) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { symbol } = body;
 
-    if (!symbol) {
+    // Validate request body with Zod
+    const validation = analyzeRequestSchema.safeParse(body);
+
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Symbol parameter is required' },
+        {
+          error: 'Validation error',
+          details: validation.error.format()
+        },
         { status: 400 }
       );
     }
 
-    const upperSymbol = symbol.toUpperCase();
+    const { symbol: upperSymbol } = validation.data;
 
     try {
       // Step 1: Fetch Quote
