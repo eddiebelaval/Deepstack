@@ -145,11 +145,11 @@ export function StickySection({
             </div>
           </motion.header>
 
-          {/* Content - positioned BELOW header with significant offset */}
+          {/* Content - positioned BELOW header with moderate offset */}
           <div className={cn(
             'lg:grid lg:grid-cols-2 lg:gap-16',
-            'mt-16 lg:mt-[35vh]', // Push content down significantly on desktop
-            'pb-16'
+            'mt-12 lg:mt-[12vh]', // Moderate offset to keep content visible without huge gaps
+            'pb-12'
           )}>
             <div className={cn(
               'relative',

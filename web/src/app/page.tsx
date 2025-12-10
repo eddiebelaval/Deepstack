@@ -417,7 +417,7 @@ export default function LandingPage() {
           badgeIcon={<AlertTriangle className="w-4 h-4" />}
           badgeColor="bg-red-500/10 text-red-400 border-red-500/20"
           titleAccent="text-red-400"
-          scrollHeight="min-h-[140vh]"
+          scrollHeight="min-h-[90vh]"
           align="left"
         >
           {/* Pain points - stacked vertically to scroll alongside sticky header */}
@@ -468,6 +468,89 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
+        {/* LIVE MARKET DATA - Animated Ticker Section */}
+        {/* ================================================================== */}
+        <StickySection
+          id="market-data"
+          title="Real-Time Market Intelligence"
+          subtitle="Live quotes, OHLCV charts, and technical indicators powered by Alpaca Markets. Watch your portfolio in real-time."
+          badge="Live Data"
+          badgeIcon={<TrendingUp className="w-4 h-4" />}
+          badgeColor="bg-green-500/10 text-green-400 border-green-500/20"
+          titleAccent="text-green-400"
+          scrollHeight="min-h-[90vh]"
+          align="right"
+        >
+          <div className="space-y-6">
+            {/* Live ticker mockup */}
+            <ScaleOnScroll>
+              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl">
+                {/* Ticker header */}
+                <div className="px-4 py-3 border-b border-border/30 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    <span className="font-medium">Market Watch</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Live</span>
+                </div>
+
+                {/* Stock ticker rows */}
+                <div className="divide-y divide-border/20">
+                  {[
+                    { symbol: 'NVDA', name: 'NVIDIA Corp', price: 142.50, change: 3.24, changePercent: 2.33, volume: '45.2M' },
+                    { symbol: 'AAPL', name: 'Apple Inc', price: 238.12, change: -1.85, changePercent: -0.77, volume: '32.1M' },
+                    { symbol: 'TSLA', name: 'Tesla Inc', price: 408.75, change: 12.45, changePercent: 3.14, volume: '28.5M' },
+                    { symbol: 'MSFT', name: 'Microsoft', price: 445.20, change: 2.10, changePercent: 0.47, volume: '18.9M' },
+                  ].map((stock, i) => (
+                    <motion.div
+                      key={stock.symbol}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: i * 0.1 }}
+                      className="px-4 py-3 flex items-center justify-between hover:bg-muted/20 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="font-semibold">{stock.symbol}</p>
+                          <p className="text-xs text-muted-foreground">{stock.name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono font-medium">${stock.price.toFixed(2)}</p>
+                        <p className={`text-xs font-mono ${stock.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)} ({stock.change >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%)
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Mini chart visualization */}
+                <div className="p-4 border-t border-border/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium">NVDA Intraday</span>
+                    <span className="text-xs text-green-400">+2.33%</span>
+                  </div>
+                  <div className="h-16 flex items-end gap-1">
+                    {[35, 42, 38, 55, 48, 62, 58, 70, 65, 72, 68, 75, 78, 72, 80, 85, 82, 88, 92, 85].map((height, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ height: 0 }}
+                        whileInView={{ height: `${height}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: i * 0.03 }}
+                        className={`flex-1 rounded-t ${height > 70 ? 'bg-green-500/60' : 'bg-green-500/30'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </ScaleOnScroll>
+          </div>
+        </StickySection>
+
+        {/* ================================================================== */}
         {/* EMOTIONAL FIREWALL - Hero Feature with Sticky Header */}
         {/* ================================================================== */}
         <StickySection
@@ -478,9 +561,9 @@ export default function LandingPage() {
           badgeIcon={<Shield className="w-4 h-4" />}
           badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
           titleAccent="text-orange-400"
-          scrollHeight="min-h-[180vh]"
+          scrollHeight="min-h-[100vh]"
           className="bg-gradient-to-b from-orange-950/10 via-transparent to-transparent"
-          align="right"
+          align="left"
         >
           {/* Content stacks vertically - scrolls alongside sticky header */}
           <div className="space-y-6">
@@ -608,7 +691,7 @@ export default function LandingPage() {
           badgeIcon={<Brain className="w-4 h-4" />}
           badgeColor="bg-primary/10 text-primary border-primary/20"
           titleAccent="text-primary"
-          scrollHeight="min-h-[200vh]"
+          scrollHeight="min-h-[100vh]"
           align="left"
         >
           {/* Content stacks vertically - scrolls alongside sticky header */}
@@ -716,7 +799,7 @@ export default function LandingPage() {
           badge="Thesis Framework"
           badgeIcon={<Lightbulb className="w-4 h-4" />}
           badgeColor="bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-          scrollHeight="min-h-[140vh]"
+          scrollHeight="min-h-[90vh]"
           className="bg-card/20"
           align="right"
         >
@@ -795,6 +878,103 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
+        {/* TRADE JOURNAL - New Animated Section */}
+        {/* ================================================================== */}
+        <StickySection
+          id="journal"
+          title="Learn From Every Trade"
+          subtitle="Rich journaling with emotion tracking helps you understand your psychological patterns and improve over time."
+          badge="Trade Journal"
+          badgeIcon={<BookOpen className="w-4 h-4" />}
+          badgeColor="bg-purple-500/10 text-purple-400 border-purple-500/20"
+          titleAccent="text-purple-400"
+          scrollHeight="min-h-[90vh]"
+          align="left"
+        >
+          <div className="space-y-6">
+            {/* Journal mockup */}
+            <ScaleOnScroll>
+              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold">Trade Journal</h3>
+                  <span className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-400">Today</span>
+                </div>
+
+                {/* Journal entries */}
+                <div className="space-y-4 mb-6">
+                  {[
+                    { time: '9:32 AM', symbol: 'NVDA', action: 'BUY', emotion: 'Confident', emotionColor: 'text-green-400', note: 'Thesis validated by strong earnings guidance' },
+                    { time: '11:15 AM', symbol: 'TSLA', action: 'SELL', emotion: 'Anxious', emotionColor: 'text-orange-400', note: 'Cut losses early - thesis invalidated by delivery numbers' },
+                    { time: '2:45 PM', symbol: 'AAPL', action: 'HOLD', emotion: 'Calm', emotionColor: 'text-blue-400', note: 'Waiting for earnings report next week' },
+                  ].map((entry, i) => (
+                    <motion.div
+                      key={entry.time}
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: i * 0.15 }}
+                      className="p-4 rounded-xl bg-muted/30 border border-border/30"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground">{entry.time}</span>
+                          <span className="font-semibold">{entry.symbol}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${entry.action === 'BUY' ? 'bg-green-500/10 text-green-400' : entry.action === 'SELL' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                            {entry.action}
+                          </span>
+                        </div>
+                        <span className={`text-sm ${entry.emotionColor}`}>{entry.emotion}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{entry.note}</p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Emotion tracking stats */}
+                <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
+                  <div className="text-center">
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                      className="text-2xl font-bold text-purple-400"
+                    >
+                      72%
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">Calm Trades Win</p>
+                  </div>
+                  <div className="text-center">
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.4 }}
+                      className="text-2xl font-bold text-orange-400"
+                    >
+                      34%
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">Anxious Trades Win</p>
+                  </div>
+                  <div className="text-center">
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.5 }}
+                      className="text-2xl font-bold text-foreground"
+                    >
+                      23
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">Entries This Month</p>
+                  </div>
+                </div>
+              </div>
+            </ScaleOnScroll>
+          </div>
+        </StickySection>
+
+        {/* ================================================================== */}
         {/* PREDICTION MARKETS - Sticky Section */}
         {/* ================================================================== */}
         <StickySection
@@ -805,8 +985,8 @@ export default function LandingPage() {
           badgeIcon={<BarChart3 className="w-4 h-4" />}
           badgeColor="bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
           titleAccent="text-cyan-400"
-          scrollHeight="min-h-[180vh]"
-          align="left"
+          scrollHeight="min-h-[100vh]"
+          align="right"
         >
           {/* Content stacks vertically - scrolls alongside sticky header */}
           <div className="space-y-6">
@@ -884,6 +1064,131 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
+        {/* OPTIONS BUILDER - P&L Visualization Section */}
+        {/* ================================================================== */}
+        <StickySection
+          id="options"
+          title="Visualize Before You Trade"
+          subtitle="Multi-leg options strategies with interactive P&L diagrams. See your max profit, max loss, and breakeven points before placing a single order."
+          badge="Options Builder"
+          badgeIcon={<Calculator className="w-4 h-4" />}
+          badgeColor="bg-pink-500/10 text-pink-400 border-pink-500/20"
+          titleAccent="text-pink-400"
+          scrollHeight="min-h-[90vh]"
+          align="right"
+        >
+          <div className="space-y-6">
+            {/* Options P&L mockup */}
+            <ScaleOnScroll>
+              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-semibold">Bull Call Spread</h3>
+                    <p className="text-xs text-muted-foreground">NVDA Jan 2025</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-pink-400">Net Debit: $4.50</p>
+                    <p className="text-xs text-muted-foreground">per contract</p>
+                  </div>
+                </div>
+
+                {/* Strategy legs */}
+                <div className="space-y-2 mb-6">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">BUY</span>
+                      <span className="font-mono text-sm">$140 Call</span>
+                    </div>
+                    <span className="font-mono text-sm">-$8.50</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">SELL</span>
+                      <span className="font-mono text-sm">$150 Call</span>
+                    </div>
+                    <span className="font-mono text-sm">+$4.00</span>
+                  </div>
+                </div>
+
+                {/* P&L visualization */}
+                <div className="mb-6">
+                  <p className="text-xs text-muted-foreground mb-3">Profit & Loss at Expiration</p>
+                  <div className="h-24 relative bg-muted/20 rounded-lg overflow-hidden">
+                    {/* Zero line */}
+                    <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-muted-foreground/30" />
+                    {/* P&L curve */}
+                    <svg className="w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none">
+                      <motion.path
+                        d="M0,35 L35,35 L40,35 L60,15 L100,15"
+                        fill="none"
+                        stroke="url(#plGradient)"
+                        strokeWidth="2"
+                        initial={{ pathLength: 0 }}
+                        whileInView={{ pathLength: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1.5, delay: 0.3 }}
+                      />
+                      <defs>
+                        <linearGradient id="plGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#ef4444" />
+                          <stop offset="40%" stopColor="#f97316" />
+                          <stop offset="60%" stopColor="#22c55e" />
+                          <stop offset="100%" stopColor="#22c55e" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    {/* Labels */}
+                    <div className="absolute bottom-1 left-2 text-[10px] text-muted-foreground">$130</div>
+                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground">$145 BE</div>
+                    <div className="absolute bottom-1 right-2 text-[10px] text-muted-foreground">$160</div>
+                  </div>
+                </div>
+
+                {/* Key metrics */}
+                <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-pink-500/5 border border-pink-500/20">
+                  <div className="text-center">
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.5 }}
+                      className="text-xl font-bold text-green-400"
+                    >
+                      +$550
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">Max Profit</p>
+                  </div>
+                  <div className="text-center">
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.6 }}
+                      className="text-xl font-bold text-red-400"
+                    >
+                      -$450
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">Max Loss</p>
+                  </div>
+                  <div className="text-center">
+                    <motion.p
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.7 }}
+                      className="text-xl font-bold text-foreground"
+                    >
+                      $144.50
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">Breakeven</p>
+                  </div>
+                </div>
+              </div>
+            </ScaleOnScroll>
+          </div>
+        </StickySection>
+
+        {/* ================================================================== */}
         {/* FEATURES GRID - Parallax Section */}
         {/* ================================================================== */}
         <StickySection
@@ -892,7 +1197,7 @@ export default function LandingPage() {
           subtitle="Eight integrated tools. One workspace. Zero context-switching."
           badge="Full Toolkit"
           badgeIcon={<Sparkles className="w-4 h-4" />}
-          scrollHeight="min-h-[160vh]"
+          scrollHeight="min-h-[80vh]"
           className="bg-card/20"
           align="center"
         >
