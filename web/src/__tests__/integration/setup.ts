@@ -7,18 +7,24 @@
 import { beforeAll, afterEach, afterAll } from 'vitest';
 import { setupServer } from 'msw/node';
 import { handlers } from './mocks/handlers';
+import { extendedHandlers } from '../mocks/handlers-extended';
+import { resetAuthState, clearData } from '../mocks/supabase-client';
+import { resetStreamConfig } from '../mocks/ai-sdk';
 
-// Create MSW server with default handlers
-export const server = setupServer(...handlers);
+// Create MSW server with all handlers (base + extended)
+export const server = setupServer(...handlers, ...extendedHandlers);
 
 // Start server before all tests
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'warn' });
 });
 
-// Reset handlers after each test (removes any runtime handlers)
+// Reset handlers and mock state after each test
 afterEach(() => {
   server.resetHandlers();
+  resetAuthState();
+  clearData();
+  resetStreamConfig();
 });
 
 // Clean up after all tests

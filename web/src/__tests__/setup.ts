@@ -57,3 +57,26 @@ class IntersectionObserverMock {
   takeRecords = vi.fn().mockReturnValue([]);
 }
 Object.defineProperty(window, 'IntersectionObserver', { value: IntersectionObserverMock });
+
+// Mock PointerEvent for Radix UI components
+class PointerEventMock extends Event {
+  button: number;
+  pointerId: number;
+
+  constructor(type: string, params: any = {}) {
+    super(type, params);
+    this.button = params.button || 0;
+    this.pointerId = params.pointerId || 1;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  (window as any).PointerEvent = PointerEventMock;
+}
+
+// Mock hasPointerCapture and pointer capture methods
+if (typeof HTMLElement !== 'undefined') {
+  HTMLElement.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+  HTMLElement.prototype.setPointerCapture = vi.fn();
+  HTMLElement.prototype.releasePointerCapture = vi.fn();
+}
