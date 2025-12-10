@@ -3,8 +3,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { useWatchlistStore } from "@/lib/stores/watchlist-store";
+import { useUIStore } from "@/lib/stores/ui-store";
 import { ConnectionDot } from "@/components/ui/ConnectionStatusIndicator";
 import { cn } from "@/lib/utils";
+
+// Sidebar dimensions (must match DeepStackLayout)
+const LEFT_SIDEBAR_EXPANDED = 256; // ml-64 = 16rem = 256px
+const LEFT_SIDEBAR_COLLAPSED = 56;  // ml-14 = 3.5rem = 56px
+const RIGHT_TOOLBAR_WIDTH = 48;     // w-12 = 3rem = 48px
+const RIGHT_SIDEBAR_EXPANDED = 336; // 21rem = 336px
+const RIGHT_SIDEBAR_COLLAPSED = 0;  // Hidden when collapsed
 
 // Default indices to always show
 const DEFAULT_INDICES = ["SPY", "QQQ", "DIA", "IWM", "VIX"];
@@ -64,8 +72,13 @@ function TickerItem({ symbol, price, changePercent }: TickerItemProps) {
 export function StreamingTicker() {
   const { quotes, wsConnected } = useMarketDataStore();
   const { getActiveWatchlist } = useWatchlistStore();
+  const { leftSidebarOpen, rightSidebarOpen } = useUIStore();
   const [isVisible, setIsVisible] = useState(true);
   const [localQuotes, setLocalQuotes] = useState<Record<string, QuoteData>>({});
+
+  // Calculate margins to stay within center panel
+  const leftMargin = leftSidebarOpen ? LEFT_SIDEBAR_EXPANDED : LEFT_SIDEBAR_COLLAPSED;
+  const rightMargin = RIGHT_TOOLBAR_WIDTH + (rightSidebarOpen ? RIGHT_SIDEBAR_EXPANDED : RIGHT_SIDEBAR_COLLAPSED);
 
   // Get watchlist symbols
   const activeWatchlist = getActiveWatchlist();
@@ -135,7 +148,10 @@ export function StreamingTicker() {
   const duplicatedItems = [...tickerItems, ...tickerItems, ...tickerItems];
 
   return (
-    <div className="led-ticker-container h-9 overflow-hidden relative fixed top-0 left-0 right-0 z-50">
+    <div
+      className="led-ticker-container h-9 overflow-hidden fixed top-0 z-40 transition-all duration-300"
+      style={{ left: leftMargin, right: rightMargin }}
+    >
       {/* Connection status dot */}
       <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20">
         <ConnectionDot />
