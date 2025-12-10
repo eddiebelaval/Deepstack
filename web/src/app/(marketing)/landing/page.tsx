@@ -13,109 +13,136 @@ import {
   Zap,
   BarChart3,
   Brain,
-  Search,
-  Target,
-  LineChart,
   Sparkles,
+  AlertTriangle,
+  Clock,
+  Flame,
+  Ban,
+  TrendingDown,
+  Activity,
+  Calculator,
+  Newspaper,
+  Eye,
+  Lock,
 } from 'lucide-react';
 
 import { IntelligentBackground } from '@/components/landing/IntelligentBackground';
 import { FrostedOverlay } from '@/components/landing/FrostedOverlay';
-import {
-  ScrollProgressBar,
-  FeatureCard,
-  StepCard,
-} from '@/components/landing/StickySection';
+import { ScrollProgressBar } from '@/components/landing/StickySection';
 
+// Feature grid - now with 8 items including Options
 const FEATURES = [
   {
     icon: <MessageSquare className="w-6 h-6" />,
     title: 'AI Research Assistant',
-    description: 'Ask about any stock. Get analysis, news summaries, and thesis validation in seconds.',
+    description: '30+ tools for instant stock analysis, news synthesis, and thesis validation.',
     color: 'text-blue-400',
     bgColor: 'bg-blue-500/10',
   },
   {
     icon: <TrendingUp className="w-6 h-6" />,
     title: 'Live Market Data',
-    description: 'Real-time quotes, interactive charts, and technical indicators for every ticker.',
+    description: 'Real-time quotes, OHLCV charts, and technical indicators via Alpaca.',
     color: 'text-green-400',
     bgColor: 'bg-green-500/10',
   },
   {
     icon: <Shield className="w-6 h-6" />,
     title: 'Emotional Firewall',
-    description: 'Get warned before FOMO, fear, or greed influence your research decisions.',
+    description: 'Detects revenge trading, overtrading, and emotional patterns in real-time.',
     color: 'text-orange-400',
     bgColor: 'bg-orange-500/10',
   },
   {
     icon: <BookOpen className="w-6 h-6" />,
     title: 'Trade Journal',
-    description: 'Log your reasoning with emotional tags. Review patterns in your decision-making.',
+    description: 'Rich text entries with screenshot capture and emotion tagging.',
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/10',
   },
   {
     icon: <Lightbulb className="w-6 h-6" />,
     title: 'Thesis Engine',
-    description: 'Document hypotheses with price targets. Track which ideas played out correctly.',
+    description: 'Structured hypotheses with entry/exit targets and auto-validation scoring.',
     color: 'text-yellow-400',
     bgColor: 'bg-yellow-500/10',
   },
   {
     icon: <BarChart3 className="w-6 h-6" />,
     title: 'Prediction Markets',
-    description: 'See probability-weighted outcomes from Polymarket and Kalshi alongside your research.',
+    description: 'Kalshi + Polymarket integration for thesis validation with real probabilities.',
     color: 'text-cyan-400',
     bgColor: 'bg-cyan-500/10',
   },
-];
-
-const HOW_IT_WORKS = [
   {
-    step: 1,
-    title: 'Ask anything about a stock',
-    description: '"What\'s happening with NVDA?" or "Analyze semiconductor sector risks" — the AI researches in real-time.',
+    icon: <Calculator className="w-6 h-6" />,
+    title: 'Options Builder',
+    description: 'Multi-leg strategy construction with visual P&L and Greeks display.',
+    color: 'text-pink-400',
+    bgColor: 'bg-pink-500/10',
   },
   {
-    step: 2,
-    title: 'Build your investment thesis',
-    description: 'Document your hypothesis with entry/exit targets. The AI remembers and validates against new information.',
-  },
-  {
-    step: 3,
-    title: 'Track your decision patterns',
-    description: 'Journal entries with emotional tags reveal when you\'re thinking clearly vs. reacting emotionally.',
-  },
-  {
-    step: 4,
-    title: 'Get smarter over time',
-    description: 'Review which theses played out. Learn from your hits and misses. Compound your edge.',
+    icon: <Newspaper className="w-6 h-6" />,
+    title: 'News & Screener',
+    description: 'Auto-refreshing news feed and stock screener with deep value filters.',
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
   },
 ];
 
-const AI_CAPABILITIES = [
+// Emotional Firewall patterns
+const FIREWALL_PATTERNS = [
   {
-    icon: <Search className="w-5 h-5" />,
-    title: 'Real-time research',
-    description: 'News, filings, price action — synthesized instantly',
+    icon: <Flame className="w-5 h-5" />,
+    name: 'Revenge Trading',
+    description: 'Blocked when you trade within 30 min of a loss',
+    cooldown: '60 min cooldown',
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/15',
+    borderColor: 'border-red-500/30',
   },
   {
-    icon: <Target className="w-5 h-5" />,
-    title: 'Thesis awareness',
-    description: 'AI knows your active positions and validates new info against them',
+    icon: <Activity className="w-5 h-5" />,
+    name: 'Overtrading',
+    description: 'Triggered at 3+ trades/hour or 10+ trades/day',
+    cooldown: '4 hour cooldown',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/15',
+    borderColor: 'border-orange-500/30',
   },
   {
-    icon: <LineChart className="w-5 h-5" />,
-    title: 'Technical analysis',
-    description: 'Chart patterns, support/resistance, momentum indicators',
+    icon: <TrendingDown className="w-5 h-5" />,
+    name: 'Streak Blindness',
+    description: 'Warns during 5+ consecutive wins or losses',
+    cooldown: '3 hour cooldown',
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-500/15',
+    borderColor: 'border-yellow-500/30',
+  },
+];
+
+// AI context-aware prompts
+const AI_PROMPTS = [
+  {
+    prompt: '"What\'s happening with NVDA today?"',
+    capability: 'Real-time synthesis',
   },
   {
-    icon: <Shield className="w-5 h-5" />,
-    title: 'Emotional context',
-    description: 'Reads your journal — warns when emotions might cloud judgment',
+    prompt: '"Review my journal — am I trading emotionally?"',
+    capability: 'Journal awareness',
   },
+  {
+    prompt: '"Find prediction markets that contradict my AAPL thesis"',
+    capability: 'Thesis + predictions',
+  },
+];
+
+// Data sources for credibility
+const DATA_SOURCES = [
+  { name: 'Alpaca', description: 'Real-time market data' },
+  { name: 'Kalshi', description: 'CFTC-regulated predictions' },
+  { name: 'Polymarket', description: 'Crypto prediction markets' },
+  { name: 'Claude AI', description: 'Advanced reasoning' },
 ];
 
 export default function LandingPage() {
@@ -185,7 +212,7 @@ export default function LandingPage() {
           </div>
         </nav>
 
-        {/* Hero Section - Parallax on scroll */}
+        {/* Hero Section - New headline */}
         <section ref={heroRef} className="min-h-screen flex items-center justify-center pt-16 px-4 relative">
           <motion.div
             style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
@@ -202,16 +229,16 @@ export default function LandingPage() {
               <span>Research Platform — Not a Broker</span>
             </motion.div>
 
-            {/* Headline */}
+            {/* Headline - Conversion focused */}
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
               className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-[1.1]"
             >
-              The Intelligence
+              Stop Trading
               <br />
-              <span className="text-gradient-shimmer">Beneath the Market</span>
+              <span className="text-gradient-shimmer">Against Yourself</span>
             </motion.h1>
 
             {/* Subheadline */}
@@ -235,14 +262,14 @@ export default function LandingPage() {
                 href="/"
                 className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium transition-all text-lg flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:shadow-[0_0_40px_rgba(251,146,60,0.6)]"
               >
-                Start Researching
+                Start Researching Free
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                href="#how-it-works"
+                href="#problem"
                 className="w-full sm:w-auto px-8 py-4 bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 rounded-xl font-medium transition-all text-lg backdrop-blur-sm border border-border/50"
               >
-                See How It Works
+                See Why It Works
               </Link>
             </motion.div>
 
@@ -274,11 +301,670 @@ export default function LandingPage() {
           </motion.div>
         </section>
 
-        {/* How It Works Section */}
-        <section id="how-it-works" className="py-20 px-4">
+        {/* THE PROBLEM - Agitate Section */}
+        <section id="problem" className="py-24 px-4 relative">
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-400 text-sm font-medium mb-6 border border-red-500/20"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              The Hard Truth
+            </motion.div>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-4xl md:text-6xl font-bold mb-8 tracking-tight"
+            >
+              80% of retail traders
+              <br />
+              <span className="text-red-400">lose money.</span>
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-xl md:text-2xl text-muted-foreground mb-12 leading-relaxed"
+            >
+              Not because they&apos;re stupid.
+              <br />
+              <span className="text-foreground font-medium">Because they&apos;re human.</span>
+            </motion.p>
+
+            {/* Pain points */}
+            <div className="grid md:grid-cols-3 gap-6 text-left">
+              {[
+                {
+                  icon: <Flame className="w-6 h-6" />,
+                  title: 'Revenge Trading',
+                  stat: '62%',
+                  description: 'of traders chase losses immediately after a bad trade',
+                },
+                {
+                  icon: <Clock className="w-6 h-6" />,
+                  title: 'Overtrading',
+                  stat: '3.5x',
+                  description: 'more trades than necessary due to FOMO and boredom',
+                },
+                {
+                  icon: <Eye className="w-6 h-6" />,
+                  title: 'Confirmation Bias',
+                  stat: '78%',
+                  description: 'ignore information that contradicts their thesis',
+                },
+              ].map((pain, i) => (
+                <motion.div
+                  key={pain.title}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
+                  className="p-6 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 mb-4">
+                    {pain.icon}
+                  </div>
+                  <p className="text-3xl font-bold text-red-400 mb-1">{pain.stat}</p>
+                  <h3 className="font-semibold text-lg mb-2">{pain.title}</h3>
+                  <p className="text-sm text-muted-foreground">{pain.description}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mt-12 text-lg text-muted-foreground"
+            >
+              The tools you use don&apos;t help. They give you more data, more charts, more noise.
+              <br />
+              <span className="text-foreground font-medium">What you need is discipline.</span>
+            </motion.p>
+          </div>
+        </section>
+
+        {/* EMOTIONAL FIREWALL - Hero Feature Section */}
+        <section id="firewall" className="py-24 px-4 bg-gradient-to-b from-orange-950/10 to-transparent relative overflow-hidden">
+          {/* Subtle glow effect */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+          <div className="max-w-6xl mx-auto relative">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left - Content */}
+              <div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/15 text-orange-400 text-sm font-medium mb-4 border border-orange-500/30"
+                >
+                  <Shield className="w-4 h-4" />
+                  Only in DeepStack
+                </motion.div>
+
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="text-3xl md:text-5xl font-bold tracking-tight mb-6"
+                >
+                  Your Psychological
+                  <br />
+                  <span className="text-orange-400">Guardrails</span>
+                </motion.h2>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="text-lg text-muted-foreground mb-8 leading-relaxed"
+                >
+                  The Emotional Firewall detects destructive trading patterns before they cost you money.
+                  It&apos;s like having a mentor who stops you from yourself.
+                </motion.p>
+
+                {/* Pattern cards */}
+                <div className="space-y-4">
+                  {FIREWALL_PATTERNS.map((pattern, i) => (
+                    <motion.div
+                      key={pattern.name}
+                      initial={{ opacity: 0, x: -30 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
+                      className={`p-4 rounded-xl ${pattern.bgColor} border ${pattern.borderColor} backdrop-blur-sm flex items-start gap-4`}
+                    >
+                      <div className={`w-10 h-10 rounded-lg bg-background/50 flex items-center justify-center ${pattern.color} shrink-0`}>
+                        {pattern.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-semibold">{pattern.name}</h4>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground shrink-0">
+                            {pattern.cooldown}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{pattern.description}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right - Visual */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="relative"
+              >
+                {/* Firewall status mockup */}
+                <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-2xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-semibold">Emotional Firewall</h3>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                      <span className="text-sm text-orange-400 font-medium">Warning</span>
+                    </div>
+                  </div>
+
+                  {/* Status bars */}
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Revenge Trading Risk</span>
+                        <span className="text-orange-400">High</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '75%' }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                          className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Trade Frequency</span>
+                        <span className="text-yellow-400">Elevated</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '55%' }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1, delay: 0.6 }}
+                          className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Win Streak</span>
+                        <span className="text-green-400">Normal</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '25%' }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 1, delay: 0.7 }}
+                          className="h-full bg-green-500 rounded-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Alert */}
+                  <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
+                    <div className="flex items-start gap-3">
+                      <Ban className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-orange-400">Trading Restricted</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          You lost $450 on TSLA 12 minutes ago. Cooldown: 48 min remaining.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border/30">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-foreground">3</p>
+                      <p className="text-xs text-muted-foreground">Trades Today</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-red-400">-$450</p>
+                      <p className="text-xs text-muted-foreground">Last Trade</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-foreground">2</p>
+                      <p className="text-xs text-muted-foreground">Blocks Today</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decorative elements */}
+                <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-r from-orange-500/5 via-transparent to-red-500/5 rounded-full blur-3xl" />
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* AI SECTION - Context Aware */}
+        <section id="ai-assistant" className="py-24 px-4">
           <div className="max-w-6xl mx-auto">
-            {/* Section header */}
-            <div className="mb-10">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left - Chat mockup */}
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="order-2 lg:order-1"
+              >
+                <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl">
+                  {/* Chat header */}
+                  <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Brain className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">DeepStack AI</p>
+                      <p className="text-xs text-muted-foreground">Knows your portfolio context</p>
+                    </div>
+                  </div>
+
+                  {/* Chat messages */}
+                  <div className="p-4 space-y-4 max-h-[400px]">
+                    {/* User message */}
+                    <div className="flex justify-end">
+                      <div className="px-4 py-2 rounded-2xl bg-primary/15 border border-primary/20 max-w-[80%]">
+                        <p className="text-sm">Should I add to my NVDA position given my current emotional state?</p>
+                      </div>
+                    </div>
+
+                    {/* AI response */}
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Brain className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="space-y-3 flex-1">
+                        <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
+                          <p className="text-sm leading-relaxed">
+                            <span className="text-orange-400 font-medium">⚠️ Caution recommended.</span> Based on your journal entries, I&apos;m seeing elevated emotional signals:
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                            <p className="text-xs text-red-400">Last Trade: Loss</p>
+                            <p className="text-xs text-muted-foreground">-$450 TSLA (12 min ago)</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                            <p className="text-xs text-orange-400">Firewall Status</p>
+                            <p className="text-xs text-muted-foreground">Warning active</p>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
+                          <p className="text-sm leading-relaxed">
+                            Your NVDA thesis has a <span className="text-green-400 font-medium">72% confidence score</span> and the position is +14% from entry. Consider waiting for the cooldown to clear before adding.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Right - Content */}
+              <div className="order-1 lg:order-2">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
+                >
+                  <Brain className="w-4 h-4" />
+                  Context-Aware AI
+                </motion.div>
+
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="text-3xl md:text-5xl font-bold tracking-tight mb-6"
+                >
+                  Not a chatbot.
+                  <br />
+                  A <span className="text-primary">research partner.</span>
+                </motion.h2>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="text-lg text-muted-foreground mb-6 leading-relaxed"
+                >
+                  Most AI tools are generic chatbots with stock data bolted on. DeepStack&apos;s AI knows your complete context:
+                </motion.p>
+
+                {/* Context list */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="space-y-3 mb-8"
+                >
+                  {[
+                    { icon: <Lightbulb className="w-4 h-4" />, text: 'Your active theses and price targets' },
+                    { icon: <BookOpen className="w-4 h-4" />, text: 'Your recent journal entries and emotions' },
+                    { icon: <Shield className="w-4 h-4" />, text: 'Your trading patterns and blind spots' },
+                    { icon: <BarChart3 className="w-4 h-4" />, text: 'Prediction markets that validate/contradict your thesis' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        {item.icon}
+                      </div>
+                      <span className="text-muted-foreground">{item.text}</span>
+                    </div>
+                  ))}
+                </motion.div>
+
+                {/* Example prompts */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="p-4 rounded-xl bg-card/40 border border-border/50 backdrop-blur-sm"
+                >
+                  <p className="text-sm text-muted-foreground mb-3 font-medium">Try asking:</p>
+                  <div className="space-y-2">
+                    {AI_PROMPTS.map((item) => (
+                      <div key={item.prompt} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-foreground">{item.prompt}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                          {item.capability}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* THESIS BUILDER Section */}
+        <section id="thesis" className="py-24 px-4 bg-card/20">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-500/10 text-yellow-400 text-sm font-medium mb-4 border border-yellow-500/20"
+              >
+                <Lightbulb className="w-4 h-4" />
+                Thesis Framework
+              </motion.div>
+
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl md:text-5xl font-bold tracking-tight mb-4"
+              >
+                Structure Your Thinking
+              </motion.h2>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-lg text-muted-foreground max-w-2xl mx-auto"
+              >
+                Document hypotheses with entry/exit targets. Auto-calculated validation scoring shows when you&apos;re right—and when you should cut.
+              </motion.p>
+            </div>
+
+            {/* Thesis card mockup */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="max-w-2xl mx-auto"
+            >
+              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-xl">
+                {/* Thesis header */}
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl font-bold">NVDA</span>
+                      <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs font-medium">Active</span>
+                    </div>
+                    <p className="text-muted-foreground">AI semiconductor dominance through 2025</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-green-400">72%</div>
+                    <p className="text-xs text-muted-foreground">Confidence Score</p>
+                  </div>
+                </div>
+
+                {/* Thesis details */}
+                <div className="grid grid-cols-3 gap-4 mb-6 p-4 rounded-xl bg-muted/20">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Entry</p>
+                    <p className="font-semibold">$118.50</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Target</p>
+                    <p className="font-semibold text-green-400">$150.00</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Stop Loss</p>
+                    <p className="font-semibold text-red-400">$105.00</p>
+                  </div>
+                </div>
+
+                {/* Validation factors */}
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Validation Factors:</p>
+                  {[
+                    { label: 'Key conditions met', value: 3, max: 4, percent: 75 },
+                    { label: 'Price progress', value: 14, max: 27, percent: 52 },
+                    { label: 'Timeframe', value: 45, max: 90, percent: 50 },
+                  ].map((factor) => (
+                    <div key={factor.label}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">{factor.label}</span>
+                        <span>{factor.value}/{factor.max}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${factor.percent}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.8, delay: 0.5 }}
+                          className="h-full bg-primary rounded-full"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Linked prediction market */}
+                <div className="mt-6 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BarChart3 className="w-4 h-4 text-cyan-400" />
+                    <span className="text-sm font-medium text-cyan-400">Linked Prediction Market</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    &quot;Will NVDA hit $150 by March 2025?&quot; — <span className="text-foreground font-medium">68% Yes</span> on Kalshi
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* PREDICTION MARKETS Section */}
+        <section id="predictions" className="py-24 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left - Content */}
+              <div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-sm font-medium mb-4 border border-cyan-500/20"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Prediction Markets
+                </motion.div>
+
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="text-3xl md:text-5xl font-bold tracking-tight mb-6"
+                >
+                  Validate Before
+                  <br />
+                  You <span className="text-cyan-400">Commit Capital</span>
+                </motion.h2>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="text-lg text-muted-foreground mb-8 leading-relaxed"
+                >
+                  What if you could see how thousands of traders are betting on your thesis? DeepStack links prediction markets directly to your investment ideas.
+                </motion.p>
+
+                {/* Use cases */}
+                <div className="space-y-4">
+                  {[
+                    { market: 'Fed rate decisions', thesis: 'Your rate-sensitive plays' },
+                    { market: 'Election outcomes', thesis: 'Your policy-exposed stocks' },
+                    { market: 'Earnings surprises', thesis: 'Your earnings trades' },
+                    { market: 'Crypto predictions', thesis: 'Your digital asset thesis' },
+                  ].map((item, i) => (
+                    <motion.div
+                      key={item.market}
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: 0.3 + i * 0.1 }}
+                      className="flex items-center gap-3"
+                    >
+                      <ChevronRight className="w-4 h-4 text-cyan-400" />
+                      <span className="text-muted-foreground">
+                        <span className="text-foreground">{item.market}</span> → {item.thesis}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Platform logos */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                  className="mt-8 flex items-center gap-6"
+                >
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
+                    <div className="w-6 h-6 rounded bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">K</div>
+                    <span className="text-sm font-medium">Kalshi</span>
+                    <span className="text-xs text-muted-foreground">CFTC-regulated</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
+                    <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center text-xs font-bold text-purple-400">P</div>
+                    <span className="text-sm font-medium">Polymarket</span>
+                    <span className="text-xs text-muted-foreground">Crypto markets</span>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Right - Markets mockup */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl">
+                  <div className="px-4 py-3 border-b border-border/30">
+                    <p className="font-medium">Trending Markets</p>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {[
+                      { question: 'Fed cuts rates in January?', yes: 24, volume: '1.2M', platform: 'Kalshi' },
+                      { question: 'BTC above $100k by EOY?', yes: 45, volume: '8.5M', platform: 'Polymarket' },
+                      { question: 'NVDA earnings beat?', yes: 72, volume: '450K', platform: 'Kalshi' },
+                      { question: 'Recession in 2025?', yes: 18, volume: '2.1M', platform: 'Polymarket' },
+                    ].map((market) => (
+                      <div key={market.question} className="p-3 rounded-xl bg-muted/20 border border-border/20 hover:border-cyan-500/30 transition-colors cursor-pointer">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium mb-1">{market.question}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>${market.volume} vol</span>
+                              <span>•</span>
+                              <span>{market.platform}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-lg font-bold ${market.yes > 50 ? 'text-green-400' : 'text-muted-foreground'}`}>
+                              {market.yes}%
+                            </p>
+                            <p className="text-xs text-muted-foreground">Yes</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES GRID Section */}
+        <section id="features" className="py-24 px-4 bg-card/20">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -287,172 +973,107 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
               >
                 <Sparkles className="w-4 h-4" />
-                How It Works
+                Full Toolkit
               </motion.div>
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-3xl md:text-5xl font-bold tracking-tight"
-              >
-                Research that compounds
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl"
-              >
-                Most tools give you data. DeepStack gives you an edge that grows with every decision you make.
-              </motion.p>
-            </div>
-            {/* Content */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {HOW_IT_WORKS.map((item, i) => (
-                <StepCard
-                  key={item.step}
-                  step={item.step}
-                  title={item.title}
-                  description={item.description}
-                  delay={i * 0.1}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-20 px-4 bg-card/20">
-          <div className="max-w-6xl mx-auto">
-            {/* Section header */}
-            <div className="mb-10">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
-              >
-                <Zap className="w-4 h-4" />
-                Features
-              </motion.div>
               <motion.h2
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-3xl md:text-5xl font-bold tracking-tight"
+                className="text-3xl md:text-5xl font-bold tracking-tight mb-4"
               >
-                Everything you need to research smarter
+                Everything You Need
               </motion.h2>
+
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl"
+                className="text-lg text-muted-foreground max-w-2xl mx-auto"
               >
-                Six tools. One integrated workspace. Zero context-switching.
+                Eight integrated tools. One workspace. Zero context-switching.
               </motion.p>
             </div>
+
             {/* Feature cards */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {FEATURES.map((feature, i) => (
-                <FeatureCard
+                <motion.div
                   key={feature.title}
-                  icon={feature.icon}
-                  title={feature.title}
-                  description={feature.description}
-                  color={feature.color}
-                  bgColor={feature.bgColor}
-                  delay={i * 0.08}
-                />
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-50px' }}
+                  transition={{ duration: 0.5, delay: i * 0.05 }}
+                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                  className="bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl p-5 hover:border-primary/50 hover:bg-card/60 transition-colors duration-300 group"
+                >
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 ${feature.bgColor}`}>
+                    <div className={feature.color}>{feature.icon}</div>
+                  </div>
+                  <h3 className="text-base font-bold mb-2 group-hover:text-primary transition-colors">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
+                </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* AI Assistant Section */}
-        <section id="ai-assistant" className="py-20 px-4">
-          <div className="max-w-6xl mx-auto">
-            {/* Section header */}
-            <div className="mb-10">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
-              >
-                <Brain className="w-4 h-4" />
-                AI Assistant
-              </motion.div>
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-3xl md:text-5xl font-bold tracking-tight"
-              >
-                An AI that actually knows your portfolio
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl"
-              >
-                Not a generic chatbot. A research partner that remembers your thesis, reads your journal, and warns you before emotions take over.
-              </motion.p>
-            </div>
-            {/* AI capabilities */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {AI_CAPABILITIES.map((cap, i) => (
+        {/* CREDIBILITY Section */}
+        <section id="credibility" className="py-16 px-4">
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-8"
+            >
+              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-6">
+                Powered by industry-leading data sources
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {DATA_SOURCES.map((source, i) => (
                 <motion.div
-                  key={cap.title}
+                  key={source.name}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: i * 0.1 }}
-                  className="flex gap-4 p-4 rounded-xl bg-card/30 border border-border/30 backdrop-blur-sm"
+                  className="p-4 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    {cap.icon}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">{cap.title}</h4>
-                    <p className="text-sm text-muted-foreground mt-1">{cap.description}</p>
-                  </div>
+                  <p className="font-semibold mb-1">{source.name}</p>
+                  <p className="text-xs text-muted-foreground">{source.description}</p>
                 </motion.div>
               ))}
             </div>
 
-            {/* Example prompts */}
+            {/* Trust badges */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-8 p-6 rounded-2xl bg-card/40 border border-border/50 backdrop-blur-md"
+              className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground"
             >
-              <p className="text-sm text-muted-foreground mb-4">Try asking:</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  '"What\'s happening with NVDA today?"',
-                  '"Review my recent journal — am I trading emotionally?"',
-                  '"What are my active theses?"',
-                  '"Analyze AAPL\'s risk/reward at current levels"',
-                ].map((prompt) => (
-                  <span
-                    key={prompt}
-                    className="px-3 py-1.5 text-sm bg-muted/50 rounded-full border border-border/50"
-                  >
-                    {prompt}
-                  </span>
-                ))}
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                <span>Enterprise-grade security</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                <span>SOC 2 compliant data handling</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                <span>Sub-100ms API latency</span>
               </div>
             </motion.div>
           </div>
@@ -460,16 +1081,22 @@ export default function LandingPage() {
 
         {/* Final CTA Section */}
         <section className="py-32 px-4 relative">
-          <div className="max-w-3xl mx-auto text-center">
+          {/* Glow effect */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+
+          <div className="max-w-3xl mx-auto text-center relative">
             <motion.h2
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="text-4xl md:text-5xl font-bold mb-6"
+              className="text-4xl md:text-6xl font-bold mb-6"
             >
-              Ready to research differently?
+              Ready to trade
+              <br />
+              <span className="text-gradient-shimmer">with discipline?</span>
             </motion.h2>
+
             <motion.p
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -477,22 +1104,34 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-muted-foreground text-xl mb-10"
             >
-              Join thousands of investors using DeepStack to build conviction and track their edge.
+              The only platform that protects you from yourself while making you smarter with every trade.
             </motion.p>
+
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
               <Link
                 href="/"
-                className="inline-flex items-center gap-3 px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_50px_rgba(251,146,60,0.6)] hover:scale-105"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_50px_rgba(251,146,60,0.6)] hover:scale-105"
               >
                 Launch DeepStack
                 <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </Link>
             </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="mt-6 text-sm text-muted-foreground"
+            >
+              Free forever · Upgrade when you&apos;re ready
+            </motion.p>
           </div>
         </section>
 
