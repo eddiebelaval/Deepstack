@@ -41,7 +41,7 @@ export function StickySection({
   className,
   headerClassName,
   contentClassName,
-  scrollHeight = 'min-h-[100vh]',
+  scrollHeight = 'min-h-fit', // Let content determine height, not viewport
   showGradient = true,
   badge,
   badgeIcon,
@@ -74,26 +74,24 @@ export function StickySection({
       ref={sectionRef}
       className={cn('relative', scrollHeight, className)}
     >
-      {/* Two-column layout with stagger: Header appears FIRST, content BELOW */}
+      {/* Linear.app style: Sticky header on one side, content scrolls on the other */}
       {!isCenter && (
-        <div className="max-w-7xl mx-auto px-4 pt-16 lg:pt-24">
-          {/* Header Row - shows FIRST at top of section */}
-          <motion.header
-            style={{
-              scale: headerScale,
-              y: headerY,
-            }}
-            className={cn(
-              'lg:sticky lg:top-[20vh] lg:z-10',
-              'lg:grid lg:grid-cols-2 lg:gap-16',
-              headerClassName
-            )}
-          >
-            <div className={cn(
-              'max-w-lg',
-              isRight && 'lg:col-start-2 lg:ml-auto lg:text-right',
-              !isRight && 'lg:col-start-1'
-            )}>
+        <div className="max-w-7xl mx-auto px-4 py-16 lg:py-24">
+          <div className="lg:grid lg:grid-cols-2 lg:gap-12">
+            {/* Sticky Header Column */}
+            <motion.header
+              style={{
+                scale: headerScale,
+                y: headerY,
+              }}
+              className={cn(
+                'lg:sticky lg:top-24 lg:self-start',
+                isRight && 'lg:order-2 lg:text-right',
+                !isRight && 'lg:order-1',
+                'mb-8 lg:mb-0',
+                headerClassName
+              )}
+            >
               {/* Optional badge */}
               {badge && (
                 <motion.div
@@ -142,19 +140,13 @@ export function StickySection({
                   {subtitle}
                 </motion.p>
               )}
-            </div>
-          </motion.header>
+            </motion.header>
 
-          {/* Content - positioned BELOW header with significant offset */}
-          <div className={cn(
-            'lg:grid lg:grid-cols-2 lg:gap-16',
-            'mt-16 lg:mt-[35vh]', // Push content down significantly on desktop
-            'pb-16'
-          )}>
+            {/* Scrolling Content Column */}
             <div className={cn(
               'relative',
-              isRight && 'lg:col-start-1',
-              !isRight && 'lg:col-start-2',
+              isRight && 'lg:order-1',
+              !isRight && 'lg:order-2',
               contentClassName
             )}>
               {children}
