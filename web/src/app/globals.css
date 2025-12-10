@@ -137,6 +137,35 @@
   height: 100dvh;
 }
 
+/* Marketing/Landing pages need scrollable body */
+.landing-page {
+  overflow: visible !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100vh;
+  position: static !important;
+}
+
+html:has(.landing-page),
+body:has(.landing-page) {
+  overflow: visible !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  position: static !important;
+}
+
+/* Override the fixed positioning from root layout for marketing pages */
+body:has(.landing-page) {
+  position: relative !important;
+  inset: unset !important;
+}
+
+/* Allow the wrapper div to expand for landing pages */
+body:has(.landing-page) > div > div > div {
+  overflow: visible !important;
+  height: auto !important;
+}
+
 /* Frosted Glass System */
 .glass-surface {
   background: oklch(0.15 0.01 55 / 70%);

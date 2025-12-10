@@ -460,6 +460,126 @@ export const tradingTools = {
     },
   }),
 
+  // =====================================================
+  // THESIS & JOURNAL TOOLS - AI Semantic Awareness
+  // These tools let the AI understand the user's research context
+  // =====================================================
+
+  get_active_theses: tool({
+    description: 'Get all active investment theses the user is working on. Use this to understand their current research focus, targets, and key conditions.',
+    inputSchema: z.object({
+      symbol: z.string().optional().describe('Optional: Filter by specific symbol'),
+    }),
+    execute: async ({ symbol }) => {
+      const baseUrl = getBaseUrl();
+      try {
+        const url = symbol
+          ? `${baseUrl}/api/thesis?status=active&symbol=${symbol.toUpperCase()}`
+          : `${baseUrl}/api/thesis?status=active`;
+        const response = await fetch(url, { cache: 'no-store' });
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            success: true,
+            data: data.theses || [],
+            count: data.theses?.length || 0,
+            message: data.theses?.length > 0
+              ? `Found ${data.theses.length} active thesis(es)`
+              : 'No active theses found',
+          };
+        }
+        return { success: true, data: [], count: 0, message: 'No theses found' };
+      } catch {
+        return { success: true, data: [], count: 0, message: 'Thesis data not available' };
+      }
+    },
+  }),
+
+  get_journal_entries: tool({
+    description: 'Get recent journal entries with emotional tracking. Use this to understand the user trading history, emotions, and lessons learned.',
+    inputSchema: z.object({
+      symbol: z.string().optional().describe('Optional: Filter by specific symbol'),
+      limit: z.number().default(10).describe('Number of recent entries to fetch'),
+    }),
+    execute: async ({ symbol, limit }) => {
+      const baseUrl = getBaseUrl();
+      try {
+        const params = new URLSearchParams({ limit: limit.toString() });
+        if (symbol) params.set('symbol', symbol.toUpperCase());
+
+        const response = await fetch(`${baseUrl}/api/journal?${params}`, { cache: 'no-store' });
+
+        if (response.ok) {
+          const data = await response.json();
+          const entries = data.entries || [];
+
+          // Calculate emotion summary
+          const emotionCounts: Record<string, number> = {};
+          entries.forEach((e: any) => {
+            if (e.emotionAtEntry) {
+              emotionCounts[e.emotionAtEntry] = (emotionCounts[e.emotionAtEntry] || 0) + 1;
+            }
+          });
+
+          return {
+            success: true,
+            data: entries,
+            count: entries.length,
+            emotionSummary: emotionCounts,
+            message: entries.length > 0
+              ? `Found ${entries.length} journal entries`
+              : 'No journal entries found',
+          };
+        }
+        return { success: true, data: [], count: 0, message: 'No journal entries found' };
+      } catch {
+        return { success: true, data: [], count: 0, message: 'Journal data not available' };
+      }
+    },
+  }),
+
+  get_emotional_state: tool({
+    description: 'Check the user emotional firewall status and any recent trading discipline alerts. Use this before suggesting trades to ensure the user is in a good mental state.',
+    inputSchema: z.object({}),
+    execute: async () => {
+      const baseUrl = getBaseUrl();
+      try {
+        const response = await fetch(`${baseUrl}/api/emotional-firewall/status`, { cache: 'no-store' });
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            success: true,
+            data: {
+              status: data.status || 'clear',
+              activeAlerts: data.alerts || [],
+              cooldownExpires: data.cooldownExpires,
+              recentPatterns: data.patterns || [],
+              tradingAllowed: data.status !== 'blocked',
+            },
+            message: data.status === 'blocked'
+              ? 'Emotional firewall is active - trading is temporarily blocked'
+              : data.status === 'warning'
+              ? 'Caution: Emotional patterns detected'
+              : 'Emotional state is clear for trading',
+          };
+        }
+        return {
+          success: true,
+          data: { status: 'clear', activeAlerts: [], tradingAllowed: true },
+          message: 'Emotional firewall not configured',
+        };
+      } catch {
+        return {
+          success: true,
+          data: { status: 'unknown', activeAlerts: [], tradingAllowed: true },
+          message: 'Emotional firewall status unavailable',
+        };
+      }
+    },
+  }),
+
   // UI Panel Control Tools
   show_chart: tool({
     description: 'Display the chart panel for a specific stock symbol. Use when user wants to see a chart or you want to show them price action.',

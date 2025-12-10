@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,11 +15,14 @@ import {
   TrendingDown,
   Minus,
   Search,
+  Bell,
+  ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useNewsStore, NewsArticle } from '@/lib/stores/news-store';
+import { useNewsStore, NewsArticle, useNewsAutoRefresh } from '@/lib/stores/news-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { RelatedPredictionMarkets } from '@/components/news/RelatedPredictionMarkets';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SENTIMENT_CONFIG = {
   positive: {
@@ -42,23 +45,72 @@ const SENTIMENT_CONFIG = {
   },
 };
 
+// Auto-refresh interval: 5 minutes
+const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
+
 export function NewsPanel() {
   const {
     articles,
     isLoading,
+    isLoadingMore,
     error,
     filterSymbol,
+    hasMore,
+    newArticleCount,
+    autoRefreshEnabled,
     fetchNews,
+    loadMore,
     setFilterSymbol,
     clearFilter,
+    markAsViewed,
+    setAutoRefresh,
+    checkForNewArticles,
   } = useNewsStore();
   const { activeSymbol, setActiveSymbol } = useTradingStore();
+  const { interval } = useNewsAutoRefresh();
 
   const [searchSymbol, setSearchSymbol] = React.useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
 
+  // Initial fetch
   useEffect(() => {
-    fetchNews(filterSymbol || undefined);
-  }, [filterSymbol]);
+    fetchNews(filterSymbol || undefined, true);
+  }, [filterSymbol, fetchNews]);
+
+  // Auto-refresh: check for new articles every interval
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
+
+    const checkInterval = setInterval(() => {
+      checkForNewArticles();
+    }, interval);
+
+    return () => clearInterval(checkInterval);
+  }, [autoRefreshEnabled, checkForNewArticles, interval]);
+
+  // Infinite scroll: observe the load more trigger
+  useEffect(() => {
+    if (!loadMoreTriggerRef.current) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observerRef.current.observe(loadMoreTriggerRef.current);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [hasMore, isLoadingMore, isLoading, loadMore]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +129,20 @@ export function NewsPanel() {
       setFilterSymbol(activeSymbol);
     }
   };
+
+  const handleRefresh = useCallback(() => {
+    fetchNews(filterSymbol || undefined, true);
+    markAsViewed();
+  }, [fetchNews, filterSymbol, markAsViewed]);
+
+  const handleLoadNewArticles = useCallback(() => {
+    fetchNews(filterSymbol || undefined, true);
+    markAsViewed();
+    // Scroll to top
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [fetchNews, filterSymbol, markAsViewed]);
 
   const formatTimeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -99,21 +165,66 @@ export function NewsPanel() {
         <div className="flex items-center gap-2">
           <Newspaper className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">Market News</h2>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fetchNews(filterSymbol || undefined)}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-          ) : (
-            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+          {/* Live indicator */}
+          {autoRefreshEnabled && (
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Live</span>
+            </div>
           )}
-          Refresh
-        </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Auto-refresh toggle */}
+          <Button
+            variant={autoRefreshEnabled ? 'default' : 'ghost'}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setAutoRefresh(!autoRefreshEnabled)}
+            title={autoRefreshEnabled ? 'Auto-refresh on' : 'Auto-refresh off'}
+          >
+            <Bell className={cn('h-3 w-3', autoRefreshEnabled && 'text-green-400')} />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="h-7"
+          >
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            )}
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* New articles notification banner */}
+      <AnimatePresence>
+        {newArticleCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex-shrink-0"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-8 bg-primary/10 border-primary/30 hover:bg-primary/20 text-primary"
+              onClick={handleLoadNewArticles}
+            >
+              <ChevronUp className="h-3.5 w-3.5 mr-1.5" />
+              {newArticleCount} new article{newArticleCount > 1 ? 's' : ''} available
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Search & Filter */}
       <div className="flex gap-2 flex-shrink-0">
@@ -161,7 +272,7 @@ export function NewsPanel() {
           <div className="h-full flex items-center justify-center text-destructive">
             {error}
           </div>
-        ) : isLoading ? (
+        ) : isLoading && articles.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -176,7 +287,7 @@ export function NewsPanel() {
             )}
           </div>
         ) : (
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full" ref={scrollRef}>
             <div className="space-y-3">
               {articles.map((article) => (
                 <ArticleCard
@@ -186,6 +297,19 @@ export function NewsPanel() {
                   formatTimeAgo={formatTimeAgo}
                 />
               ))}
+
+              {/* Load more trigger (infinite scroll) */}
+              <div ref={loadMoreTriggerRef} className="h-8 flex items-center justify-center">
+                {isLoadingMore && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-xs">Loading more...</span>
+                  </div>
+                )}
+                {!hasMore && articles.length > 0 && (
+                  <span className="text-xs text-muted-foreground">No more articles</span>
+                )}
+              </div>
             </div>
           </ScrollArea>
         )}

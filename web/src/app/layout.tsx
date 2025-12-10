@@ -5,7 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import Providers from '@/components/providers'
 import { PaywallModal } from '@/components/ui/paywall-modal'
 import { DisclaimerBanner } from '@/components/ui/disclaimer-banner'
-import { WelcomeModal } from '@/components/onboarding'
+import { TourProvider, TourOverlay } from '@/components/onboarding'
 
 // iOS-optimized viewport configuration
 export const viewport: Viewport = {
@@ -81,12 +81,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className="dark h-full overflow-hidden" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased app-height w-full overflow-hidden fixed inset-0 overscroll-none">
         <Providers>
-          <WelcomeModal />
-          <PaywallModal />
-          <div className="h-full w-full overflow-hidden relative flex flex-col">
-            {children}
-          </div>
-          <DisclaimerBanner />
+          <TourProvider>
+            <PaywallModal />
+            <div className="h-full w-full overflow-hidden relative flex flex-col">
+              {children}
+            </div>
+            <TourOverlay />
+            <DisclaimerBanner />
+          </TourProvider>
         </Providers>
         <Analytics />
       </body>

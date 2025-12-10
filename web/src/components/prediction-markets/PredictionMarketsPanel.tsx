@@ -15,7 +15,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePredictionMarkets, type FeedType } from '@/hooks/usePredictionMarkets';
-import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
+import { usePredictionMarketsStore, PREDICTION_REFRESH_INTERVAL } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
 import { Card } from '@/components/ui/card';
 // SquareCard imports removed - now using BetsCarouselCard
@@ -29,6 +29,7 @@ import { PlatformBadge } from './PlatformBadge';
 import { ProbabilityBar } from './ProbabilityBar';
 import { BetsCarouselCard } from './BetsCarouselCard';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
     TrendingUp,
@@ -40,6 +41,8 @@ import {
     RefreshCw,
     AlertCircle,
     WifiOff,
+    Bell,
+    ChevronUp,
 } from 'lucide-react';
 
 type PlatformFilter = 'all' | 'kalshi' | 'polymarket';
@@ -64,8 +67,15 @@ export function PredictionMarketsPanel() {
         isInWatchlist,
     } = usePredictionMarkets();
 
-    // Use Zustand store for selectedMarket (allows external components to pre-select)
-    const { selectedMarket, setSelectedMarket } = usePredictionMarketsStore();
+    // Use Zustand store for selectedMarket and auto-refresh state
+    const {
+        selectedMarket,
+        setSelectedMarket,
+        autoRefreshEnabled,
+        setAutoRefresh,
+        newMarketsCount,
+        markAsViewed,
+    } = usePredictionMarketsStore();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
@@ -75,6 +85,17 @@ export function PredictionMarketsPanel() {
     useEffect(() => {
         loadMarkets(feedType);
     }, [platformFilter, feedType, loadMarkets]);
+
+    // Auto-refresh: poll for new markets
+    useEffect(() => {
+        if (!autoRefreshEnabled) return;
+
+        const refreshInterval = setInterval(() => {
+            loadMarkets(feedType);
+        }, PREDICTION_REFRESH_INTERVAL);
+
+        return () => clearInterval(refreshInterval);
+    }, [autoRefreshEnabled, feedType, loadMarkets]);
 
     // Handle feed type change
     const handleFeedChange = useCallback((newFeed: FeedType) => {
@@ -119,6 +140,16 @@ export function PredictionMarketsPanel() {
                             <TrendingUp className="h-5 w-5 text-primary" />
                             Prediction Markets
                         </h2>
+                        {/* Live indicator */}
+                        {autoRefreshEnabled && !isUnavailable && (
+                            <div className="flex items-center gap-1.5">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Live</span>
+                            </div>
+                        )}
                         {/* Connection status - only show when unavailable */}
                         {isUnavailable && (
                             <Badge variant="destructive" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/20">
@@ -134,6 +165,16 @@ export function PredictionMarketsPanel() {
                                 {watchlist.length} watching
                             </Badge>
                         )}
+                        {/* Auto-refresh toggle */}
+                        <Button
+                            variant={autoRefreshEnabled ? 'default' : 'ghost'}
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => setAutoRefresh(!autoRefreshEnabled)}
+                            title={autoRefreshEnabled ? 'Auto-refresh on' : 'Auto-refresh off'}
+                        >
+                            <Bell className={cn('h-3 w-3', autoRefreshEnabled && 'text-green-400')} />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon"

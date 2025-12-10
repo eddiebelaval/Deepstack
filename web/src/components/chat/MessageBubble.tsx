@@ -55,33 +55,36 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <ThinkingBlock content={message.thinking} defaultExpanded={false} />
         )}
 
-        <div className="text-foreground/90 text-[15px] leading-[1.8] prose prose-invert prose-sm max-w-3xl">
+        <div className="text-foreground/90 text-[15px] leading-[1.75] prose prose-invert prose-sm max-w-none">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
               h1({ children }) {
-                return <h1 className="text-2xl font-bold mb-6 mt-8 first:mt-0 text-foreground tracking-tight">{children}</h1>;
+                return <h1 className="text-[1.5rem] font-semibold mb-4 mt-8 first:mt-0 text-foreground tracking-tight leading-tight">{children}</h1>;
               },
               h2({ children }) {
-                return <h2 className="text-xl font-semibold mt-10 mb-5 pb-2 border-b border-border/40 text-foreground tracking-tight">{children}</h2>;
+                return <h2 className="text-[1.25rem] font-semibold mt-8 mb-4 text-foreground tracking-tight leading-tight">{children}</h2>;
               },
               h3({ children }) {
-                return <h3 className="text-lg font-semibold mt-8 mb-4 text-foreground">{children}</h3>;
+                return <h3 className="text-[1.1rem] font-semibold mt-6 mb-3 text-foreground leading-snug">{children}</h3>;
               },
               h4({ children }) {
-                return <h4 className="text-base font-medium mt-6 mb-3 text-foreground/90">{children}</h4>;
+                return <h4 className="text-base font-medium mt-5 mb-2 text-foreground/90">{children}</h4>;
               },
               p({ children }) {
-                return <p className="mb-6 leading-[1.8]">{children}</p>;
+                // More breathing room between paragraphs - Claude web style
+                return <p className="mb-4 leading-[1.75] text-foreground/90">{children}</p>;
               },
               ul({ children }) {
-                return <ul className="my-6 ml-6 space-y-3 list-disc marker:text-muted-foreground">{children}</ul>;
+                // Tighter list styling with proper indentation
+                return <ul className="my-4 ml-5 space-y-2 list-disc marker:text-muted-foreground/70">{children}</ul>;
               },
               ol({ children }) {
-                return <ol className="my-6 ml-6 space-y-3 list-decimal marker:text-muted-foreground">{children}</ol>;
+                return <ol className="my-4 ml-5 space-y-2 list-decimal marker:text-muted-foreground/70">{children}</ol>;
               },
               li({ children }) {
-                return <li className="leading-[1.8] pl-2">{children}</li>;
+                // Slightly tighter line height for list items
+                return <li className="leading-[1.65] pl-1.5 text-foreground/90">{children}</li>;
               },
               strong({ children }) {
                 return <strong className="font-semibold text-foreground">{children}</strong>;
@@ -95,15 +98,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 if (alertInfo) {
                   return <CalloutBlock type={alertInfo.type}>{alertInfo.content}</CalloutBlock>;
                 }
-                // Regular blockquote
+                // Regular blockquote - cleaner styling
                 return (
-                  <blockquote className="border-l-3 border-muted-foreground/30 pl-4 my-6 text-muted-foreground italic">
+                  <blockquote className="border-l-2 border-muted-foreground/40 pl-4 my-5 text-muted-foreground/80 italic">
                     {children}
                   </blockquote>
                 );
               },
               hr() {
-                return <hr className="my-8 border-border/30" />;
+                return <hr className="my-6 border-border/20" />;
               },
               code({ inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');

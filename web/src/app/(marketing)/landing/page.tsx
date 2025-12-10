@@ -1,308 +1,540 @@
-import { Metadata } from 'next';
+'use client';
+
 import Link from 'next/link';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useRef, useEffect } from 'react';
 import {
-    MessageSquare,
-    TrendingUp,
-    Shield,
-    BookOpen,
-    Lightbulb,
-    Keyboard,
-    ChevronRight,
-    Zap,
-    BarChart3,
-    Brain,
+  MessageSquare,
+  TrendingUp,
+  Shield,
+  BookOpen,
+  Lightbulb,
+  ChevronRight,
+  Zap,
+  BarChart3,
+  Brain,
+  Search,
+  Target,
+  LineChart,
+  Sparkles,
 } from 'lucide-react';
-
-export const metadata: Metadata = {
-    title: 'DeepStack - AI-Powered Trading Assistant',
-    description: 'Trade smarter with AI-powered analysis, emotional discipline frameworks, and real-time market insights. Research and paper trade with confidence.',
-    keywords: ['trading', 'AI', 'stock analysis', 'emotional trading', 'paper trading', 'market research', 'investment thesis'],
-    openGraph: {
-        title: 'DeepStack - AI-Powered Trading Assistant',
-        description: 'Trade smarter with AI-powered analysis, emotional discipline frameworks, and real-time market insights.',
-        type: 'website',
-        locale: 'en_US',
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'DeepStack - AI-Powered Trading Assistant',
-        description: 'Trade smarter with AI-powered analysis and emotional discipline frameworks.',
-    },
-};
-
-const FEATURES = [
-    {
-        icon: MessageSquare,
-        title: 'AI Chat Assistant',
-        description: 'Ask questions about stocks, get instant analysis, and receive trading insights powered by Claude AI.',
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-500/10',
-    },
-    {
-        icon: TrendingUp,
-        title: 'Real-Time Market Data',
-        description: 'View live quotes, interactive charts, and technical indicators for thousands of stocks and ETFs.',
-        color: 'text-green-400',
-        bgColor: 'bg-green-500/10',
-    },
-    {
-        icon: Shield,
-        title: 'Emotional Firewall',
-        description: 'Our unique discipline system warns you before making potentially emotional trading decisions.',
-        color: 'text-orange-400',
-        bgColor: 'bg-orange-500/10',
-    },
-    {
-        icon: BookOpen,
-        title: 'Trade Journal',
-        description: 'Log trades with emotional state tracking, review your history, and identify patterns in your behavior.',
-        color: 'text-purple-400',
-        bgColor: 'bg-purple-500/10',
-    },
-    {
-        icon: Lightbulb,
-        title: 'Thesis Engine',
-        description: 'Document investment theses, track validation over time, and measure your analytical accuracy.',
-        color: 'text-yellow-400',
-        bgColor: 'bg-yellow-500/10',
-    },
-    {
-        icon: BarChart3,
-        title: 'Options Analysis',
-        description: 'Screen options chains, visualize payoff diagrams, and analyze strategy risk/reward profiles.',
-        color: 'text-cyan-400',
-        bgColor: 'bg-cyan-500/10',
-    },
-];
-
-const STATS = [
-    { value: '20+', label: 'AI Research Tools' },
-    { value: '10+', label: 'Emotion Categories' },
-    { value: '∞', label: 'Symbols Supported' },
-    { value: '0', label: 'Real Trades Executed' },
-];
 
 import { IntelligentBackground } from '@/components/landing/IntelligentBackground';
 import { FrostedOverlay } from '@/components/landing/FrostedOverlay';
+import {
+  ScrollProgressBar,
+  FeatureCard,
+  StepCard,
+} from '@/components/landing/StickySection';
+
+const FEATURES = [
+  {
+    icon: <MessageSquare className="w-6 h-6" />,
+    title: 'AI Research Assistant',
+    description: 'Ask about any stock. Get analysis, news summaries, and thesis validation in seconds.',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/10',
+  },
+  {
+    icon: <TrendingUp className="w-6 h-6" />,
+    title: 'Live Market Data',
+    description: 'Real-time quotes, interactive charts, and technical indicators for every ticker.',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/10',
+  },
+  {
+    icon: <Shield className="w-6 h-6" />,
+    title: 'Emotional Firewall',
+    description: 'Get warned before FOMO, fear, or greed influence your research decisions.',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/10',
+  },
+  {
+    icon: <BookOpen className="w-6 h-6" />,
+    title: 'Trade Journal',
+    description: 'Log your reasoning with emotional tags. Review patterns in your decision-making.',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/10',
+  },
+  {
+    icon: <Lightbulb className="w-6 h-6" />,
+    title: 'Thesis Engine',
+    description: 'Document hypotheses with price targets. Track which ideas played out correctly.',
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-500/10',
+  },
+  {
+    icon: <BarChart3 className="w-6 h-6" />,
+    title: 'Prediction Markets',
+    description: 'See probability-weighted outcomes from Polymarket and Kalshi alongside your research.',
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/10',
+  },
+];
+
+const HOW_IT_WORKS = [
+  {
+    step: 1,
+    title: 'Ask anything about a stock',
+    description: '"What\'s happening with NVDA?" or "Analyze semiconductor sector risks" — the AI researches in real-time.',
+  },
+  {
+    step: 2,
+    title: 'Build your investment thesis',
+    description: 'Document your hypothesis with entry/exit targets. The AI remembers and validates against new information.',
+  },
+  {
+    step: 3,
+    title: 'Track your decision patterns',
+    description: 'Journal entries with emotional tags reveal when you\'re thinking clearly vs. reacting emotionally.',
+  },
+  {
+    step: 4,
+    title: 'Get smarter over time',
+    description: 'Review which theses played out. Learn from your hits and misses. Compound your edge.',
+  },
+];
+
+const AI_CAPABILITIES = [
+  {
+    icon: <Search className="w-5 h-5" />,
+    title: 'Real-time research',
+    description: 'News, filings, price action — synthesized instantly',
+  },
+  {
+    icon: <Target className="w-5 h-5" />,
+    title: 'Thesis awareness',
+    description: 'AI knows your active positions and validates new info against them',
+  },
+  {
+    icon: <LineChart className="w-5 h-5" />,
+    title: 'Technical analysis',
+    description: 'Chart patterns, support/resistance, momentum indicators',
+  },
+  {
+    icon: <Shield className="w-5 h-5" />,
+    title: 'Emotional context',
+    description: 'Reads your journal — warns when emotions might cloud judgment',
+  },
+];
 
 export default function LandingPage() {
-    return (
-        <div className="min-h-screen bg-background relative overflow-hidden">
-            {/* Background Layer - Fixed position for parallax effect */}
-            <div className="fixed inset-0 z-0">
-                <IntelligentBackground />
+  const heroRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+
+  // Parallax transforms for hero
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.95]);
+  const heroY = useTransform(scrollYProgress, [0, 0.5], [0, 50]);
+
+  // Enable scrolling on landing page (overrides global overflow:hidden)
+  useEffect(() => {
+    document.documentElement.classList.add('landing-page');
+    document.body.classList.add('landing-page');
+    return () => {
+      document.documentElement.classList.remove('landing-page');
+      document.body.classList.remove('landing-page');
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Scroll Progress Bar */}
+      <ScrollProgressBar />
+
+      {/* Background Layer - Fixed position */}
+      <div className="fixed inset-0 z-0">
+        <IntelligentBackground />
+      </div>
+
+      {/* Frosted Glass Overlay */}
+      <FrostedOverlay intensity="medium" className="fixed inset-0 z-10" />
+
+      {/* Content Layer */}
+      <div className="relative z-20">
+        {/* Navigation */}
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-border/20 supports-[backdrop-filter]:bg-background/20">
+          <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Brain className="w-7 h-7 text-primary animate-pulse-soft" />
+              <span className="text-xl font-semibold tracking-tight">DeepStack</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/help"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline"
+              >
+                Help
+              </Link>
+              <Link
+                href="/login"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/"
+                className="px-4 py-2 text-sm bg-primary/90 text-primary-foreground hover:bg-primary rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(251,146,60,0.3)] hover:shadow-[0_0_25px_rgba(251,146,60,0.5)]"
+              >
+                Try Demo
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero Section - Parallax on scroll */}
+        <section ref={heroRef} className="min-h-screen flex items-center justify-center pt-16 px-4 relative">
+          <motion.div
+            style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
+            className="max-w-5xl mx-auto text-center"
+          >
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 border border-primary/20 backdrop-blur-sm"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Research Platform — Not a Broker</span>
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-[1.1]"
+            >
+              The Intelligence
+              <br />
+              <span className="text-gradient-shimmer">Beneath the Market</span>
+            </motion.h1>
+
+            {/* Subheadline */}
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed"
+            >
+              AI-powered research that knows your thesis, tracks your emotions, and helps you see what others miss.
+            </motion.p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            >
+              <Link
+                href="/"
+                className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium transition-all text-lg flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:shadow-[0_0_40px_rgba(251,146,60,0.6)]"
+              >
+                Start Researching
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="#how-it-works"
+                className="w-full sm:w-auto px-8 py-4 bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 rounded-xl font-medium transition-all text-lg backdrop-blur-sm border border-border/50"
+              >
+                See How It Works
+              </Link>
+            </motion.div>
+
+            {/* Trust Signal */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.5 }}
+              className="mt-8 text-sm text-muted-foreground/80"
+            >
+              Free to use · No credit card required · Your data stays private
+            </motion.p>
+
+            {/* Scroll indicator */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.7 }}
+              className="absolute bottom-8 left-1/2 -translate-x-1/2"
+            >
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex items-start justify-center p-2"
+              >
+                <motion.div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* How It Works Section */}
+        <section id="how-it-works" className="py-20 px-4">
+          <div className="max-w-6xl mx-auto">
+            {/* Section header */}
+            <div className="mb-10">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
+              >
+                <Sparkles className="w-4 h-4" />
+                How It Works
+              </motion.div>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl md:text-5xl font-bold tracking-tight"
+              >
+                Research that compounds
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl"
+              >
+                Most tools give you data. DeepStack gives you an edge that grows with every decision you make.
+              </motion.p>
+            </div>
+            {/* Content */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {HOW_IT_WORKS.map((item, i) => (
+                <StepCard
+                  key={item.step}
+                  step={item.step}
+                  title={item.title}
+                  description={item.description}
+                  delay={i * 0.1}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="py-20 px-4 bg-card/20">
+          <div className="max-w-6xl mx-auto">
+            {/* Section header */}
+            <div className="mb-10">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
+              >
+                <Zap className="w-4 h-4" />
+                Features
+              </motion.div>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl md:text-5xl font-bold tracking-tight"
+              >
+                Everything you need to research smarter
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl"
+              >
+                Six tools. One integrated workspace. Zero context-switching.
+              </motion.p>
+            </div>
+            {/* Feature cards */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {FEATURES.map((feature, i) => (
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                  color={feature.color}
+                  bgColor={feature.bgColor}
+                  delay={i * 0.08}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* AI Assistant Section */}
+        <section id="ai-assistant" className="py-20 px-4">
+          <div className="max-w-6xl mx-auto">
+            {/* Section header */}
+            <div className="mb-10">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
+              >
+                <Brain className="w-4 h-4" />
+                AI Assistant
+              </motion.div>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl md:text-5xl font-bold tracking-tight"
+              >
+                An AI that actually knows your portfolio
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl"
+              >
+                Not a generic chatbot. A research partner that remembers your thesis, reads your journal, and warns you before emotions take over.
+              </motion.p>
+            </div>
+            {/* AI capabilities */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {AI_CAPABILITIES.map((cap, i) => (
+                <motion.div
+                  key={cap.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  className="flex gap-4 p-4 rounded-xl bg-card/30 border border-border/30 backdrop-blur-sm"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    {cap.icon}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">{cap.title}</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{cap.description}</p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
 
-            {/* Frosted Glass Overlay - Sits on top of background */}
-            <FrostedOverlay intensity="medium" className="fixed inset-0 z-10" />
+            {/* Example prompts */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-8 p-6 rounded-2xl bg-card/40 border border-border/50 backdrop-blur-md"
+            >
+              <p className="text-sm text-muted-foreground mb-4">Try asking:</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  '"What\'s happening with NVDA today?"',
+                  '"Review my recent journal — am I trading emotionally?"',
+                  '"What are my active theses?"',
+                  '"Analyze AAPL\'s risk/reward at current levels"',
+                ].map((prompt) => (
+                  <span
+                    key={prompt}
+                    className="px-3 py-1.5 text-sm bg-muted/50 rounded-full border border-border/50"
+                  >
+                    {prompt}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
 
-            {/* Content Layer - Scrolls naturally */}
-            <div className="relative z-20">
-                {/* Navigation */}
-                <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-border/20 supports-[backdrop-filter]:bg-background/20">
-                    <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Brain className="w-7 h-7 text-primary animate-pulse-soft" />
-                            <span className="text-xl font-semibold tracking-tight">DeepStack</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <Link href="/help" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">
-                                Help
-                            </Link>
-                            <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                Sign In
-                            </Link>
-                            <Link
-                                href="/"
-                                className="px-4 py-2 text-sm bg-primary/90 text-primary-foreground hover:bg-primary rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(251,146,60,0.3)] hover:shadow-[0_0_25px_rgba(251,146,60,0.5)]"
-                            >
-                                Try Demo
-                            </Link>
-                        </div>
-                    </div>
-                </nav>
+        {/* Final CTA Section */}
+        <section className="py-32 px-4 relative">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h2
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-4xl md:text-5xl font-bold mb-6"
+            >
+              Ready to research differently?
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-muted-foreground text-xl mb-10"
+            >
+              Join thousands of investors using DeepStack to build conviction and track their edge.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <Link
+                href="/"
+                className="inline-flex items-center gap-3 px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_50px_rgba(251,146,60,0.6)] hover:scale-105"
+              >
+                Launch DeepStack
+                <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </motion.div>
+          </div>
+        </section>
 
-                {/* Hero Section */}
-                <section className="pt-40 pb-32 px-4 relative">
-                    <div className="max-w-5xl mx-auto text-center transform transition-all duration-700 hover:scale-[1.01]">
-                        {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 border border-primary/20 backdrop-blur-sm animate-float">
-                            <Zap className="w-4 h-4" />
-                            <span>Research Platform - Not a Broker</span>
-                        </div>
-
-                        {/* Headline */}
-                        <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-[1.1]">
-                            The Intelligence
-                            <br />
-                            <span className="text-gradient-shimmer">Beneath the Market</span>
-                        </h1>
-
-                        {/* Subheadline */}
-                        <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
-                            DeepStack lurks in the data, using AI to map market patterns and enforce emotional discipline.
-                            <br />
-                            <span className="text-foreground/80 text-lg mt-2 block">See what others miss.</span>
-                        </p>
-
-                        {/* CTA Buttons */}
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                            <Link
-                                href="/"
-                                className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium transition-all text-lg flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:shadow-[0_0_40px_rgba(251,146,60,0.6)]"
-                            >
-                                Start Researching
-                                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                            <Link
-                                href="/help"
-                                className="w-full sm:w-auto px-8 py-4 bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 rounded-xl font-medium transition-all text-lg backdrop-blur-sm border border-border/50"
-                            >
-                                How It Works
-                            </Link>
-                        </div>
-
-                        {/* Trust Signal */}
-                        <p className="mt-8 text-sm text-muted-foreground/80 font-medium">
-                            No credit card required · Demo mode available
-                        </p>
-                    </div>
-                </section>
-
-                {/* Stats Section */}
-                <section className="py-12 border-y border-border/30 bg-background/40 backdrop-blur-sm">
-                    <div className="max-w-6xl mx-auto px-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                            {STATS.map((stat) => (
-                                <div key={stat.label} className="text-center group cursor-default">
-                                    <div className="text-4xl md:text-5xl font-bold text-primary mb-2 group-hover:drop-shadow-[0_0_10px_rgba(251,146,60,0.5)] transition-all ease-out duration-300 transform group-hover:scale-110">{stat.value}</div>
-                                    <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Features Section */}
-                <section className="py-32 px-4 relative">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="text-center mb-20">
-                            <h2 className="text-3xl md:text-5xl font-bold mb-6">Built for the Modern Trader</h2>
-                            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-                                Powerful tools that help you master your psychology and validate your ideas.
-                            </p>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {FEATURES.map((feature) => (
-                                <div
-                                    key={feature.title}
-                                    className="bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl p-8 hover:border-primary/50 hover:bg-card/60 transition-all duration-300 group shadow-lg hover:shadow-xl"
-                                >
-                                    <div className={`w-14 h-14 ${feature.bgColor} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                                        <feature.icon className={`w-7 h-7 ${feature.color}`} />
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="text-muted-foreground leading-relaxed">
-                                        {feature.description}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Keyboard Shortcuts Highlight */}
-                <section className="py-24 px-4 bg-muted/30 border-y border-border/30 backdrop-blur-sm relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-pulse-soft pointer-events-none" />
-                    <div className="max-w-5xl mx-auto relative z-10">
-                        <div className="flex flex-col md:flex-row items-center gap-16">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 text-primary mb-6">
-                                    <Keyboard className="w-6 h-6 animate-bounce" />
-                                    <span className="font-bold tracking-wide uppercase text-sm">Power User Mode</span>
-                                </div>
-                                <h2 className="text-4xl font-bold mb-6 text-gradient-shimmer">Built for Speed</h2>
-                                <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
-                                    Navigate charts, switch timeframes, and search symbols without
-                                    leaving the keyboard. Every action has a shortcut.
-                                </p>
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="flex items-center gap-3 bg-background/50 border border-border/50 px-4 py-2 rounded-lg">
-                                        <kbd className="px-2 py-1 bg-muted border border-border rounded text-sm font-mono font-bold">Cmd+K</kbd>
-                                        <span className="text-sm font-medium">Search</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 bg-background/50 border border-border/50 px-4 py-2 rounded-lg">
-                                        <kbd className="px-2 py-1 bg-muted border border-border rounded text-sm font-mono font-bold">1-5</kbd>
-                                        <span className="text-sm font-medium">Timeframes</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4 perspective-[1000px]">
-                                {['SPY', 'QQQ', 'NVDA', 'AAPL', 'MSFT', 'TSLA'].map((symbol, i) => (
-                                    <div
-                                        key={symbol}
-                                        className="bg-card/70 border border-border/50 rounded-xl p-6 text-center shadow-lg hover:shadow-primary/20 hover:border-primary/50 transition-all duration-300 hover:-translate-y-2 hover:rotate-1"
-                                        style={{ animationDelay: `${i * 100}ms` }}
-                                    >
-                                        <div className="font-mono font-bold text-xl mb-1">{symbol}</div>
-                                        <div className="text-xs text-muted-foreground uppercase tracking-widest">Ticker</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* CTA Section */}
-                <section className="py-32 px-4 relative">
-                    <div className="max-w-3xl mx-auto text-center">
-                        <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                            Ready to See the Invisible?
-                        </h2>
-                        <p className="text-muted-foreground text-xl mb-10">
-                            Join thousands of traders using DeepStack's neural intelligence to uncover hidden market opportunities.
-                        </p>
-                        <Link
-                            href="/"
-                            className="inline-flex items-center gap-3 px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_50px_rgba(251,146,60,0.6)] hover:scale-105"
-                        >
-                            Launch DeepStack
-                            <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                    </div>
-                </section>
-
-                {/* Footer */}
-                <footer className="py-12 px-4 border-t border-border/20 bg-background/60 backdrop-blur-md">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div className="flex items-center gap-2">
-                                <Brain className="w-5 h-5 text-primary" />
-                                <span className="font-semibold tracking-tight">DeepStack</span>
-                                <span className="text-muted-foreground text-sm ml-2 px-2 py-0.5 bg-muted rounded-full">Research Platform</span>
-                            </div>
-                            <div className="flex items-center gap-8 text-sm font-medium">
-                                <Link href="/help" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Help Center
-                                </Link>
-                                <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Terms
-                                </Link>
-                                <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Privacy
-                                </Link>
-                            </div>
-                        </div>
-                        <div className="mt-8 text-center text-xs text-muted-foreground/60 max-w-2xl mx-auto leading-relaxed">
-                            DeepStack is a research and paper-trading platform powered by AI. It does not execute real money trades or provide personalized financial advice.
-                            All trading involves risk.
-                        </div>
-                    </div>
-                </footer>
+        {/* Footer */}
+        <footer className="py-12 px-4 border-t border-border/20 bg-background/60 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                <span className="font-semibold tracking-tight">DeepStack</span>
+                <span className="text-muted-foreground text-sm ml-2 px-2 py-0.5 bg-muted rounded-full">
+                  Research Platform
+                </span>
+              </div>
+              <div className="flex items-center gap-8 text-sm font-medium">
+                <Link
+                  href="/help"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Help Center
+                </Link>
+                <Link
+                  href="/terms"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Terms
+                </Link>
+                <Link
+                  href="/privacy"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Privacy
+                </Link>
+              </div>
             </div>
-        </div>
-    );
+            <div className="mt-8 text-center text-xs text-muted-foreground/60 max-w-2xl mx-auto leading-relaxed">
+              DeepStack is a research platform powered by AI. It does not execute trades or provide
+              personalized financial advice. All investing involves risk.
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
 }
