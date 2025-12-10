@@ -13,6 +13,20 @@ export type CalendarEvent = {
   estimate?: string;
   actual?: string;
   prior?: string;
+  // Earnings-specific financial metrics
+  peRatio?: number;
+  psRatio?: number;
+  marketCap?: number; // in billions
+  revenueEstimate?: number; // in billions
+  epsSurprise?: number; // percentage from last quarter
+  fiscalQuarter?: string; // e.g., "Q4 2024"
+  // Stock price data
+  currentPrice?: number;
+  preMarketPrice?: number;
+  afterHoursPrice?: number;
+  changeWeek?: number; // percentage
+  changeMonth?: number; // percentage
+  changeYear?: number; // percentage
 };
 
 interface CalendarState {

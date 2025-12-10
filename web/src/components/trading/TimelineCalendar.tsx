@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +12,7 @@ import {
   Building2,
   CalendarDays,
   Calendar as CalendarIcon,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EventBetCard } from './EventBetCard';
@@ -52,6 +53,7 @@ interface TimelineCalendarProps {
   onSymbolClick: (symbol: string) => void;
   currentMonth?: Date;
   onMonthChange?: (month: Date) => void;
+  isLoadingMore?: boolean;
 }
 
 export function TimelineCalendar({
@@ -61,7 +63,44 @@ export function TimelineCalendar({
   onSymbolClick,
   currentMonth = new Date(),
   onMonthChange,
+  isLoadingMore = false,
 }: TimelineCalendarProps) {
+  const scrollEndRef = useRef<HTMLDivElement>(null);
+  const hasTriggeredRef = useRef(false);
+
+  // Handle infinite scroll - advance to next month when reaching bottom
+  const handleScrollEnd = useCallback(() => {
+    if (!onMonthChange || hasTriggeredRef.current) return;
+
+    hasTriggeredRef.current = true;
+    const next = new Date(currentMonth);
+    next.setMonth(next.getMonth() + 1);
+    onMonthChange(next);
+
+    // Reset the trigger after a short delay to allow new content to load
+    setTimeout(() => {
+      hasTriggeredRef.current = false;
+    }, 500);
+  }, [currentMonth, onMonthChange]);
+
+  // IntersectionObserver to detect scroll to bottom
+  useEffect(() => {
+    const sentinel = scrollEndRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          handleScrollEnd();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [handleScrollEnd]);
   // Group events by date
   const groupedEvents = useMemo(() => {
     const filtered = filterType === 'all' ? events : events.filter((e) => e.type === filterType);
@@ -221,6 +260,24 @@ export function TimelineCalendar({
                     </div>
                   );
                 })}
+
+                {/* Scroll sentinel for infinite scroll */}
+                <div
+                  ref={scrollEndRef}
+                  className="flex items-center justify-center py-4 text-muted-foreground"
+                >
+                  {isLoadingMore ? (
+                    <div className="flex items-center gap-2 text-xs">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Loading more events...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-[10px] opacity-50">
+                      <ChevronRight className="h-3 w-3" />
+                      <span>Scroll for next month</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </ScrollArea>
           )}
