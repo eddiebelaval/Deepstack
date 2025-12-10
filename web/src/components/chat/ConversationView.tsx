@@ -21,6 +21,7 @@ import { ChartToolbar } from '@/components/charts/ChartToolbar';
 import { DrawingToolbar } from '@/components/charts/DrawingToolbar';
 import { ChartPanel } from '@/components/trading/ChartPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
+import { PositionsPanel } from '@/components/trading/PositionsPanel';
 import { DeepValuePanel } from '@/components/trading/DeepValuePanel';
 import { HedgedPositionsPanel } from '@/components/trading/HedgedPositionsPanel';
 import { ScreenerPanel } from '@/components/trading/ScreenerPanel';
@@ -394,6 +395,13 @@ export function ConversationView() {
                 </div>
             );
         }
+        if (activeContent === 'positions') {
+            return (
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
+                    <PositionsPanel />
+                </div>
+            );
+        }
         if (activeContent === 'calendar') {
             return (
                 <div className="h-full overflow-hidden bg-card border-t border-border/50">
@@ -550,6 +558,7 @@ export function ConversationView() {
                             {activeContent === 'options-builder' && 'Strategy Builder'}
                             {activeContent === 'screener' && 'Screener'}
                             {activeContent === 'alerts' && 'Alerts'}
+                            {activeContent === 'positions' && 'Positions'}
                             {activeContent === 'calendar' && 'Calendar'}
                             {activeContent === 'news' && 'News'}
                             {activeContent === 'prediction-markets' && 'Markets'}
@@ -588,6 +597,7 @@ export function ConversationView() {
                                     {activeContent === 'options-builder' && 'Strategy Builder'}
                                     {activeContent === 'screener' && 'Stock Screener'}
                                     {activeContent === 'alerts' && 'Price Alerts'}
+                                    {activeContent === 'positions' && 'Portfolio Positions'}
                                     {activeContent === 'calendar' && 'Market Calendar'}
                                     {activeContent === 'news' && 'Market News'}
                                     {activeContent === 'prediction-markets' && 'Prediction Markets'}

@@ -10,13 +10,16 @@ import { useWatchlistStore } from '@/lib/stores/watchlist-store';
 import { useMarketWatchStore, getSymbolDisplayName } from '@/lib/stores/market-watch-store';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import { useUIStore } from '@/lib/stores/ui-store';
+import { usePositionsStore } from '@/lib/stores/positions-store';
 import { LazyMultiSeriesChart } from '@/components/lazy';
 import { type SeriesData } from '@/components/charts/MultiSeriesChart';
-import { Loader2, ChevronRight, Plus, X, Pencil, RotateCcw, Settings } from 'lucide-react';
+import { Loader2, ChevronRight, Plus, X, Pencil, RotateCcw, Settings, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BetsCarousel } from '@/components/prediction-markets';
 import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
 import { SymbolSearchDialog } from '@/components/trading/SymbolSearchDialog';
+import { PositionsPanel } from '@/components/trading/PositionsPanel';
+import { PositionEntryForm } from '@/components/trading/PositionEntryForm';
 
 // DeepStack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
@@ -168,7 +171,7 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function HomeWidgets() {
-    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto' | 'custom' | 'predictions'>('market');
+    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto' | 'custom' | 'predictions' | 'positions'>('market');
     const [timeframe, setTimeframe] = useState('1D');
     const [isLogScale, setIsLogScale] = useState(false);
     const [displayMode, setDisplayMode] = useState<'$' | '%'>('%'); // Default to % like Webull
@@ -184,6 +187,9 @@ export function HomeWidgets() {
     // Watchlist dialog state
     const [showWatchlistManagement, setShowWatchlistManagement] = useState(false);
     const [showSymbolSearch, setShowSymbolSearch] = useState(false);
+
+    // Position entry dialog state
+    const [showAddPosition, setShowAddPosition] = useState(false);
 
     // State for series data
     const [seriesData, setSeriesData] = useState<SeriesData[]>([]);
@@ -215,6 +221,9 @@ export function HomeWidgets() {
     const { setSelectedMarket } = usePredictionMarketsStore();
     const { setActiveContent } = useUIStore();
 
+    // Positions store
+    const addPosition = usePositionsStore((s) => s.addPosition);
+
     // Focus input when adding symbol
     useEffect(() => {
         if (isAddingSymbol && symbolInputRef.current) {
@@ -224,7 +233,7 @@ export function HomeWidgets() {
 
     // Determine which tab type we're on for store operations
     const currentTabType = activeTab === 'market' ? 'indices' : activeTab === 'crypto' ? 'crypto' : activeTab === 'custom' ? 'custom' : null;
-    const canEdit = activeTab !== 'predictions';
+    const canEdit = activeTab !== 'predictions' && activeTab !== 'positions';
     const isWatchlistTab = activeTab === 'watchlist';
 
     // Add symbol to current tab
@@ -397,7 +406,8 @@ export function HomeWidgets() {
 
     const tabTitle = activeTab === 'market' ? 'United States' :
         activeTab === 'crypto' ? 'Cryptocurrency' :
-            activeTab === 'custom' ? 'Custom Comparison' : 'Watchlist';
+            activeTab === 'custom' ? 'Custom Comparison' :
+                activeTab === 'positions' ? 'My Positions' : 'Watchlist';
 
     return (
         <div className="w-full h-full max-w-5xl mx-auto flex flex-col">
@@ -516,6 +526,7 @@ export function HomeWidgets() {
                         {[
                             { key: 'market', label: 'Indices' },
                             { key: 'crypto', label: 'Crypto' },
+                            { key: 'positions', label: 'Positions', icon: Briefcase },
                             { key: 'predictions', label: 'Bets' },
                             { key: 'watchlist', label: 'Watchlist' },
                             { key: 'custom', label: 'Custom' }
@@ -524,19 +535,20 @@ export function HomeWidgets() {
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key as typeof activeTab)}
                                 className={cn(
-                                    "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                                    "px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1",
                                     activeTab === tab.key
                                         ? "bg-background text-foreground shadow-sm"
                                         : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
+                                {tab.icon && <tab.icon className="h-3.5 w-3.5" />}
                                 {tab.label}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Content Area - Chart or Predictions - flex-1 to fill available space */}
+                {/* Content Area - Chart or Predictions or Positions - flex-1 to fill available space */}
                 <div className="relative flex-1 min-h-[320px] w-full rounded-lg bg-background/40 border border-border/20 overflow-hidden">
                     {activeTab === 'predictions' ? (
                         <div className="h-full p-3">
@@ -549,6 +561,10 @@ export function HomeWidgets() {
                                     setActiveContent('prediction-markets');
                                 }}
                             />
+                        </div>
+                    ) : activeTab === 'positions' ? (
+                        <div className="h-full p-3">
+                            <PositionsPanel onAddPosition={() => setShowAddPosition(true)} />
                         </div>
                     ) : (
                         <>
@@ -576,8 +592,8 @@ export function HomeWidgets() {
                     )}
                 </div>
 
-                {/* Controls Row - Hidden for Predictions tab */}
-                {activeTab !== 'predictions' && (
+                {/* Controls Row - Hidden for Predictions and Positions tabs */}
+                {activeTab !== 'predictions' && activeTab !== 'positions' && (
                     <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
                         {/* Timeframe Pills */}
                         <div className="flex items-center bg-muted/30 rounded-lg p-0.5 border border-border/30">
@@ -638,7 +654,7 @@ export function HomeWidgets() {
                 )}
 
                 {/* Glass Asset Cards - Color-coded edge glow effect */}
-                {activeTab !== 'predictions' && (
+                {activeTab !== 'predictions' && activeTab !== 'positions' && (
                     <div className="mt-2 pt-2 border-t border-border/30">
                         <div className="flex gap-3 justify-center flex-wrap pb-1">
                             {seriesMetrics.map((metric) => metric && (
@@ -660,8 +676,8 @@ export function HomeWidgets() {
                     </div>
                 )}
 
-                {/* Footer with timestamp and See All - Hidden for Predictions tab */}
-                {activeTab !== 'predictions' && (
+                {/* Footer with timestamp and See All - Hidden for Predictions and Positions tabs */}
+                {activeTab !== 'predictions' && activeTab !== 'positions' && (
                     <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
                         <div className="flex items-center gap-2">
                             <div
@@ -687,6 +703,20 @@ export function HomeWidgets() {
             <SymbolSearchDialog
                 open={showSymbolSearch}
                 onOpenChange={setShowSymbolSearch}
+            />
+
+            {/* Position Entry Dialog */}
+            <PositionEntryForm
+                open={showAddPosition}
+                onOpenChange={setShowAddPosition}
+                onSave={(pos) => {
+                    // Transform the position to match store format
+                    addPosition({
+                        ...pos,
+                        side: pos.side.toLowerCase() as 'long' | 'short',
+                    });
+                    setShowAddPosition(false);
+                }}
             />
         </div>
     );

@@ -78,8 +78,8 @@ export function RightToolbar() {
             // Open watchlist management dialog directly
             setShowWatchlistManagement(true);
         } else if (toolId === 'positions') {
-            // Open widget panel with that widget focused
-            if (!rightSidebarOpen) toggleRightSidebar();
+            // Toggle positions panel
+            setActiveContent(activeContent === 'positions' ? 'none' : 'positions');
         } else {
             // For other tools, toggle them
             setActiveContent(activeContent === toolId ? 'none' : toolId as any);

@@ -3,21 +3,22 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Briefcase } from 'lucide-react';
+import { usePositionsStore } from '@/lib/stores/positions-store';
 
 /**
  * PositionsSummaryWidget - Portfolio positions summary widget
  *
  * Features:
- * - Shows top 3-4 open positions
+ * - Shows top 3-4 open positions from real store
  * - Displays symbol, shares, P&L
  * - Compact design for widget panel
  * - Height: ~120px
  *
  * Usage:
- * <PositionsSummaryWidget positions={positions} />
+ * <PositionsSummaryWidget />
  */
 
-export interface Position {
+export interface WidgetPosition {
   symbol: string;
   shares: number;
   pnl: number;
@@ -25,23 +26,34 @@ export interface Position {
 }
 
 interface PositionsSummaryWidgetProps {
-  positions?: Position[];
   className?: string;
 }
 
-// Mock positions for demo - replace with real data from store
-const MOCK_POSITIONS: Position[] = [
-  { symbol: 'AAPL', shares: 50, pnl: 1245.50, pnlPercent: 8.5 },
-  { symbol: 'NVDA', shares: 25, pnl: -342.75, pnlPercent: -2.3 },
-  { symbol: 'TSLA', shares: 15, pnl: 567.25, pnlPercent: 5.2 },
-  { symbol: 'AMD', shares: 100, pnl: 89.50, pnlPercent: 1.1 },
-];
-
 export function PositionsSummaryWidget({
-  positions = MOCK_POSITIONS,
   className
 }: PositionsSummaryWidgetProps) {
-  // Show top 3-4 positions
+  // Get positions from store and compute P&L
+  const storePositions = usePositionsStore((s) => s.positions);
+
+  // Transform store positions to widget format with computed P&L
+  const positions: WidgetPosition[] = storePositions.map((pos) => {
+    const currentPrice = pos.currentPrice ?? pos.avgCost;
+    const marketValue = pos.shares * currentPrice;
+    const costBasis = pos.shares * pos.avgCost;
+    const pnl = pos.side === 'long'
+      ? marketValue - costBasis
+      : costBasis - marketValue;
+    const pnlPercent = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
+
+    return {
+      symbol: pos.symbol,
+      shares: pos.shares,
+      pnl,
+      pnlPercent,
+    };
+  });
+
+  // Show top 4 positions
   const topPositions = positions.slice(0, 4);
 
   return (
