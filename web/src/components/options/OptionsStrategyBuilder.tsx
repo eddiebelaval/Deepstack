@@ -198,15 +198,15 @@ export function OptionsStrategyBuilder() {
       </div>
 
       {/* Main Layout */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 grid-rows-[1fr] gap-4 min-h-0 overflow-hidden items-stretch">
         {/* Left: Strategy Selection & Inputs */}
-        <div className="lg:col-span-1 flex flex-col gap-4">
+        <div className="lg:col-span-1 h-full flex flex-col gap-4 min-h-0 overflow-hidden">
           {/* Symbol & Price Inputs */}
-          <Card>
+          <Card className="shrink-0 flex-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Position Setup</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               <div>
                 <Label className="text-xs">Symbol</Label>
                 <Input
@@ -239,11 +239,11 @@ export function OptionsStrategyBuilder() {
           </Card>
 
           {/* Strategy Templates */}
-          <Card className="flex-1 flex flex-col min-h-0">
-            <CardHeader className="pb-2">
+          <Card className="flex-1 flex flex-col min-h-[200px]">
+            <CardHeader className="pb-2 shrink-0">
               <CardTitle className="text-sm">Strategy Templates</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-0">
+            <CardContent className="flex-1 overflow-hidden p-0 min-h-0">
               <ScrollArea className="h-full px-4 pb-4">
                 <div className="space-y-2">
                   {STRATEGY_TEMPLATES.map((strat) => (
@@ -261,7 +261,7 @@ export function OptionsStrategyBuilder() {
         </div>
 
         {/* Center: Payoff Diagram */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 min-h-0 overflow-hidden">
           <PayoffDiagram
             calculation={calculation}
             underlyingPrice={underlyingPrice}
@@ -271,7 +271,7 @@ export function OptionsStrategyBuilder() {
         </div>
 
         {/* Right: Legs Editor */}
-        <div className="lg:col-span-1 flex flex-col gap-4">
+        <div className="lg:col-span-1 h-full flex flex-col gap-4 min-h-0 overflow-hidden">
           {/* Legs */}
           <Card className="flex-1 flex flex-col min-h-0">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -312,7 +312,7 @@ export function OptionsStrategyBuilder() {
           </Card>
 
           {/* Settings */}
-          <Card>
+          <Card className="shrink-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Display Options</CardTitle>
             </CardHeader>

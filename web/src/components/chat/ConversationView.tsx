@@ -361,84 +361,84 @@ export function ConversationView() {
         }
         if (activeContent === 'deep-value') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <DeepValuePanel />
                 </div>
             );
         }
         if (activeContent === 'hedged-positions') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <HedgedPositionsPanel />
                 </div>
             );
         }
         if (activeContent === 'options-screener') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <OptionsScreenerPanel />
                 </div>
             );
         }
         if (activeContent === 'options-builder') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <OptionsStrategyBuilder />
                 </div>
             );
         }
         if (activeContent === 'screener') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <ScreenerPanel />
                 </div>
             );
         }
         if (activeContent === 'alerts') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <AlertsPanel />
                 </div>
             );
         }
         if (activeContent === 'calendar') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <CalendarPanel />
                 </div>
             );
         }
         if (activeContent === 'news') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <NewsPanel />
                 </div>
             );
         }
         if (activeContent === 'prediction-markets') {
             return (
-                <div className="flex-1 min-h-0 overflow-hidden bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <PredictionMarketsPanel />
                 </div>
             );
         }
         if (activeContent === 'thesis') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <ThesisList />
                 </div>
             );
         }
         if (activeContent === 'journal') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <JournalList />
                 </div>
             );
         }
         if (activeContent === 'insights') {
             return (
-                <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border/50">
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
                     <InsightsPanel />
                 </div>
             );
@@ -609,7 +609,7 @@ export function ConversationView() {
                         </Button>
                     </div>
                     {/* Tool Content - Full height on mobile */}
-                    <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="flex-1 min-h-0 overflow-hidden">
                         {renderActiveContent()}
                     </div>
                 </div>

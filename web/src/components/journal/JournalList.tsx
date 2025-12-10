@@ -10,6 +10,7 @@ import { canAccess } from '@/lib/subscription';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { JournalEntryDialog } from './JournalEntryDialog';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
@@ -56,77 +57,81 @@ export function JournalList() {
 
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold">Trade Journal</h1>
-                        <p className="text-muted-foreground text-sm flex items-center gap-2">
-                            Track your trades and learn from your patterns
-                            {isOnline ? (
-                                <span title="Synced with cloud">
-                                    <Cloud className="h-4 w-4 text-green-500" />
-                                </span>
+        <div className="h-full flex flex-col">
+            <ScrollArea className="flex-1">
+                <div className="p-4 space-y-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                            <div>
+                                <h1 className="text-2xl font-bold">Trade Journal</h1>
+                                <p className="text-muted-foreground text-sm flex items-center gap-2">
+                                    Track your trades and learn from your patterns
+                                    {isOnline ? (
+                                        <span title="Synced with cloud">
+                                            <Cloud className="h-4 w-4 text-green-500" />
+                                        </span>
+                                    ) : (
+                                        <span title="Using local storage">
+                                            <CloudOff className="h-4 w-4 text-yellow-500" />
+                                        </span>
+                                    )}
+                                    {tier === 'free' && (
+                                        <Badge variant="outline" className="text-xs">
+                                            {entries.length}/10 entries
+                                        </Badge>
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                        <Button onClick={handleNew} disabled={isLoading} variant={isAtLimit ? 'outline' : 'default'}>
+                            {isLoading ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             ) : (
-                                <span title="Using local storage">
-                                    <CloudOff className="h-4 w-4 text-yellow-500" />
-                                </span>
+                                <Plus className="h-4 w-4 mr-2" />
                             )}
-                            {tier === 'free' && (
-                                <Badge variant="outline" className="text-xs">
-                                    {entries.length}/10 entries
-                                </Badge>
-                            )}
-                        </p>
-                    </div>
-                </div>
-                <Button onClick={handleNew} disabled={isLoading} variant={isAtLimit ? 'outline' : 'default'}>
-                    {isLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                    )}
-                    {isAtLimit ? 'Limit Reached' : 'New Entry'}
-                </Button>
-            </div>
-
-            {/* Error banner */}
-            {error && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-yellow-500 text-sm">
-                    {error}
-                </div>
-            )}
-
-            {/* Entry List */}
-            {entries.length === 0 ? (
-                <Card className="p-12 text-center">
-                    <div className="text-muted-foreground">
-                        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg font-medium">No journal entries yet</p>
-                        <p className="text-sm mt-1">Start documenting your trades to discover patterns</p>
-                        <Button className="mt-4" onClick={handleNew}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create First Entry
+                            {isAtLimit ? 'Limit Reached' : 'New Entry'}
                         </Button>
                     </div>
-                </Card>
-            ) : (
-                <div className="space-y-3">
-                    {entries.map((entry) => (
-                        <JournalEntryCard
-                            key={entry.id}
-                            entry={entry}
-                            linkedThesis={entry.thesisId ? getThesisById(entry.thesisId) : undefined}
-                            onEdit={() => handleEdit(entry.id)}
-                            onDelete={() => deleteEntry(entry.id)}
-                        />
-                    ))}
+
+                    {/* Error banner */}
+                    {error && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-yellow-500 text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Entry List */}
+                    {entries.length === 0 ? (
+                        <Card className="p-12 text-center">
+                            <div className="text-muted-foreground">
+                                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p className="text-lg font-medium">No journal entries yet</p>
+                                <p className="text-sm mt-1">Start documenting your trades to discover patterns</p>
+                                <Button className="mt-4" onClick={handleNew}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create First Entry
+                                </Button>
+                            </div>
+                        </Card>
+                    ) : (
+                        <div className="space-y-3">
+                            {entries.map((entry) => (
+                                <JournalEntryCard
+                                    key={entry.id}
+                                    entry={entry}
+                                    linkedThesis={entry.thesisId ? getThesisById(entry.thesisId) : undefined}
+                                    onEdit={() => handleEdit(entry.id)}
+                                    onDelete={() => deleteEntry(entry.id)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
-            )}
+            </ScrollArea>
 
             {/* Upgrade Prompt Modal */}
             {showUpgradePrompt && (

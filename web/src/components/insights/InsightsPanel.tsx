@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePatternStore, type PatternInsight, type UserPattern } from '@/lib/stores/pattern-store';
 import { useJournalStore } from '@/lib/stores/journal-store';
 import { useInsightsData, type PersonalizedRecommendation } from '@/hooks/useInsightsData';
@@ -101,22 +102,24 @@ export function InsightsPanel() {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                        <Brain className="h-5 w-5 text-purple-500" />
+        <div className="h-full flex flex-col">
+            <ScrollArea className="flex-1">
+                <div className="p-4 space-y-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                            <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                <Brain className="h-5 w-5 text-purple-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold">Trading Insights</h2>
+                                <p className="text-sm text-muted-foreground">Performance analysis and AI pattern recognition</p>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-bold">Trading Insights</h2>
-                        <p className="text-sm text-muted-foreground">Performance analysis and AI pattern recognition</p>
-                    </div>
-                </div>
-            </div>
 
             {/* Performance Overview */}
             {hasData ? (
@@ -586,6 +589,8 @@ export function InsightsPanel() {
                     )}
                 </>
             )}
+                </div>
+            </ScrollArea>
         </div>
     );
 }

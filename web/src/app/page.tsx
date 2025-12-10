@@ -96,8 +96,8 @@ export default function Home() {
             {/* Frosted Glass Overlay - Sits on top of background */}
             <FrostedOverlay intensity="medium" className="fixed inset-0 z-10" />
 
-            {/* Content Layer - Scrolls naturally */}
-            <div className="relative z-20">
+            {/* Content Layer - Scrollable container */}
+            <div className="relative z-20 h-screen overflow-y-auto overflow-x-hidden">
                 {/* Navigation */}
                 <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-border/20 supports-[backdrop-filter]:bg-background/20">
                     <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
