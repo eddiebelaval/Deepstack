@@ -74,93 +74,87 @@ export function StickySection({
       ref={sectionRef}
       className={cn('relative', scrollHeight, className)}
     >
-      {/* Two-column grid layout for left/right alignment */}
+      {/* Two-column layout with stagger: Header appears FIRST, content BELOW */}
       {!isCenter && (
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-            {/* Sticky Header Column - centers vertically while sticky */}
-            <div
-              className={cn(
-                // Sticky container that spans the viewport height
-                'lg:sticky lg:top-0 lg:h-screen lg:flex lg:items-center',
-                // Order based on alignment
-                isRight && 'lg:order-2',
-              )}
-            >
-              <motion.header
-                style={{
-                  scale: headerScale,
-                  y: headerY,
-                }}
-                className={cn(
-                  'py-8 lg:py-0',
-                  // Text alignment
-                  isRight && 'lg:text-right',
-                  headerClassName
-                )}
-              >
-                <div className={cn(
-                  'max-w-lg',
-                  isRight && 'lg:ml-auto'
-                )}>
-                  {/* Optional badge */}
-                  {badge && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5 }}
-                      className={cn(
-                        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
-                        badgeColor,
-                        isRight && 'lg:ml-auto'
-                      )}
-                    >
-                      {badgeIcon}
-                      {badge}
-                    </motion.div>
-                  )}
-
-                  {/* Title - potentially with accent color */}
-                  <motion.h2
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
-                    className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]"
-                  >
-                    {titleAccent ? (
-                      <>
-                        {title.split(' ').slice(0, -1).join(' ')}{' '}
-                        <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
-                      </>
-                    ) : (
-                      title
-                    )}
-                  </motion.h2>
-
-                  {/* Subtitle */}
-                  {subtitle && (
-                    <motion.p
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.6, delay: 0.2 }}
-                      className="mt-6 text-lg text-muted-foreground leading-relaxed"
-                    >
-                      {subtitle}
-                    </motion.p>
-                  )}
-                </div>
-              </motion.header>
-            </div>
-
-            {/* Content Column - slight delay before content appears */}
+        <div className="max-w-7xl mx-auto px-4 pt-16 lg:pt-24">
+          {/* Header Row - shows FIRST at top of section */}
+          <motion.header
+            style={{
+              scale: headerScale,
+              y: headerY,
+            }}
+            className={cn(
+              'lg:sticky lg:top-[20vh] lg:z-10',
+              'lg:grid lg:grid-cols-2 lg:gap-16',
+              headerClassName
+            )}
+          >
             <div className={cn(
-              'relative z-20',
-              // Small top padding to stagger content after header
-              'pt-16 lg:pt-24 pb-16',
-              isRight && 'lg:order-1',
+              'max-w-lg',
+              isRight && 'lg:col-start-2 lg:ml-auto lg:text-right',
+              !isRight && 'lg:col-start-1'
+            )}>
+              {/* Optional badge */}
+              {badge && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
+                    badgeColor,
+                    isRight && 'lg:ml-auto'
+                  )}
+                >
+                  {badgeIcon}
+                  {badge}
+                </motion.div>
+              )}
+
+              {/* Title - potentially with accent color */}
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]"
+              >
+                {titleAccent ? (
+                  <>
+                    {title.split(' ').slice(0, -1).join(' ')}{' '}
+                    <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
+                  </>
+                ) : (
+                  title
+                )}
+              </motion.h2>
+
+              {/* Subtitle */}
+              {subtitle && (
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="mt-6 text-lg text-muted-foreground leading-relaxed"
+                >
+                  {subtitle}
+                </motion.p>
+              )}
+            </div>
+          </motion.header>
+
+          {/* Content - positioned BELOW header with significant offset */}
+          <div className={cn(
+            'lg:grid lg:grid-cols-2 lg:gap-16',
+            'mt-16 lg:mt-[35vh]', // Push content down significantly on desktop
+            'pb-16'
+          )}>
+            <div className={cn(
+              'relative',
+              isRight && 'lg:col-start-1',
+              !isRight && 'lg:col-start-2',
               contentClassName
             )}>
               {children}
