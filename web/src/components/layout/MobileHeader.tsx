@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { Menu, Plus, Search } from 'lucide-react';
-import NextImage from "next/image";
+import { Logo } from '@/components/ui/Logo';
 
 /**
  * Mobile Header - Claude/Perplexity style header with hamburger menu
@@ -28,15 +28,7 @@ export function MobileHeader() {
 
             {/* Center: Logo */}
             <div className="flex items-center gap-2">
-                <div className="relative h-8 w-32">
-                    <NextImage
-                        src="/logo-full.png"
-                        alt="DeepStack"
-                        fill
-                        className="object-contain"
-                        priority
-                    />
-                </div>
+                <Logo size="lg" />
             </div>
 
             {/* Right: Quick Actions */}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import NextImage from "next/image";
+import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -135,15 +135,7 @@ export function LeftSidebar() {
                     showExpanded ? "justify-between" : "justify-center"
                 )}>
                     {showExpanded && (
-                        <div className="relative h-8 w-32">
-                            <NextImage
-                                src="/logo-full.png"
-                                alt="DeepStack"
-                                fill
-                                className="object-contain"
-                                priority
-                            />
-                        </div>
+                        <Logo size="lg" />
                     )}
 
                     {/* Mobile: Close button / Desktop: Collapse toggle */}

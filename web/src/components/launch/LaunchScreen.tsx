@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStandaloneMode } from '@/hooks/useStandaloneMode';
+import { Logo } from '@/components/ui/Logo';
 
 interface LaunchScreenProps {
   /** Duration of the launch animation in ms (default: 1500) */
@@ -170,10 +171,8 @@ export function LaunchScreen({
                 transition={{ duration: 0.5, delay: 0.4 }}
                 className="text-center"
               >
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                  DeepStack
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
+                <Logo size="xl" />
+                <p className="text-sm text-muted-foreground mt-2">
                   AI Trading Assistant
                 </p>
               </motion.div>

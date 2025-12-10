@@ -12,7 +12,7 @@ import {
     Brain,
 } from 'lucide-react';
 import Link from 'next/link';
-import NextImage from "next/image";
+import { Logo } from '@/components/ui/Logo';
 import { IntelligentBackground } from '@/components/landing/IntelligentBackground';
 import { FrostedOverlay } from '@/components/landing/FrostedOverlay';
 
@@ -102,15 +102,7 @@ export default function Home() {
                 <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-border/20 supports-[backdrop-filter]:bg-background/20">
                     <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="relative h-10 w-40">
-                                <NextImage
-                                    src="/logo-full.png"
-                                    alt="DeepStack"
-                                    fill
-                                    className="object-contain"
-                                    priority
-                                />
-                            </div>
+                            <Logo size="xl" />
                         </div>
                         <div className="flex items-center gap-4">
                             <Link href="/help" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">
@@ -315,14 +307,7 @@ export default function Home() {
                     <div className="max-w-6xl mx-auto">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                             <div className="flex items-center gap-2">
-                                <div className="relative h-8 w-32">
-                                    <NextImage
-                                        src="/logo-full.png"
-                                        alt="DeepStack"
-                                        fill
-                                        className="object-contain"
-                                    />
-                                </div>
+                                <Logo size="lg" />
                                 <span className="text-muted-foreground text-sm ml-2 px-2 py-0.5 bg-muted rounded-full">Research Platform</span>
                             </div>
                             <div className="flex items-center gap-8 text-sm font-medium">

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { Mail, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { Logo } from '@/components/ui/Logo'
 
 export default function LoginPage() {
     const { signInWithGoogle, signInWithMagicLink, isConfigured } = useAuth()
@@ -59,10 +60,8 @@ export default function LoginPage() {
                 <div className="glass-surface-elevated rounded-2xl p-8 shadow-2xl">
                     {/* Logo and title */}
                     <div className="text-center mb-8">
-                        <h1 className="text-2xl font-semibold text-foreground mb-2 tracking-tight">
-                            DeepStack
-                        </h1>
-                        <p className="text-muted-foreground text-sm">
+                        <Logo size="xl" className="justify-center" />
+                        <p className="text-muted-foreground text-sm mt-2">
                             Autonomous trading agent
                         </p>
                     </div>
