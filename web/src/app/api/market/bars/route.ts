@@ -17,12 +17,9 @@ const barsRequestSchema = z.object({
   limit: z.string()
     .regex(/^\d+$/, 'Limit must be a number')
     .default('100')
-    .transform((s: string) => {
-      const num = parseInt(s, 10);
-      if (num < 1 || num > 1000) {
-        throw new Error('Limit must be between 1 and 1000');
-      }
-      return num;
+    .transform((s: string) => parseInt(s, 10))
+    .refine((num) => num >= 1 && num <= 1000, {
+      message: 'Limit must be between 1 and 1000',
     }),
 });
 

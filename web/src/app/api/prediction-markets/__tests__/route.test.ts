@@ -143,19 +143,19 @@ describe('Prediction Markets API Route', () => {
   });
 
   describe('backend error handling', () => {
-    it('should return mock data when backend unavailable', async () => {
+    it('should return 503 error when backend unavailable', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
       const request = new NextRequest('http://localhost:3000/api/prediction-markets');
       const response = await GET(request);
       const data = await response.json();
 
-      expect(data.markets).toBeDefined();
-      expect(data.markets.length).toBeGreaterThan(0);
-      expect(data.mock).toBe(true);
+      expect(response.status).toBe(503);
+      expect(data.error).toBeDefined();
+      expect(data.unavailable).toBe(true);
     });
 
-    it('should return mock data when backend returns error status', async () => {
+    it('should return 503 error when backend returns error status', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
@@ -165,12 +165,12 @@ describe('Prediction Markets API Route', () => {
       const response = await GET(request);
       const data = await response.json();
 
-      expect(data.markets).toBeDefined();
-      expect(data.markets.length).toBeGreaterThan(0);
-      expect(data.mock).toBe(true);
+      expect(response.status).toBe(503);
+      expect(data.error).toBeDefined();
+      expect(data.unavailable).toBe(true);
     });
 
-    it('should return mock data when backend returns 404', async () => {
+    it('should return 503 error when backend returns 404', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
@@ -180,11 +180,11 @@ describe('Prediction Markets API Route', () => {
       const response = await GET(request);
       const data = await response.json();
 
-      expect(data.mock).toBe(true);
-      expect(data.markets).toBeDefined();
+      expect(response.status).toBe(503);
+      expect(data.unavailable).toBe(true);
     });
 
-    it('should return mock data when backend JSON parsing fails', async () => {
+    it('should return 503 error when backend JSON parsing fails', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => {
@@ -196,8 +196,8 @@ describe('Prediction Markets API Route', () => {
       const response = await GET(request);
       const data = await response.json();
 
-      expect(data.mock).toBe(true);
-      expect(data.markets).toBeDefined();
+      expect(response.status).toBe(503);
+      expect(data.unavailable).toBe(true);
     });
   });
 
@@ -314,90 +314,28 @@ describe('Prediction Markets API Route', () => {
     });
   });
 
-  describe('mock data structure', () => {
+  describe('error response structure', () => {
     beforeEach(() => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Force mock data'));
+      global.fetch = vi.fn().mockRejectedValue(new Error('Force error'));
     });
 
-    it('should return mock data with correct structure', async () => {
+    it('should return 503 with correct error structure', async () => {
       const request = new NextRequest('http://localhost:3000/api/prediction-markets');
       const response = await GET(request);
       const data = await response.json();
 
-      expect(data).toHaveProperty('markets');
-      expect(data).toHaveProperty('mock', true);
-      expect(Array.isArray(data.markets)).toBe(true);
+      expect(response.status).toBe(503);
+      expect(data).toHaveProperty('error');
+      expect(data).toHaveProperty('message');
+      expect(data).toHaveProperty('unavailable', true);
     });
 
-    it('should return mock markets with required fields', async () => {
+    it('should include helpful error message', async () => {
       const request = new NextRequest('http://localhost:3000/api/prediction-markets');
       const response = await GET(request);
       const data = await response.json();
 
-      data.markets.forEach((market: any) => {
-        expect(market).toHaveProperty('id');
-        expect(market).toHaveProperty('platform');
-        expect(market).toHaveProperty('title');
-        expect(market).toHaveProperty('category');
-        expect(market).toHaveProperty('yesPrice');
-        expect(market).toHaveProperty('noPrice');
-        expect(market).toHaveProperty('volume');
-        expect(market).toHaveProperty('status');
-        expect(market).toHaveProperty('url');
-      });
-    });
-
-    it('should return mock markets with valid price ranges', async () => {
-      const request = new NextRequest('http://localhost:3000/api/prediction-markets');
-      const response = await GET(request);
-      const data = await response.json();
-
-      data.markets.forEach((market: any) => {
-        expect(market.yesPrice).toBeGreaterThanOrEqual(0);
-        expect(market.yesPrice).toBeLessThanOrEqual(1);
-        expect(market.noPrice).toBeGreaterThanOrEqual(0);
-        expect(market.noPrice).toBeLessThanOrEqual(1);
-      });
-    });
-
-    it('should return mock markets with positive volumes', async () => {
-      const request = new NextRequest('http://localhost:3000/api/prediction-markets');
-      const response = await GET(request);
-      const data = await response.json();
-
-      data.markets.forEach((market: any) => {
-        expect(market.volume).toBeGreaterThan(0);
-        if (market.volume24h !== undefined) {
-          expect(market.volume24h).toBeGreaterThanOrEqual(0);
-        }
-      });
-    });
-
-    it('should return multiple mock markets', async () => {
-      const request = new NextRequest('http://localhost:3000/api/prediction-markets');
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(data.markets.length).toBeGreaterThan(3);
-    });
-
-    it('should return mock markets from different platforms', async () => {
-      const request = new NextRequest('http://localhost:3000/api/prediction-markets');
-      const response = await GET(request);
-      const data = await response.json();
-
-      const platforms = new Set(data.markets.map((m: any) => m.platform));
-      expect(platforms.size).toBeGreaterThan(1);
-      expect(platforms.has('kalshi') || platforms.has('polymarket')).toBe(true);
-    });
-
-    it('should return mock markets with different categories', async () => {
-      const request = new NextRequest('http://localhost:3000/api/prediction-markets');
-      const response = await GET(request);
-      const data = await response.json();
-
-      const categories = new Set(data.markets.map((m: any) => m.category));
-      expect(categories.size).toBeGreaterThan(1);
+      expect(data.message).toContain('unavailable');
     });
   });
 
