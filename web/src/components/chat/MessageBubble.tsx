@@ -55,42 +55,39 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <ThinkingBlock content={message.thinking} defaultExpanded={false} />
         )}
 
-        <div className="text-foreground/90 text-[15px] leading-[1.75] prose prose-invert prose-sm max-w-none">
+        <div className="text-foreground text-[15px] leading-7 prose prose-invert prose-sm max-w-none">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
               h1({ children }) {
-                return <h1 className="text-[1.5rem] font-semibold mb-4 mt-8 first:mt-0 text-foreground tracking-tight leading-tight">{children}</h1>;
+                return <h1 className="text-2xl font-bold my-6 first:mt-0 text-foreground">{children}</h1>;
               },
               h2({ children }) {
-                return <h2 className="text-[1.25rem] font-semibold mt-8 mb-4 text-foreground tracking-tight leading-tight">{children}</h2>;
+                return <h2 className="text-xl font-bold my-5 text-foreground border-b border-border/30 pb-3">{children}</h2>;
               },
               h3({ children }) {
-                return <h3 className="text-[1.1rem] font-semibold mt-6 mb-3 text-foreground leading-snug">{children}</h3>;
+                return <h3 className="text-lg font-bold my-4 text-foreground">{children}</h3>;
               },
               h4({ children }) {
-                return <h4 className="text-base font-medium mt-5 mb-2 text-foreground/90">{children}</h4>;
+                return <h4 className="text-base font-semibold my-3 text-foreground/90">{children}</h4>;
               },
               p({ children }) {
-                // More breathing room between paragraphs - Claude web style
-                return <p className="mb-4 leading-[1.75] text-foreground/90">{children}</p>;
+                return <p className="my-4 leading-7 text-foreground/90">{children}</p>;
               },
               ul({ children }) {
-                // Tighter list styling with proper indentation
-                return <ul className="my-4 ml-5 space-y-2 list-disc marker:text-muted-foreground/70">{children}</ul>;
+                return <ul className="list-disc list-outside ml-6 my-4 space-y-2 text-foreground/90">{children}</ul>;
               },
               ol({ children }) {
-                return <ol className="my-4 ml-5 space-y-2 list-decimal marker:text-muted-foreground/70">{children}</ol>;
+                return <ol className="list-decimal list-outside ml-6 my-4 space-y-2 text-foreground/90">{children}</ol>;
               },
               li({ children }) {
-                // Slightly tighter line height for list items
-                return <li className="leading-[1.65] pl-1.5 text-foreground/90">{children}</li>;
+                return <li className="leading-7 pl-1 text-foreground/90">{children}</li>;
               },
               strong({ children }) {
-                return <strong className="font-semibold text-foreground">{children}</strong>;
+                return <strong className="font-bold text-foreground">{children}</strong>;
               },
               em({ children }) {
-                return <em className="italic text-foreground/80">{children}</em>;
+                return <em className="italic text-foreground/70">{children}</em>;
               },
               blockquote({ children }) {
                 // Check for GitHub-style alerts: > [!NOTE], > [!TIP], etc.
@@ -98,15 +95,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 if (alertInfo) {
                   return <CalloutBlock type={alertInfo.type}>{alertInfo.content}</CalloutBlock>;
                 }
-                // Regular blockquote - cleaner styling
+                // Regular blockquote - Claude/id8composer style
                 return (
-                  <blockquote className="border-l-2 border-muted-foreground/40 pl-4 my-5 text-muted-foreground/80 italic">
+                  <blockquote className="border-l-4 border-primary/50 pl-4 my-4 italic text-foreground/70 bg-primary/5 py-2 rounded-r">
                     {children}
                   </blockquote>
                 );
               },
               hr() {
-                return <hr className="my-6 border-border/20" />;
+                return <hr className="my-6 border-t-2 border-border/30" />;
               },
               code({ inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');

@@ -1,20 +1,23 @@
+/**
+ * Vitest Configuration for Integration Tests
+ *
+ * Uses Node environment (not happy-dom) because we're testing API routes,
+ * not React components. MSW requires Node environment for server-side mocking.
+ */
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
   test: {
     globals: true,
-    environment: 'happy-dom',
-    setupFiles: ['./src/__tests__/setup.ts'],
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    // Exclude integration tests from default run (they have their own setup)
-    exclude: ['src/__tests__/integration/**', 'node_modules/**'],
+    environment: 'node',
+    include: ['src/__tests__/integration/**/*.integration.test.ts'],
+    testTimeout: 10000, // Integration tests may take longer
+    hookTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.{ts,tsx}'],
+      include: ['src/app/api/**/*.ts', 'src/lib/**/*.ts'],
       exclude: [
         'src/**/*.test.{ts,tsx}',
         'src/**/__tests__/**',

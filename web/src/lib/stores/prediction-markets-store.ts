@@ -5,6 +5,9 @@ import type { PredictionMarket, WatchlistItem, MarketFilters } from '@/lib/types
 // Auto-refresh interval: 5 minutes
 export const PREDICTION_REFRESH_INTERVAL = 5 * 60 * 1000;
 
+// Counter for generating unique IDs
+let watchlistIdCounter = 0;
+
 interface PredictionMarketsState {
   // Data
   markets: PredictionMarket[];
@@ -98,9 +101,10 @@ export const usePredictionMarketsStore = create<PredictionMarketsState>()(
       markAsViewed: () => set({ newMarketsCount: 0 }),
 
       addToWatchlist: (item) => {
+        watchlistIdCounter += 1;
         const newItem: WatchlistItem = {
           ...item,
-          id: `pm-watch-${Date.now()}`,
+          id: `pm-watch-${Date.now()}-${watchlistIdCounter}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };

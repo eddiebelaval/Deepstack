@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Counter for generating unique IDs
+let tradeIdCounter = 0;
+
 export interface TradeEntry {
     id: string;
     userId?: string;
@@ -34,9 +37,10 @@ export const useTradesStore = create<TradesStore>()(
 
             addTrade: (trade) => {
                 const now = new Date().toISOString();
+                tradeIdCounter += 1;
                 const newTrade: TradeEntry = {
                     ...trade,
-                    id: `trade-${Date.now()}`, // Temporary local ID
+                    id: `trade-${Date.now()}-${tradeIdCounter}`, // Unique local ID
                     createdAt: now,
                     updatedAt: now,
                 };
