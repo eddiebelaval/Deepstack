@@ -20,6 +20,9 @@ const DEFAULT_INDICES = ["SPY", "QQQ", "DIA", "IWM", "VIX"];
 // Top movers (would come from API in production)
 const TOP_MOVERS = ["NVDA", "AAPL", "TSLA", "AMD", "MSFT"];
 
+// Crypto pairs (Alpaca format)
+const CRYPTO_SYMBOLS = ["BTC/USD", "ETH/USD", "SOL/USD", "DOGE/USD", "XRP/USD"];
+
 type QuoteData = {
   symbol: string;
   price?: number;
@@ -36,30 +39,40 @@ function TickerItem({ symbol, price, changePercent }: TickerItemProps) {
   const isPositive = (changePercent ?? 0) >= 0;
   const isNeutral = changePercent === undefined || changePercent === 0;
 
+  // Format symbol for display (BTC/USD -> BTC)
+  const displaySymbol = symbol.includes('/') ? symbol.split('/')[0] : symbol;
+  const isCrypto = symbol.includes('/');
+
   return (
     <div className="flex items-center gap-3 px-4 whitespace-nowrap">
-      {/* Symbol with LED glow */}
-      <span className="led-text font-mono font-bold text-sm tracking-wide">
-        {symbol}
+      {/* Symbol with LED glow - crypto gets special styling */}
+      <span className={cn(
+        "font-mono font-bold text-sm tracking-wide",
+        isCrypto ? "text-amber-400" : "led-text"
+      )}>
+        {displaySymbol}
       </span>
 
-      {/* Price */}
+      {/* Price - crypto uses more decimals */}
       <span className="font-mono text-sm text-foreground/70">
-        {price ? price.toFixed(2) : "—"}
+        {price ? (isCrypto && price > 100 ? price.toFixed(0) : price.toFixed(2)) : "—"}
       </span>
 
-      {/* Change with color glow */}
+      {/* Change with prominent arrow and color glow */}
       {changePercent !== undefined && (
         <span
           className={cn(
-            "font-mono text-sm font-semibold",
+            "flex items-center gap-1 font-mono text-sm font-semibold",
             isNeutral && "text-muted-foreground",
             isPositive && !isNeutral && "led-profit",
             !isPositive && !isNeutral && "led-loss"
           )}
         >
-          {isPositive ? "▲" : "▼"}
-          {Math.abs(changePercent).toFixed(2)}%
+          {/* Arrow with enhanced visibility */}
+          <span className="text-base leading-none">
+            {isPositive ? "↑" : "↓"}
+          </span>
+          <span>{Math.abs(changePercent).toFixed(2)}%</span>
         </span>
       )}
 
@@ -84,12 +97,13 @@ export function StreamingTicker() {
   const activeWatchlist = getActiveWatchlist();
   const watchlistSymbols = activeWatchlist?.items.map((i) => i.symbol) ?? [];
 
-  // Combine indices + movers + watchlist (deduplicated)
+  // Combine indices + movers + crypto + watchlist (deduplicated)
   const allSymbols = [
     ...DEFAULT_INDICES,
     ...TOP_MOVERS.filter((s) => !DEFAULT_INDICES.includes(s)),
+    ...CRYPTO_SYMBOLS,
     ...watchlistSymbols.filter(
-      (s) => !DEFAULT_INDICES.includes(s) && !TOP_MOVERS.includes(s)
+      (s) => !DEFAULT_INDICES.includes(s) && !TOP_MOVERS.includes(s) && !CRYPTO_SYMBOLS.includes(s)
     ),
   ];
 
