@@ -1,8 +1,12 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
 import { cn } from '@/lib/utils';
+
+// ============================================================================
+// STICKY SECTION - Linear.app style centered sticky headers
+// ============================================================================
 
 interface StickySectionProps {
   id: string;
@@ -12,13 +16,19 @@ interface StickySectionProps {
   className?: string;
   headerClassName?: string;
   contentClassName?: string;
-  // Control how tall the scrollable area is (content scrolls beneath sticky header)
+  // Control how tall the scrollable area is
   scrollHeight?: string;
   // Whether to show the gradient fade on header
   showGradient?: boolean;
   // Badge text above title
   badge?: string;
   badgeIcon?: React.ReactNode;
+  // Badge color scheme
+  badgeColor?: string;
+  // Title gradient/color
+  titleAccent?: string;
+  // Center the header (Linear style)
+  centerHeader?: boolean;
 }
 
 export function StickySection({
@@ -29,10 +39,13 @@ export function StickySection({
   className,
   headerClassName,
   contentClassName,
-  scrollHeight = 'min-h-[60vh]',
+  scrollHeight = 'min-h-[100vh]',
   showGradient = true,
   badge,
   badgeIcon,
+  badgeColor = 'bg-primary/10 text-primary border-primary/20',
+  titleAccent,
+  centerHeader = true,
 }: StickySectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -43,9 +56,10 @@ export function StickySection({
   });
 
   // Transform values for smooth header animations
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.1, 0.8, 1], [0.7, 1, 1, 0.5]);
-  const headerScale = useTransform(scrollYProgress, [0, 0.1, 0.8, 1], [0.95, 1, 1, 0.98]);
-  const headerY = useTransform(scrollYProgress, [0, 0.1], [20, 0]);
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.1, 0.7, 0.9], [0.5, 1, 1, 0]);
+  const headerScale = useTransform(scrollYProgress, [0, 0.1, 0.7, 0.9], [0.92, 1, 1, 0.95]);
+  const headerY = useTransform(scrollYProgress, [0, 0.1], [30, 0]);
+  const headerBlur = useTransform(scrollYProgress, [0.7, 0.9], [0, 8]);
 
   return (
     <section
@@ -53,23 +67,25 @@ export function StickySection({
       ref={sectionRef}
       className={cn('relative', scrollHeight, className)}
     >
-      {/* Sticky Header */}
+      {/* Sticky Header - Centered */}
       <motion.header
         style={{
           opacity: headerOpacity,
           scale: headerScale,
           y: headerY,
+          filter: useMotionTemplate`blur(${headerBlur}px)`,
         }}
         className={cn(
-          // Sticky with more breathing room - about 1/3 down the viewport
-          'sticky top-[20vh] z-30 pt-8 pb-6',
-          // Gradient background that fades to transparent
-          showGradient && 'bg-gradient-to-b from-background via-background/90 to-transparent',
-          'backdrop-blur-md',
+          // Sticky positioning - centered vertically
+          'sticky top-[15vh] z-30 py-12',
+          // Gradient background that fades
+          showGradient && 'bg-gradient-to-b from-background via-background/80 to-transparent',
+          'backdrop-blur-sm',
+          centerHeader && 'text-center',
           headerClassName
         )}
       >
-        <div className="max-w-6xl mx-auto px-4">
+        <div className={cn('max-w-4xl mx-auto px-4', centerHeader && 'flex flex-col items-center')}>
           {/* Optional badge */}
           {badge && (
             <motion.div
@@ -77,22 +93,32 @@ export function StickySection({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20"
+              className={cn(
+                'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
+                badgeColor
+              )}
             >
               {badgeIcon}
               {badge}
             </motion.div>
           )}
 
-          {/* Title */}
+          {/* Title - potentially with accent color */}
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-3xl md:text-5xl font-bold tracking-tight"
+            className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1]"
           >
-            {title}
+            {titleAccent ? (
+              <>
+                {title.split(' ').slice(0, -1).join(' ')}{' '}
+                <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
+              </>
+            ) : (
+              title
+            )}
           </motion.h2>
 
           {/* Subtitle */}
@@ -102,7 +128,7 @@ export function StickySection({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl"
+              className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed"
             >
               {subtitle}
             </motion.p>
@@ -111,7 +137,7 @@ export function StickySection({
       </motion.header>
 
       {/* Content that scrolls beneath header */}
-      <div className={cn('relative z-20 px-4', contentClassName)}>
+      <div className={cn('relative z-20 px-4 pt-8', contentClassName)}>
         <div className="max-w-6xl mx-auto">
           {children}
         </div>
@@ -120,7 +146,15 @@ export function StickySection({
   );
 }
 
-// Scroll progress indicator for the entire page
+// Helper for motion template
+function useMotionTemplate(strings: TemplateStringsArray, ...values: MotionValue<number>[]) {
+  return useTransform(values[0], (v) => `blur(${v}px)`);
+}
+
+// ============================================================================
+// SCROLL PROGRESS BAR
+// ============================================================================
+
 export function ScrollProgressBar() {
   const { scrollYProgress } = useScroll();
 
@@ -132,7 +166,48 @@ export function ScrollProgressBar() {
   );
 }
 
-// Feature card that animates in on scroll
+// ============================================================================
+// PARALLAX SECTION - Horizontal movement on scroll
+// ============================================================================
+
+interface ParallaxSectionProps {
+  children: React.ReactNode;
+  className?: string;
+  direction?: 'left' | 'right';
+  speed?: number; // 0-100, how much to move
+}
+
+export function ParallaxSection({
+  children,
+  className,
+  direction = 'left',
+  speed = 20,
+}: ParallaxSectionProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  });
+
+  const x = useTransform(
+    scrollYProgress,
+    [0, 1],
+    direction === 'left' ? [speed, -speed] : [-speed, speed]
+  );
+
+  return (
+    <div ref={ref} className={cn('overflow-hidden', className)}>
+      <motion.div style={{ x }}>
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+// ============================================================================
+// FEATURE CARD - Animated on scroll
+// ============================================================================
+
 interface FeatureCardProps {
   icon: React.ReactNode;
   title: string;
@@ -172,7 +247,10 @@ export function FeatureCard({
   );
 }
 
-// Step card for "How it works" section
+// ============================================================================
+// STEP CARD - For "How it works" sections
+// ============================================================================
+
 interface StepCardProps {
   step: number;
   title: string;
@@ -197,5 +275,134 @@ export function StepCard({ step, title, description, delay = 0 }: StepCardProps)
         <p className="text-muted-foreground mt-1 leading-relaxed">{description}</p>
       </div>
     </motion.div>
+  );
+}
+
+// ============================================================================
+// SCROLL REVEAL - Items that reveal on scroll with stagger
+// ============================================================================
+
+interface ScrollRevealProps {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: 'up' | 'down' | 'left' | 'right';
+}
+
+export function ScrollReveal({
+  children,
+  className,
+  delay = 0,
+  direction = 'up',
+}: ScrollRevealProps) {
+  const directions = {
+    up: { y: 40, x: 0 },
+    down: { y: -40, x: 0 },
+    left: { y: 0, x: 40 },
+    right: { y: 0, x: -40 },
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, ...directions[direction] }}
+      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.6, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// SCALE ON SCROLL - Element scales based on scroll position
+// ============================================================================
+
+interface ScaleOnScrollProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function ScaleOnScroll({ children, className }: ScaleOnScrollProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'center center'],
+  });
+
+  const scale = useTransform(scrollYProgress, [0, 1], [0.8, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [0, 0.5, 1]);
+
+  return (
+    <motion.div
+      ref={ref}
+      style={{ scale, opacity }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// FLOATING ELEMENT - Subtle floating animation
+// ============================================================================
+
+interface FloatingProps {
+  children: React.ReactNode;
+  className?: string;
+  duration?: number;
+  distance?: number;
+}
+
+export function Floating({
+  children,
+  className,
+  duration = 3,
+  distance = 10,
+}: FloatingProps) {
+  return (
+    <motion.div
+      animate={{ y: [-distance / 2, distance / 2, -distance / 2] }}
+      transition={{ duration, repeat: Infinity, ease: 'easeInOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// GRADIENT TEXT - Animated gradient text
+// ============================================================================
+
+interface GradientTextProps {
+  children: React.ReactNode;
+  className?: string;
+  from?: string;
+  via?: string;
+  to?: string;
+}
+
+export function GradientText({
+  children,
+  className,
+  from = 'from-primary',
+  via = 'via-orange-400',
+  to = 'to-yellow-400',
+}: GradientTextProps) {
+  return (
+    <span
+      className={cn(
+        'bg-gradient-to-r bg-clip-text text-transparent animate-gradient-x bg-[length:200%_auto]',
+        from,
+        via,
+        to,
+        className
+      )}
+    >
+      {children}
+    </span>
   );
 }
