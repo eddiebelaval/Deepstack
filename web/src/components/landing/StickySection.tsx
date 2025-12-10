@@ -163,80 +163,76 @@ export function StickySection({
         </div>
       )}
 
-      {/* Centered layout (original behavior) */}
+      {/* Centered layout - header at top, content below (no overlap) */}
       {isCenter && (
-        <>
-          {/* Sticky header that centers vertically */}
-          <div className="sticky top-0 h-screen flex items-center justify-center z-30 pointer-events-none">
-            <motion.header
-              style={{
-                scale: headerScale,
-                y: headerY,
-              }}
-              className={cn(
-                'text-center pointer-events-auto',
-                headerClassName
+        <div className="max-w-6xl mx-auto px-4 pt-16 lg:pt-24">
+          {/* Centered header */}
+          <motion.header
+            style={{
+              scale: headerScale,
+              y: headerY,
+            }}
+            className={cn(
+              'text-center mb-16',
+              headerClassName
+            )}
+          >
+            <div className="max-w-4xl mx-auto flex flex-col items-center">
+              {/* Optional badge */}
+              {badge && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
+                    badgeColor
+                  )}
+                >
+                  {badgeIcon}
+                  {badge}
+                </motion.div>
               )}
-            >
-              <div className="max-w-4xl mx-auto px-4 flex flex-col items-center">
-                {/* Optional badge */}
-                {badge && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                    className={cn(
-                      'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
-                      badgeColor
-                    )}
-                  >
-                    {badgeIcon}
-                    {badge}
-                  </motion.div>
-                )}
 
-                {/* Title */}
-                <motion.h2
+              {/* Title */}
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]"
+              >
+                {titleAccent ? (
+                  <>
+                    {title.split(' ').slice(0, -1).join(' ')}{' '}
+                    <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
+                  </>
+                ) : (
+                  title
+                )}
+              </motion.h2>
+
+              {/* Subtitle */}
+              {subtitle && (
+                <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: 0.1 }}
-                  className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]"
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed"
                 >
-                  {titleAccent ? (
-                    <>
-                      {title.split(' ').slice(0, -1).join(' ')}{' '}
-                      <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
-                    </>
-                  ) : (
-                    title
-                  )}
-                </motion.h2>
-
-                {/* Subtitle */}
-                {subtitle && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                    className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed"
-                  >
-                    {subtitle}
-                  </motion.p>
-                )}
-              </div>
-            </motion.header>
-          </div>
-
-          {/* Content - positioned below sticky header */}
-          <div className={cn('relative z-20 px-4 -mt-[50vh] pt-[55vh] pb-16', contentClassName)}>
-            <div className="max-w-6xl mx-auto">
-              {children}
+                  {subtitle}
+                </motion.p>
+              )}
             </div>
+          </motion.header>
+
+          {/* Content - positioned below header with proper spacing */}
+          <div className={cn('relative pb-16', contentClassName)}>
+            {children}
           </div>
-        </>
+        </div>
       )}
     </section>
   );
