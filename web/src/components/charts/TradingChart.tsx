@@ -485,11 +485,32 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
   }, [chartType]);
 
   return (
-    <div
-      ref={chartContainerRef}
-      className={className}
-      style={{ width: "100%", height: "100%" }}
-    />
+    <div className="relative w-full h-full">
+      {/* Chart Canvas */}
+      <div
+        ref={chartContainerRef}
+        className={className}
+        style={{ width: "100%", height: "100%" }}
+      />
+      {/* Ticker Symbol Watermark - on top with pointer-events: none */}
+      <div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
+        style={{ zIndex: 10 }}
+      >
+        <span
+          className="font-extrabold"
+          style={{
+            fontSize: 'clamp(6rem, 22vw, 18rem)',
+            color: 'rgba(255, 255, 255, 0.12)',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            letterSpacing: '0.25em',
+            transform: 'translateX(5%)',
+          }}
+        >
+          {activeSymbol}
+        </span>
+      </div>
+    </div>
   );
 }
 
