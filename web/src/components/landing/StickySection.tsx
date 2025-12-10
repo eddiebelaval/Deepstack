@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
-// STICKY SECTION - Linear.app style centered sticky headers
+// STICKY SECTION - Linear.app style with alternating left/right headers
 // ============================================================================
 
 interface StickySectionProps {
@@ -27,7 +27,9 @@ interface StickySectionProps {
   badgeColor?: string;
   // Title gradient/color
   titleAccent?: string;
-  // Center the header (Linear style)
+  // Header alignment: 'left', 'right', or 'center'
+  align?: 'left' | 'right' | 'center';
+  // Deprecated: use align='center' instead
   centerHeader?: boolean;
 }
 
@@ -45,9 +47,16 @@ export function StickySection({
   badgeIcon,
   badgeColor = 'bg-primary/10 text-primary border-primary/20',
   titleAccent,
-  centerHeader = true,
+  align = 'left',
+  centerHeader,
 }: StickySectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
+
+  // Handle deprecated centerHeader prop
+  const effectiveAlign = centerHeader !== undefined ? (centerHeader ? 'center' : 'left') : align;
+  const isCenter = effectiveAlign === 'center';
+  const isRight = effectiveAlign === 'right';
+  const isLeft = effectiveAlign === 'left';
 
   // Track scroll progress within this section
   const { scrollYProgress } = useScroll({
@@ -55,11 +64,9 @@ export function StickySection({
     offset: ['start start', 'end start'],
   });
 
-  // Transform values for smooth header animations
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.1, 0.7, 0.9], [0.5, 1, 1, 0]);
-  const headerScale = useTransform(scrollYProgress, [0, 0.1, 0.7, 0.9], [0.92, 1, 1, 0.95]);
-  const headerY = useTransform(scrollYProgress, [0, 0.1], [30, 0]);
-  const headerBlur = useTransform(scrollYProgress, [0.7, 0.9], [0, 8]);
+  // Transform values for smooth header animations - FULL OPACITY, no fade
+  const headerScale = useTransform(scrollYProgress, [0, 0.1, 0.7, 0.9], [0.98, 1, 1, 0.98]);
+  const headerY = useTransform(scrollYProgress, [0, 0.1], [20, 0]);
 
   return (
     <section
@@ -67,81 +74,166 @@ export function StickySection({
       ref={sectionRef}
       className={cn('relative', scrollHeight, className)}
     >
-      {/* Sticky Header - Centered */}
-      <motion.header
-        style={{
-          opacity: headerOpacity,
-          scale: headerScale,
-          y: headerY,
-          filter: useMotionTemplate`blur(${headerBlur}px)`,
-        }}
-        className={cn(
-          // Sticky positioning - centered vertically
-          'sticky top-[15vh] z-30 py-12',
-          // Gradient background that fades
-          showGradient && 'bg-gradient-to-b from-background via-background/80 to-transparent',
-          'backdrop-blur-sm',
-          centerHeader && 'text-center',
-          headerClassName
-        )}
-      >
-        <div className={cn('max-w-4xl mx-auto px-4', centerHeader && 'flex flex-col items-center')}>
-          {/* Optional badge */}
-          {badge && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
+      {/* Two-column grid layout for left/right alignment */}
+      {!isCenter && (
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+            {/* Sticky Header Column */}
+            <motion.header
+              style={{
+                scale: headerScale,
+                y: headerY,
+              }}
               className={cn(
-                'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
-                badgeColor
+                'py-8 lg:py-12',
+                // Sticky positioning for the header column
+                'lg:sticky lg:top-[12vh] lg:self-start lg:h-fit',
+                // Full opacity background
+                'bg-background',
+                // Order based on alignment
+                isRight && 'lg:order-2 lg:text-right',
+                headerClassName
               )}
             >
-              {badgeIcon}
-              {badge}
-            </motion.div>
-          )}
+              <div className={cn(
+                'max-w-lg',
+                isRight && 'lg:ml-auto'
+              )}>
+                {/* Optional badge */}
+                {badge && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                    className={cn(
+                      'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
+                      badgeColor,
+                      isRight && 'lg:ml-auto'
+                    )}
+                  >
+                    {badgeIcon}
+                    {badge}
+                  </motion.div>
+                )}
 
-          {/* Title - potentially with accent color */}
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1]"
-          >
-            {titleAccent ? (
-              <>
-                {title.split(' ').slice(0, -1).join(' ')}{' '}
-                <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
-              </>
-            ) : (
-              title
+                {/* Title - potentially with accent color */}
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]"
+                >
+                  {titleAccent ? (
+                    <>
+                      {title.split(' ').slice(0, -1).join(' ')}{' '}
+                      <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
+                    </>
+                  ) : (
+                    title
+                  )}
+                </motion.h2>
+
+                {/* Subtitle */}
+                {subtitle && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="mt-6 text-lg text-muted-foreground leading-relaxed"
+                  >
+                    {subtitle}
+                  </motion.p>
+                )}
+              </div>
+            </motion.header>
+
+            {/* Content Column - scrolls alongside the sticky header */}
+            <div className={cn(
+              'relative z-20 py-8 lg:py-12',
+              isRight && 'lg:order-1',
+              contentClassName
+            )}>
+              {children}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Centered layout (original behavior) */}
+      {isCenter && (
+        <>
+          <motion.header
+            style={{
+              scale: headerScale,
+              y: headerY,
+            }}
+            className={cn(
+              'sticky top-[12vh] z-30 py-8 lg:py-12 text-center bg-background',
+              headerClassName
             )}
-          </motion.h2>
+          >
+            <div className="max-w-4xl mx-auto px-4 flex flex-col items-center">
+              {/* Optional badge */}
+              {badge && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 border',
+                    badgeColor
+                  )}
+                >
+                  {badgeIcon}
+                  {badge}
+                </motion.div>
+              )}
 
-          {/* Subtitle */}
-          {subtitle && (
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed"
-            >
-              {subtitle}
-            </motion.p>
-          )}
-        </div>
-      </motion.header>
+              {/* Title */}
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]"
+              >
+                {titleAccent ? (
+                  <>
+                    {title.split(' ').slice(0, -1).join(' ')}{' '}
+                    <span className={titleAccent}>{title.split(' ').slice(-1)}</span>
+                  </>
+                ) : (
+                  title
+                )}
+              </motion.h2>
 
-      {/* Content that scrolls beneath header */}
-      <div className={cn('relative z-20 px-4 pt-8', contentClassName)}>
-        <div className="max-w-6xl mx-auto">
-          {children}
-        </div>
-      </div>
+              {/* Subtitle */}
+              {subtitle && (
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed"
+                >
+                  {subtitle}
+                </motion.p>
+              )}
+            </div>
+          </motion.header>
+
+          {/* Content */}
+          <div className={cn('relative z-20 px-4 pt-8', contentClassName)}>
+            <div className="max-w-6xl mx-auto">
+              {children}
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }

@@ -418,9 +418,10 @@ export default function LandingPage() {
           badgeColor="bg-red-500/10 text-red-400 border-red-500/20"
           titleAccent="text-red-400"
           scrollHeight="min-h-[140vh]"
+          align="left"
         >
-          {/* Pain points - content scrolls under sticky header */}
-          <div className="grid md:grid-cols-3 gap-6 mt-24">
+          {/* Pain points - stacked vertically to scroll alongside sticky header */}
+          <div className="space-y-4">
             {[
               {
                 icon: <Flame className="w-6 h-6" />,
@@ -442,23 +443,26 @@ export default function LandingPage() {
               },
             ].map((pain, i) => (
               <ScrollReveal key={pain.title} delay={i * 0.1} direction="up">
-                <div className="p-6 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm h-full">
-                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 mb-4">
+                <div className="p-5 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
                     {pain.icon}
                   </div>
-                  <p className="text-3xl font-bold text-red-400 mb-1">{pain.stat}</p>
-                  <h3 className="font-semibold text-lg mb-2">{pain.title}</h3>
-                  <p className="text-sm text-muted-foreground">{pain.description}</p>
+                  <div>
+                    <div className="flex items-baseline gap-3 mb-1">
+                      <p className="text-2xl font-bold text-red-400">{pain.stat}</p>
+                      <h3 className="font-semibold">{pain.title}</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{pain.description}</p>
+                  </div>
                 </div>
               </ScrollReveal>
             ))}
           </div>
 
-          <ScrollReveal delay={0.4} className="mt-12 text-center">
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <ScrollReveal delay={0.4} className="mt-8">
+            <p className="text-muted-foreground">
               The tools you use don&apos;t help. They give you more data, more charts, more noise.
-              <br />
-              <span className="text-foreground font-medium">What you need is discipline.</span>
+              <span className="text-foreground font-medium block mt-2">What you need is discipline.</span>
             </p>
           </ScrollReveal>
         </StickySection>
@@ -476,32 +480,31 @@ export default function LandingPage() {
           titleAccent="text-orange-400"
           scrollHeight="min-h-[180vh]"
           className="bg-gradient-to-b from-orange-950/10 via-transparent to-transparent"
+          align="right"
         >
-          {/* Two column layout - patterns left, visual right */}
-          <div className="grid lg:grid-cols-2 gap-12 items-start mt-16">
+          {/* Content stacks vertically - scrolls alongside sticky header */}
+          <div className="space-y-6">
             {/* Pattern cards */}
-            <div className="space-y-4">
-              {FIREWALL_PATTERNS.map((pattern, i) => (
-                <ScrollReveal key={pattern.name} delay={i * 0.1} direction="left">
-                  <div className={`p-4 rounded-xl ${pattern.bgColor} border ${pattern.borderColor} backdrop-blur-sm flex items-start gap-4`}>
-                    <div className={`w-10 h-10 rounded-lg bg-background/50 flex items-center justify-center ${pattern.color} shrink-0`}>
-                      {pattern.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-semibold">{pattern.name}</h4>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground shrink-0">
-                          {pattern.cooldown}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{pattern.description}</p>
-                    </div>
+            {FIREWALL_PATTERNS.map((pattern, i) => (
+              <ScrollReveal key={pattern.name} delay={i * 0.1} direction="up">
+                <div className={`p-4 rounded-xl ${pattern.bgColor} border ${pattern.borderColor} backdrop-blur-sm flex items-start gap-4`}>
+                  <div className={`w-10 h-10 rounded-lg bg-background/50 flex items-center justify-center ${pattern.color} shrink-0`}>
+                    {pattern.icon}
                   </div>
-                </ScrollReveal>
-              ))}
-            </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-semibold">{pattern.name}</h4>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground shrink-0">
+                        {pattern.cooldown}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{pattern.description}</p>
+                  </div>
+                </div>
+              </ScrollReveal>
+            ))}
 
-            {/* Firewall mockup - scales in on scroll */}
+            {/* Firewall mockup */}
             <ScaleOnScroll>
               <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-2xl">
                 <div className="flex items-center justify-between mb-6">
@@ -606,9 +609,30 @@ export default function LandingPage() {
           badgeColor="bg-primary/10 text-primary border-primary/20"
           titleAccent="text-primary"
           scrollHeight="min-h-[200vh]"
+          align="left"
         >
-          <div className="grid lg:grid-cols-2 gap-12 items-start mt-16">
-            {/* Chat mockup - on the left */}
+          {/* Content stacks vertically - scrolls alongside sticky header */}
+          <div className="space-y-6">
+            {/* Context list */}
+            <div className="space-y-3">
+              {[
+                { icon: <Lightbulb className="w-4 h-4" />, text: 'Your active theses and price targets' },
+                { icon: <BookOpen className="w-4 h-4" />, text: 'Your recent journal entries and emotions' },
+                { icon: <Shield className="w-4 h-4" />, text: 'Your trading patterns and blind spots' },
+                { icon: <BarChart3 className="w-4 h-4" />, text: 'Prediction markets that validate/contradict your thesis' },
+              ].map((item, i) => (
+                <ScrollReveal key={i} delay={i * 0.1} direction="up">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      {item.icon}
+                    </div>
+                    <span className="text-muted-foreground">{item.text}</span>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+
+            {/* Chat mockup */}
             <ScaleOnScroll>
               <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl">
                 {/* Chat header */}
@@ -623,10 +647,10 @@ export default function LandingPage() {
                 </div>
 
                 {/* Chat messages */}
-                <div className="p-4 space-y-4 max-h-[400px]">
+                <div className="p-4 space-y-4">
                   {/* User message */}
                   <div className="flex justify-end">
-                    <div className="px-4 py-2 rounded-2xl bg-primary/15 border border-primary/20 max-w-[80%]">
+                    <div className="px-4 py-2 rounded-2xl bg-primary/15 border border-primary/20 max-w-[85%]">
                       <p className="text-sm">Should I add to my NVDA position given my current emotional state?</p>
                     </div>
                   </div>
@@ -663,43 +687,22 @@ export default function LandingPage() {
               </div>
             </ScaleOnScroll>
 
-            {/* Context list on the right */}
-            <div className="space-y-6">
-              <div className="space-y-3">
-                {[
-                  { icon: <Lightbulb className="w-4 h-4" />, text: 'Your active theses and price targets' },
-                  { icon: <BookOpen className="w-4 h-4" />, text: 'Your recent journal entries and emotions' },
-                  { icon: <Shield className="w-4 h-4" />, text: 'Your trading patterns and blind spots' },
-                  { icon: <BarChart3 className="w-4 h-4" />, text: 'Prediction markets that validate/contradict your thesis' },
-                ].map((item, i) => (
-                  <ScrollReveal key={i} delay={i * 0.1} direction="right">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        {item.icon}
-                      </div>
-                      <span className="text-muted-foreground">{item.text}</span>
+            {/* Example prompts */}
+            <ScrollReveal delay={0.4}>
+              <div className="p-4 rounded-xl bg-card/40 border border-border/50 backdrop-blur-sm">
+                <p className="text-sm text-muted-foreground mb-3 font-medium">Try asking:</p>
+                <div className="space-y-2">
+                  {AI_PROMPTS.map((item) => (
+                    <div key={item.prompt} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-foreground">{item.prompt}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                        {item.capability}
+                      </span>
                     </div>
-                  </ScrollReveal>
-                ))}
-              </div>
-
-              {/* Example prompts */}
-              <ScrollReveal delay={0.4}>
-                <div className="p-4 rounded-xl bg-card/40 border border-border/50 backdrop-blur-sm">
-                  <p className="text-sm text-muted-foreground mb-3 font-medium">Try asking:</p>
-                  <div className="space-y-2">
-                    {AI_PROMPTS.map((item) => (
-                      <div key={item.prompt} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-foreground">{item.prompt}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-                          {item.capability}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
-              </ScrollReveal>
-            </div>
+              </div>
+            </ScrollReveal>
           </div>
         </StickySection>
 
@@ -715,9 +718,10 @@ export default function LandingPage() {
           badgeColor="bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
           scrollHeight="min-h-[140vh]"
           className="bg-card/20"
+          align="right"
         >
-          {/* Thesis card mockup */}
-          <ScaleOnScroll className="max-w-2xl mx-auto mt-16">
+          {/* Thesis card mockup - scrolls alongside sticky header */}
+          <ScaleOnScroll>
             <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-xl">
               {/* Thesis header */}
               <div className="flex items-start justify-between mb-6">
@@ -802,44 +806,44 @@ export default function LandingPage() {
           badgeColor="bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
           titleAccent="text-cyan-400"
           scrollHeight="min-h-[180vh]"
+          align="left"
         >
-          <div className="grid lg:grid-cols-2 gap-12 items-start mt-16">
+          {/* Content stacks vertically - scrolls alongside sticky header */}
+          <div className="space-y-6">
             {/* Use cases */}
-            <div className="space-y-6">
-              <div className="space-y-4">
-                {[
-                  { market: 'Fed rate decisions', thesis: 'Your rate-sensitive plays' },
-                  { market: 'Election outcomes', thesis: 'Your policy-exposed stocks' },
-                  { market: 'Earnings surprises', thesis: 'Your earnings trades' },
-                  { market: 'Crypto predictions', thesis: 'Your digital asset thesis' },
-                ].map((item, i) => (
-                  <ScrollReveal key={item.market} delay={i * 0.1} direction="left">
-                    <div className="flex items-center gap-3">
-                      <ChevronRight className="w-4 h-4 text-cyan-400" />
-                      <span className="text-muted-foreground">
-                        <span className="text-foreground">{item.market}</span> → {item.thesis}
-                      </span>
-                    </div>
-                  </ScrollReveal>
-                ))}
-              </div>
-
-              {/* Platform logos */}
-              <ScrollReveal delay={0.5}>
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
-                    <div className="w-6 h-6 rounded bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">K</div>
-                    <span className="text-sm font-medium">Kalshi</span>
-                    <span className="text-xs text-muted-foreground">CFTC-regulated</span>
+            <div className="space-y-4">
+              {[
+                { market: 'Fed rate decisions', thesis: 'Your rate-sensitive plays' },
+                { market: 'Election outcomes', thesis: 'Your policy-exposed stocks' },
+                { market: 'Earnings surprises', thesis: 'Your earnings trades' },
+                { market: 'Crypto predictions', thesis: 'Your digital asset thesis' },
+              ].map((item, i) => (
+                <ScrollReveal key={item.market} delay={i * 0.1} direction="up">
+                  <div className="flex items-center gap-3">
+                    <ChevronRight className="w-4 h-4 text-cyan-400" />
+                    <span className="text-muted-foreground">
+                      <span className="text-foreground">{item.market}</span> → {item.thesis}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
-                    <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center text-xs font-bold text-purple-400">P</div>
-                    <span className="text-sm font-medium">Polymarket</span>
-                    <span className="text-xs text-muted-foreground">Crypto markets</span>
-                  </div>
-                </div>
-              </ScrollReveal>
+                </ScrollReveal>
+              ))}
             </div>
+
+            {/* Platform logos */}
+            <ScrollReveal delay={0.5}>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
+                  <div className="w-6 h-6 rounded bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">K</div>
+                  <span className="text-sm font-medium">Kalshi</span>
+                  <span className="text-xs text-muted-foreground">CFTC-regulated</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
+                  <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center text-xs font-bold text-purple-400">P</div>
+                  <span className="text-sm font-medium">Polymarket</span>
+                  <span className="text-xs text-muted-foreground">Crypto markets</span>
+                </div>
+              </div>
+            </ScrollReveal>
 
             {/* Markets mockup */}
             <ScaleOnScroll>
@@ -890,6 +894,7 @@ export default function LandingPage() {
           badgeIcon={<Sparkles className="w-4 h-4" />}
           scrollHeight="min-h-[160vh]"
           className="bg-card/20"
+          align="center"
         >
           {/* Feature cards with parallax */}
           <ParallaxSection speed={30} direction="left" className="mt-16">
