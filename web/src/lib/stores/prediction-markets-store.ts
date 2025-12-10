@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { PredictionMarket, WatchlistItem, MarketFilters } from '@/lib/types/prediction-markets';
 
+// Auto-refresh interval: 5 minutes
+export const PREDICTION_REFRESH_INTERVAL = 5 * 60 * 1000;
+
 interface PredictionMarketsState {
   // Data
   markets: PredictionMarket[];
@@ -17,6 +20,11 @@ interface PredictionMarketsState {
   hasMore: boolean;
   error: string | null;
 
+  // Auto-refresh
+  lastFetchTime: number | null;
+  autoRefreshEnabled: boolean;
+  newMarketsCount: number;
+
   // Actions
   setFilters: (filters: Partial<MarketFilters>) => void;
   setSelectedMarket: (market: PredictionMarket | null) => void;
@@ -24,6 +32,12 @@ interface PredictionMarketsState {
   appendMarkets: (markets: PredictionMarket[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+
+  // Auto-refresh actions
+  setLastFetchTime: (time: number) => void;
+  setAutoRefresh: (enabled: boolean) => void;
+  setNewMarketsCount: (count: number) => void;
+  markAsViewed: () => void;
 
   // Watchlist actions
   addToWatchlist: (item: Omit<WatchlistItem, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -54,13 +68,16 @@ export const usePredictionMarketsStore = create<PredictionMarketsState>()(
       isLoadingMore: false,
       hasMore: true,
       error: null,
+      lastFetchTime: null,
+      autoRefreshEnabled: true,
+      newMarketsCount: 0,
 
       setFilters: (newFilters) =>
         set((state) => ({ filters: { ...state.filters, ...newFilters } })),
 
       setSelectedMarket: (market) => set({ selectedMarket: market }),
 
-      setMarkets: (markets) => set({ markets, hasMore: markets.length >= 20 }),
+      setMarkets: (markets) => set({ markets, hasMore: markets.length >= 20, lastFetchTime: Date.now() }),
 
       appendMarkets: (newMarkets) =>
         set((state) => ({
@@ -71,6 +88,14 @@ export const usePredictionMarketsStore = create<PredictionMarketsState>()(
       setLoading: (isLoading) => set({ isLoading }),
 
       setError: (error) => set({ error }),
+
+      setLastFetchTime: (time) => set({ lastFetchTime: time }),
+
+      setAutoRefresh: (enabled) => set({ autoRefreshEnabled: enabled }),
+
+      setNewMarketsCount: (count) => set({ newMarketsCount: count }),
+
+      markAsViewed: () => set({ newMarketsCount: 0 }),
 
       addToWatchlist: (item) => {
         const newItem: WatchlistItem = {
@@ -97,11 +122,11 @@ export const usePredictionMarketsStore = create<PredictionMarketsState>()(
           (w) => w.platform === platform && w.externalMarketId === externalMarketId
         ),
 
-      reset: () => set({ markets: [], selectedMarket: null, filters: defaultFilters, error: null }),
+      reset: () => set({ markets: [], selectedMarket: null, filters: defaultFilters, error: null, newMarketsCount: 0 }),
     }),
     {
       name: 'deepstack-prediction-markets',
-      partialize: (state) => ({ watchlist: state.watchlist, filters: state.filters }),
+      partialize: (state) => ({ watchlist: state.watchlist, filters: state.filters, autoRefreshEnabled: state.autoRefreshEnabled }),
     }
   )
 );

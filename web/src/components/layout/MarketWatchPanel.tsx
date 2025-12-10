@@ -6,7 +6,8 @@ import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { HomeWidgets } from '@/components/chat/HomeWidgets';
 import { cn } from '@/lib/utils';
-import { ChevronDown, LineChart, Maximize2 } from 'lucide-react';
+import { ChevronDown, LineChart } from 'lucide-react';
+import { AnimatedChartIcon } from '@/components/ui/AnimatedChartIcon';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -50,10 +51,29 @@ export function MarketWatchPanel() {
         })
       );
 
-      // Get market status (simplified - would need real market hours logic)
-      const hour = now.getUTCHours() - 5; // EST approximation
-      const isMarketHours = hour >= 9.5 && hour < 16;
-      const dayOfWeek = now.getDay();
+      // Get accurate Eastern Time using Intl.DateTimeFormat (handles DST automatically)
+      const etFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+        weekday: 'short',
+      });
+
+      const parts = etFormatter.formatToParts(now);
+      const hours = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+      const minutes = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+      const weekdayStr = parts.find(p => p.type === 'weekday')?.value || '';
+
+      // Convert weekday string to number
+      const weekdayMap: Record<string, number> = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+      const dayOfWeek = weekdayMap[weekdayStr] ?? now.getDay();
+
+      // Convert to decimal hours for comparison
+      const decimalTime = hours + minutes / 60;
+
+      // Regular market hours: 9:30 AM (9.5) to 4:00 PM (16.0) ET
+      const isMarketHours = decimalTime >= 9.5 && decimalTime < 16;
       const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
       setMarketOpen(isMarketHours && isWeekday);
     };
@@ -196,11 +216,11 @@ export function MarketWatchPanel() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-primary"
+                className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-primary group"
                 onClick={handleOpenFullChart}
               >
-                <Maximize2 className="h-3.5 w-3.5" />
-                Full Chart
+                <AnimatedChartIcon size={14} className="transition-transform group-hover:scale-110" />
+                <span>Full Chart</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Open full chart for detailed analysis</TooltipContent>

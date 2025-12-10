@@ -5,6 +5,8 @@ import { useChatStore } from '@/lib/stores/chat-store';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
+import { useThesisStore } from '@/lib/stores/thesis-store';
+import { useJournalStore } from '@/lib/stores/journal-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useUser } from '@/hooks/useUser';
@@ -56,6 +58,8 @@ export function ConversationView() {
     const { activeContent, setActiveContent, chartPanelOpen, chartPanelCollapsed } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
     const { isLoadingBars, bars } = useMarketDataStore();
+    const { theses: thesisEntries } = useThesisStore();
+    const { entries: journalEntries } = useJournalStore();
     const { isMobile, isDesktop } = useIsMobile();
     const { requireAuth } = useRequireAuth();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
@@ -204,11 +208,38 @@ export function ConversationView() {
         setIsStreaming(true);
 
         try {
-            // Build context for the AI
+            // Build context for the AI with full semantic awareness
+            const activeTheses = thesisEntries
+                .filter((t) => t.status === 'active' || t.status === 'drafting')
+                .slice(0, 5)
+                .map((t) => ({
+                    id: t.id,
+                    symbol: t.symbol,
+                    hypothesis: t.hypothesis,
+                    timeframe: t.timeframe,
+                    targetEntry: t.entryTarget,
+                    targetExit: t.exitTarget,
+                    stopLoss: t.stopLoss,
+                    confidence: t.validationScore || 50, // Use validation score as confidence proxy
+                    status: t.status,
+                }));
+
+            const recentJournal = journalEntries
+                .slice(0, 10)
+                .map((j) => ({
+                    id: j.id,
+                    symbol: j.symbol,
+                    content: j.notes, // Use notes as the main content
+                    emotions: [j.emotionAtEntry, j.emotionAtExit].filter(Boolean) as string[],
+                    createdAt: j.createdAt,
+                }));
+
             const context = {
                 activeSymbol,
                 activePanel: activeContent,
-                // Could add more context here like positions, watchlist, etc.
+                activeTheses: activeTheses.length > 0 ? activeTheses : undefined,
+                recentJournal: recentJournal.length > 0 ? recentJournal : undefined,
+                // Note: positions, watchlist, emotionalState can be added when those stores are connected
             };
 
             const response = await fetch('/api/chat', {
@@ -322,7 +353,7 @@ export function ConversationView() {
             setIsLoading(false);
             setIsStreaming(false);
         }
-    }, [messages, activeProvider, activeSymbol, activeContent, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult]);
+    }, [messages, activeProvider, activeSymbol, activeContent, thesisEntries, journalEntries, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult, requireAuth, canChat, tier]);
 
     const hasMessages = messages.length > 0;
     const hasActiveContent = activeContent !== 'none';

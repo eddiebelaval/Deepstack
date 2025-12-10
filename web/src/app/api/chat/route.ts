@@ -26,6 +26,33 @@ interface TradingContext {
     volume: number;
     category?: string;
   };
+  // Investment thesis data for semantic awareness
+  activeTheses?: Array<{
+    id: string;
+    symbol: string;
+    hypothesis: string;
+    timeframe: string;
+    targetEntry?: number;
+    targetExit?: number;
+    stopLoss?: number;
+    confidence: number;
+    status: 'drafting' | 'active' | 'validated' | 'invalidated' | 'archived';
+  }>;
+  // Journal entries for emotional awareness
+  recentJournal?: Array<{
+    id: string;
+    symbol?: string;
+    content: string;
+    emotions: string[];
+    createdAt: string;
+  }>;
+  // Emotional firewall state
+  emotionalState?: {
+    isTriggered: boolean;
+    triggerReason?: string;
+    cooldownEndsAt?: string;
+    recentEmotions?: string[];
+  };
 }
 
 function buildContextMessage(context?: TradingContext): string {
@@ -78,6 +105,72 @@ function buildContextMessage(context?: TradingContext): string {
       `Volume: ${volumeFormatted}\n` +
       `Category: ${market.category || 'Unknown'}\n` +
       `\nConsider how this market's probability might inform trading decisions on related assets.`
+    );
+  }
+
+  // Include active investment theses for semantic awareness
+  if (context.activeTheses && context.activeTheses.length > 0) {
+    const thesesSummary = context.activeTheses
+      .filter(t => t.status === 'active' || t.status === 'drafting')
+      .slice(0, 5)
+      .map(t => {
+        const targets = [];
+        if (t.targetEntry) targets.push(`entry: $${t.targetEntry}`);
+        if (t.targetExit) targets.push(`exit: $${t.targetExit}`);
+        if (t.stopLoss) targets.push(`stop: $${t.stopLoss}`);
+        const targetStr = targets.length > 0 ? ` (${targets.join(', ')})` : '';
+        return `- ${t.symbol}: "${t.hypothesis}" [${t.timeframe}, ${t.confidence}% confidence]${targetStr}`;
+      })
+      .join('\n');
+
+    if (thesesSummary) {
+      parts.push(`\n## Active Investment Theses\n` +
+        `These are the user's current investment hypotheses. Reference them when discussing related symbols:\n${thesesSummary}`
+      );
+    }
+  }
+
+  // Include recent journal entries for emotional awareness
+  if (context.recentJournal && context.recentJournal.length > 0) {
+    const emotionCounts: Record<string, number> = {};
+    context.recentJournal.forEach(entry => {
+      entry.emotions?.forEach(emotion => {
+        emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+      });
+    });
+
+    const topEmotions = Object.entries(emotionCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([emotion]) => emotion);
+
+    const recentEntries = context.recentJournal
+      .slice(0, 3)
+      .map(entry => {
+        const symbolStr = entry.symbol ? `[${entry.symbol}] ` : '';
+        const emotionStr = entry.emotions?.length > 0 ? ` (${entry.emotions.join(', ')})` : '';
+        const preview = entry.content.length > 100 ? entry.content.slice(0, 100) + '...' : entry.content;
+        return `- ${symbolStr}${preview}${emotionStr}`;
+      })
+      .join('\n');
+
+    parts.push(`\n## Recent Journal & Emotional State\n` +
+      `Recent emotional patterns: ${topEmotions.length > 0 ? topEmotions.join(', ') : 'none recorded'}\n` +
+      `Recent entries:\n${recentEntries}\n` +
+      `Consider the user's emotional state when providing advice.`
+    );
+  }
+
+  // Include emotional firewall state if triggered
+  if (context.emotionalState?.isTriggered) {
+    const cooldownInfo = context.emotionalState.cooldownEndsAt
+      ? `Cooldown ends: ${new Date(context.emotionalState.cooldownEndsAt).toLocaleTimeString()}`
+      : '';
+    parts.push(`\n## ⚠️ EMOTIONAL FIREWALL ACTIVE\n` +
+      `Reason: ${context.emotionalState.triggerReason || 'Emotional state detected'}\n` +
+      `${cooldownInfo}\n` +
+      `IMPORTANT: The user may be in an elevated emotional state. Be extra cautious with any trade-related advice. ` +
+      `Encourage stepping back, reviewing their thesis, and avoiding impulsive decisions.`
     );
   }
 

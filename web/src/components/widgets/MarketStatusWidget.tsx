@@ -1,19 +1,74 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { Clock, Wifi, WifiOff } from 'lucide-react';
 
+/**
+ * Get accurate Eastern Time using Intl.DateTimeFormat
+ * Automatically handles EST/EDT (Daylight Saving Time)
+ */
+function getEasternTime(): { hours: number; minutes: number; dayOfWeek: number } {
+  const now = new Date();
+
+  // Use Intl.DateTimeFormat to get accurate ET (handles DST automatically)
+  const etFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    weekday: 'short',
+  });
+
+  const parts = etFormatter.formatToParts(now);
+  const hours = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const minutes = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+  const weekdayStr = parts.find(p => p.type === 'weekday')?.value || '';
+
+  // Convert weekday string to number (0 = Sunday, 1 = Monday, etc.)
+  const weekdayMap: Record<string, number> = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+  const dayOfWeek = weekdayMap[weekdayStr] ?? now.getDay();
+
+  return { hours, minutes, dayOfWeek };
+}
+
+/**
+ * Check if US stock market is currently open
+ * Regular hours: 9:30 AM - 4:00 PM ET, Monday-Friday
+ */
+function isMarketCurrentlyOpen(): boolean {
+  const { hours, minutes, dayOfWeek } = getEasternTime();
+
+  // Market closed on weekends (Saturday = 6, Sunday = 0)
+  if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+
+  // Convert to decimal hours for easier comparison
+  const decimalTime = hours + minutes / 60;
+
+  // Regular market hours: 9:30 AM (9.5) to 4:00 PM (16.0) ET
+  return decimalTime >= 9.5 && decimalTime < 16;
+}
+
 export function MarketStatusWidget() {
   const { wsConnected } = useMarketDataStore();
 
-  // Simple market hours check (US Eastern Time)
-  const now = new Date();
-  const etHour = now.getUTCHours() - 5; // Rough ET conversion
-  const isWeekday = now.getDay() > 0 && now.getDay() < 6;
-  const isMarketHours = etHour >= 9.5 && etHour < 16;
-  const isMarketOpen = isWeekday && isMarketHours;
+  // Use state to avoid hydration mismatch (server vs client time)
+  const [isMarketOpen, setIsMarketOpen] = useState(false);
+  const [isWeekday, setIsWeekday] = useState(true);
+
+  useEffect(() => {
+    const updateMarketStatus = () => {
+      const { dayOfWeek } = getEasternTime();
+      setIsMarketOpen(isMarketCurrentlyOpen());
+      setIsWeekday(dayOfWeek >= 1 && dayOfWeek <= 5);
+    };
+
+    updateMarketStatus();
+    // Update every minute to catch market open/close transitions
+    const interval = setInterval(updateMarketStatus, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-3">
