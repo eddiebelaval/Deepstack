@@ -82,7 +82,7 @@ export function IOSInstallBanner({ delay = 3000 }: IOSInstallBannerProps) {
                 <span className="text-2xl font-bold text-primary-foreground">D</span>
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">Add DeepStack</h3>
+                <h3 className="font-semibold text-foreground">Add deepstack</h3>
                 <p className="text-sm text-muted-foreground">to your Home Screen</p>
               </div>
             </div>
@@ -98,7 +98,7 @@ export function IOSInstallBanner({ delay = 3000 }: IOSInstallBannerProps) {
           {/* Instructions */}
           <div className="p-4 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Install DeepStack for the best experience with offline access and quick launch.
+              Install deepstack for the best experience with offline access and quick launch.
             </p>
 
             <div className="space-y-3">
@@ -201,7 +201,7 @@ export function InstallPromptBanner() {
     >
       <div className="bg-primary text-primary-foreground rounded-xl p-4 max-w-md mx-auto flex items-center justify-between gap-4 shadow-lg">
         <div>
-          <p className="font-medium">Install DeepStack</p>
+          <p className="font-medium">Install deepstack</p>
           <p className="text-sm opacity-90">Add to home screen for the best experience</p>
         </div>
         <div className="flex gap-2">

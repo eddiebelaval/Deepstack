@@ -509,7 +509,7 @@ export function ConversationView() {
                             "font-semibold text-foreground",
                             isMobile ? "text-xl" : "text-2xl"
                         )}>
-                            Welcome to DeepStack
+                            Welcome to deepstack
                         </h2>
                         <p className={cn(
                             "text-muted-foreground max-w-md mx-auto leading-relaxed",

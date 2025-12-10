@@ -17,7 +17,7 @@ export interface TourStep {
 export const DEFAULT_TOUR_STEPS: TourStep[] = [
     {
         id: 'welcome',
-        title: 'Welcome to DeepStack',
+        title: 'Welcome to deepstack',
         description: 'Your AI research assistant for smarter investment decisions. Click through these green pings to learn the features.',
         tip: 'You can restart this tour anytime from Settings.',
     },

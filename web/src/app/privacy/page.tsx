@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-    title: 'Privacy Policy | DeepStack',
-    description: 'DeepStack Privacy Policy - How we collect, use, and protect your data',
+    title: 'Privacy Policy | deepstack',
+    description: 'deepstack Privacy Policy - How we collect, use, and protect your data',
 };
 
 export default function PrivacyPage() {
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
         <div className="min-h-screen bg-background">
             <div className="container max-w-3xl mx-auto py-12 px-4">
                 <Link href="/" className="text-primary hover:underline text-sm mb-8 inline-block">
-                    &larr; Back to DeepStack
+                    &larr; Back to deepstack
                 </Link>
 
                 <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-xl font-semibold mb-3">1. Introduction</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            DeepStack (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
+                            deepstack (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
                             This Privacy Policy explains how we collect, use, disclose, and safeguard your information
                             when you use our financial research platform.
                         </p>
@@ -134,7 +134,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-xl font-semibold mb-3">10. Children&apos;s Privacy</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            DeepStack is not intended for users under 18 years of age. We do not knowingly collect
+                            deepstack is not intended for users under 18 years of age. We do not knowingly collect
                             personal information from children. If you believe we have collected data from a minor,
                             please contact us immediately.
                         </p>

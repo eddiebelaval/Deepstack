@@ -1,11 +1,20 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { ReactNode } from 'react'
+import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/next'
 import Providers from '@/components/providers'
 import { PaywallModal } from '@/components/ui/paywall-modal'
 import { DisclaimerBanner } from '@/components/ui/disclaimer-banner'
 import { TourProvider, TourOverlay } from '@/components/onboarding'
+
+// Urbanist font for brand name - Regular 400 weight only
+const urbanist = localFont({
+  src: '../fonts/Urbanist-VariableFont_wght.ttf',
+  weight: '400',
+  variable: '--font-urbanist',
+  display: 'swap',
+})
 
 // iOS-optimized viewport configuration
 export const viewport: Viewport = {
@@ -18,10 +27,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'DeepStack',
+  title: 'deepstack',
   description: 'AI-powered trading assistant with emotional discipline frameworks',
   keywords: ['trading', 'AI', 'stock analysis', 'portfolio tracker', 'options', 'emotional firewall'],
-  authors: [{ name: 'DeepStack' }],
+  authors: [{ name: 'deepstack' }],
 
   // PWA manifest
   manifest: '/manifest.json',
@@ -40,7 +49,7 @@ export const metadata: Metadata = {
   },
 
   openGraph: {
-    title: 'DeepStack',
+    title: 'deepstack',
     description: 'AI-powered trading assistant with emotional discipline frameworks',
     type: 'website',
     locale: 'en_US',
@@ -48,7 +57,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DeepStack',
+    title: 'deepstack',
     description: 'AI-powered trading assistant with emotional discipline frameworks',
     images: ['/landing-preview.png'],
   },
@@ -57,7 +66,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'DeepStack',
+    title: 'deepstack',
     startupImage: [
       // iPhone SE, iPod touch 5th+ gen
       { url: '/splash/splash-640x1136.png', media: '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)' },
@@ -78,7 +87,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark h-full overflow-hidden" suppressHydrationWarning>
+    <html lang="en" className={`${urbanist.variable} dark h-full overflow-hidden`} suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased app-height w-full overflow-hidden fixed inset-0 overscroll-none">
         <Providers>
           <TourProvider>
