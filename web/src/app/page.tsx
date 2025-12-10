@@ -326,6 +326,16 @@ export default function Home() {
                             DeepStack is a research and paper-trading platform powered by AI. It does not execute real money trades or provide personalized financial advice.
                             All trading involves risk.
                         </div>
+                        <div className="mt-6 text-center">
+                            <a
+                                href="https://id8labs.app"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors font-mono"
+                            >
+                                built by id8labs.app
+                            </a>
+                        </div>
                     </div>
                 </footer>
             </div>

@@ -178,6 +178,16 @@ export default function LoginPage() {
                     <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
                     <Link href="/help" className="hover:text-foreground transition-colors">Help</Link>
                 </div>
+                <div className="mt-4 text-center">
+                    <a
+                        href="https://id8labs.app"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors font-mono"
+                    >
+                        built by id8labs.app
+                    </a>
+                </div>
             </div>
         </div>
     )
