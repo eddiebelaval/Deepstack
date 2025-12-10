@@ -407,7 +407,7 @@ export default function LandingPage() {
         </section>
 
         {/* ================================================================== */}
-        {/* THE PROBLEM - Sticky Section with centered header */}
+        {/* THE PROBLEM - CENTERED (fast flow - punchy stats) */}
         {/* ================================================================== */}
         <StickySection
           id="problem"
@@ -417,11 +417,11 @@ export default function LandingPage() {
           badgeIcon={<AlertTriangle className="w-4 h-4" />}
           badgeColor="bg-red-500/10 text-red-400 border-red-500/20"
           titleAccent="text-red-400"
-          scrollHeight="min-h-[140vh]"
-          align="left"
+          scrollHeight="min-h-fit"
+          align="center"
         >
-          {/* Pain points - stacked vertically to scroll alongside sticky header */}
-          <div className="space-y-4">
+          {/* Pain points - horizontal grid for centered layout */}
+          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
               {
                 icon: <Flame className="w-6 h-6" />,
@@ -443,24 +443,20 @@ export default function LandingPage() {
               },
             ].map((pain, i) => (
               <ScrollReveal key={pain.title} delay={i * 0.1} direction="up">
-                <div className="p-5 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
+                <div className="p-5 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm text-center">
+                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 mx-auto mb-3">
                     {pain.icon}
                   </div>
-                  <div>
-                    <div className="flex items-baseline gap-3 mb-1">
-                      <p className="text-2xl font-bold text-red-400">{pain.stat}</p>
-                      <h3 className="font-semibold">{pain.title}</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{pain.description}</p>
-                  </div>
+                  <p className="text-3xl font-bold text-red-400 mb-1">{pain.stat}</p>
+                  <h3 className="font-semibold mb-2">{pain.title}</h3>
+                  <p className="text-sm text-muted-foreground">{pain.description}</p>
                 </div>
               </ScrollReveal>
             ))}
           </div>
 
-          <ScrollReveal delay={0.4} className="mt-8">
-            <p className="text-muted-foreground">
+          <ScrollReveal delay={0.4} className="mt-10 text-center max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-lg">
               The tools you use don&apos;t help. They give you more data, more charts, more noise.
               <span className="text-foreground font-medium block mt-2">What you need is discipline.</span>
             </p>
@@ -468,7 +464,7 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* EMOTIONAL FIREWALL - Hero Feature with Sticky Header */}
+        {/* EMOTIONAL FIREWALL - STICKY (slow down - unique differentiator) */}
         {/* ================================================================== */}
         <StickySection
           id="firewall"
@@ -478,7 +474,7 @@ export default function LandingPage() {
           badgeIcon={<Shield className="w-4 h-4" />}
           badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
           titleAccent="text-orange-400"
-          scrollHeight="min-h-[180vh]"
+          scrollHeight="min-h-fit"
           className="bg-gradient-to-b from-orange-950/10 via-transparent to-transparent"
           align="right"
         >
@@ -598,7 +594,7 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* AI SECTION - Sticky Header with Chat Mockup */}
+        {/* AI SECTION - STICKY (slow down - core product feature) */}
         {/* ================================================================== */}
         <StickySection
           id="ai-assistant"
@@ -608,7 +604,7 @@ export default function LandingPage() {
           badgeIcon={<Brain className="w-4 h-4" />}
           badgeColor="bg-primary/10 text-primary border-primary/20"
           titleAccent="text-primary"
-          scrollHeight="min-h-[200vh]"
+          scrollHeight="min-h-fit"
           align="left"
         >
           {/* Content stacks vertically - scrolls alongside sticky header */}
@@ -707,7 +703,7 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* THESIS BUILDER - Sticky Section */}
+        {/* THESIS BUILDER - STICKY (slow down - complex concept) */}
         {/* ================================================================== */}
         <StickySection
           id="thesis"
@@ -716,7 +712,7 @@ export default function LandingPage() {
           badge="Thesis Framework"
           badgeIcon={<Lightbulb className="w-4 h-4" />}
           badgeColor="bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-          scrollHeight="min-h-[140vh]"
+          scrollHeight="min-h-fit"
           className="bg-card/20"
           align="right"
         >
@@ -795,7 +791,7 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* PREDICTION MARKETS - Sticky Section */}
+        {/* PREDICTION MARKETS - CENTERED (fast flow - secondary feature) */}
         {/* ================================================================== */}
         <StickySection
           id="predictions"
@@ -805,13 +801,13 @@ export default function LandingPage() {
           badgeIcon={<BarChart3 className="w-4 h-4" />}
           badgeColor="bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
           titleAccent="text-cyan-400"
-          scrollHeight="min-h-[180vh]"
-          align="left"
+          scrollHeight="min-h-fit"
+          align="center"
         >
-          {/* Content stacks vertically - scrolls alongside sticky header */}
-          <div className="space-y-6">
-            {/* Use cases */}
-            <div className="space-y-4">
+          {/* Centered layout - horizontal use cases + mockup */}
+          <div className="max-w-4xl mx-auto space-y-8">
+            {/* Use cases - horizontal grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { market: 'Fed rate decisions', thesis: 'Your rate-sensitive plays' },
                 { market: 'Election outcomes', thesis: 'Your policy-exposed stocks' },
@@ -819,25 +815,24 @@ export default function LandingPage() {
                 { market: 'Crypto predictions', thesis: 'Your digital asset thesis' },
               ].map((item, i) => (
                 <ScrollReveal key={item.market} delay={i * 0.1} direction="up">
-                  <div className="flex items-center gap-3">
-                    <ChevronRight className="w-4 h-4 text-cyan-400" />
-                    <span className="text-muted-foreground">
-                      <span className="text-foreground">{item.market}</span> → {item.thesis}
-                    </span>
+                  <div className="text-center p-4 rounded-xl bg-card/30 border border-border/30">
+                    <ChevronRight className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium mb-1">{item.market}</p>
+                    <p className="text-xs text-muted-foreground">{item.thesis}</p>
                   </div>
                 </ScrollReveal>
               ))}
             </div>
 
-            {/* Platform logos */}
+            {/* Platform logos - centered */}
             <ScrollReveal delay={0.5}>
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card/50 border border-border/30">
                   <div className="w-6 h-6 rounded bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">K</div>
                   <span className="text-sm font-medium">Kalshi</span>
                   <span className="text-xs text-muted-foreground">CFTC-regulated</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/30">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card/50 border border-border/30">
                   <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center text-xs font-bold text-purple-400">P</div>
                   <span className="text-sm font-medium">Polymarket</span>
                   <span className="text-xs text-muted-foreground">Crypto markets</span>
@@ -845,13 +840,13 @@ export default function LandingPage() {
               </div>
             </ScrollReveal>
 
-            {/* Markets mockup */}
+            {/* Markets mockup - wider for centered */}
             <ScaleOnScroll>
-              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl">
-                <div className="px-4 py-3 border-b border-border/30">
+              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl max-w-2xl mx-auto">
+                <div className="px-4 py-3 border-b border-border/30 text-center">
                   <p className="font-medium">Trending Markets</p>
                 </div>
-                <div className="p-4 space-y-3">
+                <div className="p-4 grid md:grid-cols-2 gap-3">
                   {[
                     { question: 'Fed cuts rates in January?', yes: 24, volume: '1.2M', platform: 'Kalshi' },
                     { question: 'BTC above $100k by EOY?', yes: 45, volume: '8.5M', platform: 'Polymarket' },
@@ -892,7 +887,7 @@ export default function LandingPage() {
           subtitle="Eight integrated tools. One workspace. Zero context-switching."
           badge="Full Toolkit"
           badgeIcon={<Sparkles className="w-4 h-4" />}
-          scrollHeight="min-h-[160vh]"
+          scrollHeight="min-h-fit"
           className="bg-card/20"
           align="center"
         >
