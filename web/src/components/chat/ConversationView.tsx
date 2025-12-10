@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { TradingChart } from '@/components/charts/TradingChart';
 import { ChartToolbar } from '@/components/charts/ChartToolbar';
 import { DrawingToolbar } from '@/components/charts/DrawingToolbar';
-import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { DeepValuePanel } from '@/components/trading/DeepValuePanel';
 import { HedgedPositionsPanel } from '@/components/trading/HedgedPositionsPanel';
@@ -36,7 +35,7 @@ import { PresetGrid } from './PresetGrid';
 // HomeWidgets moved to global MarketWatchPanel in DeepStackLayout
 import { cn } from '@/lib/utils';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { LineChart, X, Search, Loader2 } from 'lucide-react';
+import { LineChart, X, Search, Loader2, ArrowDown } from 'lucide-react';
 
 // Simple message type for our use case
 type SimpleMessage = {
@@ -60,7 +59,31 @@ export function ConversationView() {
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [showChatLimitPrompt, setShowChatLimitPrompt] = useState(false);
+    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
+
+    // Track scroll position to show/hide scroll-to-bottom button
+    useEffect(() => {
+        const scrollElement = chatScrollRef.current;
+        if (!scrollElement) return;
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+            const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+            // Show button if scrolled up more than 200px from bottom
+            setShowScrollToBottom(distanceFromBottom > 200);
+        };
+
+        scrollElement.addEventListener('scroll', handleScroll);
+        return () => scrollElement.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToBottom = () => {
+        chatScrollRef.current?.scrollTo({
+            top: chatScrollRef.current.scrollHeight,
+            behavior: 'smooth'
+        });
+    };
 
     // Chart loading state
     const isChartLoading = activeSymbol ? isLoadingBars[activeSymbol] ?? false : false;
@@ -114,10 +137,8 @@ export function ConversationView() {
         if (lower.includes('msft')) setActiveSymbol('MSFT');
 
         // For explicit tool panels, we do want to show them
-        if (lower.includes('portfolio') || lower.includes('positions')) {
+        if (lower.includes('portfolio') || lower.includes('positions') || lower.includes('buy') || lower.includes('sell') || lower.includes('order')) {
             setActiveContent('portfolio');
-        } else if (lower.includes('buy') || lower.includes('sell') || lower.includes('order')) {
-            setActiveContent('orders');
         } else if (lower.includes('deep value') || lower.includes('value screen')) {
             setActiveContent('deep-value');
         } else if (lower.includes('hedged') || lower.includes('conviction')) {
@@ -135,7 +156,6 @@ export function ConversationView() {
             const panelMap: Record<string, typeof activeContent> = {
                 'chart': 'chart',
                 'portfolio': 'portfolio',
-                'orders': 'orders',
                 'screener': 'screener',
                 'alerts': 'alerts',
                 'calendar': 'calendar',
@@ -340,15 +360,6 @@ export function ConversationView() {
                             </div>
                         </div>
                     )}
-                </div>
-            );
-        }
-        if (activeContent === 'orders') {
-            return (
-                <div className="flex-1 min-h-0 flex items-center justify-center">
-                    <div className="w-full max-w-md">
-                        <OrderPanel />
-                    </div>
                 </div>
             );
         }
@@ -584,7 +595,6 @@ export function ConversationView() {
                     {/* Tool Header */}
                     <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 flex-shrink-0 h-12 bg-background/95 backdrop-blur-sm">
                         <span className="text-sm font-semibold text-foreground">
-                            {activeContent === 'orders' && 'Order Entry'}
                             {activeContent === 'portfolio' && 'Positions'}
                             {activeContent === 'deep-value' && 'Deep Value'}
                             {activeContent === 'hedged-positions' && 'Hedged Positions'}
@@ -622,7 +632,6 @@ export function ConversationView() {
                             {/* Tool Header */}
                             <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 flex-shrink-0 h-10">
                                 <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                    {activeContent === 'orders' && 'Order Entry'}
                                     {activeContent === 'portfolio' && 'Positions'}
                                     {activeContent === 'deep-value' && 'Deep Value Screener'}
                                     {activeContent === 'hedged-positions' && 'Hedged Position Manager'}
@@ -675,12 +684,22 @@ export function ConversationView() {
                                 className="absolute right-3 top-1/2 -translate-y-1/2"
                                 minHeightGrowth={0}
                             />
+                            {/* Scroll to bottom FAB */}
+                            {showScrollToBottom && (
+                                <Button
+                                    onClick={scrollToBottom}
+                                    size="icon"
+                                    variant="secondary"
+                                    className="absolute bottom-4 left-1/2 -translate-x-1/2 h-9 w-9 rounded-full shadow-lg bg-primary/90 hover:bg-primary text-primary-foreground transition-all animate-in fade-in slide-in-from-bottom-2"
+                                >
+                                    <ArrowDown className="h-4 w-4" />
+                                </Button>
+                            )}
                         </div>
 
                         {/* Chat Input */}
                         <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
-                            <div className="max-w-3xl mx-auto w-full space-y-3">
-                                <PresetGrid onSelect={handlePresetClick} />
+                            <div className="max-w-3xl mx-auto w-full">
                                 <ChatInput onSend={handleSend} disabled={isLoading} />
                             </div>
                         </div>
@@ -707,12 +726,22 @@ export function ConversationView() {
                             className="absolute right-3 top-1/2 -translate-y-1/2"
                             minHeightGrowth={0}
                         />
+                        {/* Scroll to bottom FAB */}
+                        {showScrollToBottom && (
+                            <Button
+                                onClick={scrollToBottom}
+                                size="icon"
+                                variant="secondary"
+                                className="absolute bottom-4 left-1/2 -translate-x-1/2 h-9 w-9 rounded-full shadow-lg bg-primary/90 hover:bg-primary text-primary-foreground transition-all animate-in fade-in slide-in-from-bottom-2"
+                            >
+                                <ArrowDown className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
 
                     {/* Chat Input */}
                     <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
-                        <div className="max-w-3xl mx-auto w-full space-y-3">
-                            <PresetGrid onSelect={handlePresetClick} />
+                        <div className="max-w-3xl mx-auto w-full">
                             <ChatInput onSend={handleSend} disabled={isLoading} />
                         </div>
                     </div>

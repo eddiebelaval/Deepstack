@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { fetchTrendingMarkets } from '@/lib/api/prediction-markets';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket, Platform } from '@/lib/types/prediction-markets';
-import { PlatformBadge } from './PlatformBadge';
+import { BetsCarouselCard } from './BetsCarouselCard';
 
 /**
  * PredictionMarketsCompact - Compact grid view for HomeWidgets Predictions tab
@@ -40,7 +40,7 @@ export function PredictionMarketsCompact({
   const [error, setError] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
 
-  const { addToWatchlist, removeFromWatchlist, isInWatchlist } =
+  const { watchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } =
     usePredictionMarketsStore();
 
   const loadMarkets = async () => {
@@ -133,99 +133,40 @@ export function PredictionMarketsCompact({
         )}
 
         {!loading && !error && displayMarkets.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 h-full content-start">
-            {displayMarkets.map((market) => (
-              <CompactMarketCard
-                key={market.id}
-                market={market}
-                isWatched={isInWatchlist(market.platform, market.id)}
-                onClick={() => onMarketSelect?.(market)}
-              />
-            ))}
+          <div className="grid grid-cols-2 gap-3 h-full content-start">
+            {displayMarkets.map((market) => {
+              const watched = isInWatchlist(market.platform, market.id);
+              return (
+                <BetsCarouselCard
+                  key={market.id}
+                  market={market}
+                  isWatched={watched}
+                  onToggleWatch={() => {
+                    if (watched) {
+                      const item = watchlist.find(
+                        (w) => w.platform === market.platform && w.externalMarketId === market.id
+                      );
+                      if (item) {
+                        removeFromWatchlist(item.id);
+                      }
+                    } else {
+                      addToWatchlist({
+                        platform: market.platform,
+                        externalMarketId: market.id,
+                        marketTitle: market.title,
+                        marketCategory: market.category,
+                      });
+                    }
+                  }}
+                  onClick={() => onMarketSelect?.(market)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
-}
-
-/**
- * CompactMarketCard - Individual market card for compact grid
- */
-interface CompactMarketCardProps {
-  market: PredictionMarket;
-  isWatched: boolean;
-  onClick: () => void;
-}
-
-function CompactMarketCard({ market, isWatched, onClick }: CompactMarketCardProps) {
-  const truncateTitle = (title: string, maxLength = 40) => {
-    if (title.length <= maxLength) return title;
-    return title.slice(0, maxLength) + '...';
-  };
-
-  const yesPercent = Math.round(market.yesPrice * 100);
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'flex flex-col p-2.5 rounded-lg transition-all duration-200 text-left',
-        'border border-border/40 hover:border-border/60',
-        'bg-card/60 hover:bg-card/80 hover:shadow-sm',
-        isWatched && 'ring-1 ring-primary/30'
-      )}
-    >
-      {/* Title Row with Platform Badge */}
-      <div className="flex items-start justify-between gap-1 mb-1.5">
-        <h4
-          className="text-[11px] font-medium text-foreground leading-tight line-clamp-2 flex-1"
-          title={market.title}
-        >
-          {truncateTitle(market.title)}
-        </h4>
-        <PlatformBadge platform={market.platform} className="shrink-0 scale-75 origin-top-right" />
-      </div>
-
-      {/* Probability Bar */}
-      <div className="flex w-full h-1 rounded-full overflow-hidden bg-muted/50 mb-1.5">
-        <div
-          className="bg-green-500 transition-all duration-300"
-          style={{ width: `${yesPercent}%` }}
-        />
-        <div
-          className="bg-red-500 transition-all duration-300"
-          style={{ width: `${100 - yesPercent}%` }}
-        />
-      </div>
-
-      {/* Stats Row */}
-      <div className="flex items-center justify-between text-[10px]">
-        <span className={cn(
-          'font-semibold',
-          yesPercent >= 50 ? 'text-green-500' : 'text-red-500'
-        )}>
-          {yesPercent}% Yes
-        </span>
-        <span className="text-muted-foreground">
-          ${formatVolume(market.volume)}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-/**
- * Format volume for compact display
- */
-function formatVolume(volume: number): string {
-  if (volume >= 1_000_000) {
-    return `${(volume / 1_000_000).toFixed(1)}M`;
-  }
-  if (volume >= 1_000) {
-    return `${(volume / 1_000).toFixed(0)}K`;
-  }
-  return volume.toFixed(0);
 }
 
 export default PredictionMarketsCompact;

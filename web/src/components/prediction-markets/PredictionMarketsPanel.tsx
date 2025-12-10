@@ -18,14 +18,7 @@ import { usePredictionMarkets, type FeedType } from '@/hooks/usePredictionMarket
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
 import { Card } from '@/components/ui/card';
-import {
-    SquareCard,
-    SquareCardHeader,
-    SquareCardContent,
-    SquareCardFooter,
-    SquareCardTitle,
-    SquareCardActionButton,
-} from '@/components/ui/square-card';
+// SquareCard imports removed - now using BetsCarouselCard
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlatformBadge } from './PlatformBadge';
 import { ProbabilityBar } from './ProbabilityBar';
+import { BetsCarouselCard } from './BetsCarouselCard';
 import { cn } from '@/lib/utils';
 import {
     Search,
@@ -256,17 +250,23 @@ export function PredictionMarketsPanel() {
                                     )}
                                 </div>
                             ) : (
-                                // Market cards - grid layout
+                                // Market cards - grid layout with sparkline cards
                                 <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
                                     {filteredMarkets.map((market) => (
-                                        <MarketCard
+                                        <div
                                             key={`${market.platform}-${market.id}`}
-                                            market={market}
-                                            isSelected={selectedMarket?.id === market.id}
-                                            isWatched={isInWatchlist(market.platform, market.id)}
-                                            onSelect={() => setSelectedMarket(market)}
-                                            onToggleWatch={() => toggleWatchlist(market)}
-                                        />
+                                            className={cn(
+                                                'rounded-xl transition-all',
+                                                selectedMarket?.id === market.id && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                                            )}
+                                        >
+                                            <BetsCarouselCard
+                                                market={market}
+                                                isWatched={isInWatchlist(market.platform, market.id)}
+                                                onToggleWatch={() => toggleWatchlist(market)}
+                                                onClick={() => setSelectedMarket(market)}
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -287,90 +287,6 @@ export function PredictionMarketsPanel() {
                 )}
             </div>
         </div>
-    );
-}
-
-// ============ Market Card Component ============
-
-function MarketCard({
-    market,
-    isSelected,
-    isWatched,
-    onSelect,
-    onToggleWatch,
-}: {
-    market: PredictionMarket;
-    isSelected: boolean;
-    isWatched: boolean;
-    onSelect: () => void;
-    onToggleWatch: () => void;
-}) {
-    const probability = Math.round(market.yesPrice * 100);
-
-    return (
-        <SquareCard
-            onClick={onSelect}
-            isHighlighted={isWatched}
-            isSelected={isSelected}
-        >
-            {/* Header: Platform badge + Watch toggle */}
-            <SquareCardHeader>
-                <PlatformBadge platform={market.platform} size="sm" />
-                <SquareCardActionButton
-                    onClick={() => onToggleWatch()}
-                    isActive={isWatched}
-                    activeClassName="text-primary hover:text-primary/80"
-                    title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
-                >
-                    {isWatched ? (
-                        <Eye className="h-3.5 w-3.5" />
-                    ) : (
-                        <EyeOff className="h-3.5 w-3.5" />
-                    )}
-                </SquareCardActionButton>
-            </SquareCardHeader>
-
-            {/* Title */}
-            <SquareCardTitle className="mb-2">{market.title}</SquareCardTitle>
-
-            {/* Probability bar in content area */}
-            <SquareCardContent className="mb-2">
-                <div className="h-full flex flex-col justify-center">
-                    <ProbabilityBar yesPrice={market.yesPrice} />
-                    {market.category && (
-                        <Badge variant="outline" className="text-[10px] mt-2 w-fit">
-                            {market.category}
-                        </Badge>
-                    )}
-                </div>
-            </SquareCardContent>
-
-            {/* Footer: Price + Volume */}
-            <SquareCardFooter>
-                {/* Left: Probability */}
-                <div className="flex flex-col">
-                    <div className="flex items-baseline gap-1">
-                        <span
-                            className={cn(
-                                'text-xl font-bold tabular-nums leading-none',
-                                probability >= 50 ? 'text-green-500' : 'text-red-500'
-                            )}
-                        >
-                            {probability}%
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">YES</span>
-                    </div>
-                </div>
-
-                {/* Right: Volume */}
-                <div className="flex flex-col items-end">
-                    <span className="text-xs font-semibold text-foreground leading-none">
-                        ${formatVolume(market.volume)}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">vol</span>
-                </div>
-            </SquareCardFooter>
-        </SquareCard>
     );
 }
 

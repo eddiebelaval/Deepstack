@@ -3,7 +3,6 @@
 import React from 'react';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { TradingChart } from '@/components/charts/TradingChart';
-import { OrderPanel } from '@/components/trading/OrderPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { LazyOptionsStrategyBuilder, LazyOptionsScreenerPanel } from '@/components/lazy';
 
@@ -21,14 +20,6 @@ export function DynamicContentZone() {
                 <div className="flex-1 border rounded-lg overflow-hidden bg-card">
                     {/* Assuming TradingChart takes symbol prop or gets it from store */}
                     <TradingChart />
-                </div>
-            )}
-
-            {activeContent === 'orders' && (
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="w-full max-w-md">
-                        <OrderPanel />
-                    </div>
                 </div>
             )}
 

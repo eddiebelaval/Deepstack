@@ -139,7 +139,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isMobile ? "Ask anything..." : "Ask about stocks, analyze positions, or place trades..."}
+            placeholder={isMobile ? "Ask about markets, stocks, or your portfolio..." : "Ask about stocks, analyze positions, or place trades..."}
             disabled={disabled || isStreaming}
             inputMode="text"
             enterKeyHint="send"

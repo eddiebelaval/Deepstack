@@ -10,7 +10,6 @@ import { SettingsPanel } from './SettingsPanel';
 import { MobileHeader } from './MobileHeader';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MarketWatchPanel } from './MarketWatchPanel';
-import { EmotionalFirewallBanner } from '@/components/emotional-firewall';
 import { SymbolSearchDialog } from '@/components/search/SymbolSearchDialog';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useRealtimePositions } from '@/hooks/useRealtimePositions';
@@ -139,11 +138,6 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                     paddingTop: isDesktop && topPadding > 0 ? `${topPadding}px` : undefined,
                 }}
             >
-                {/* Emotional Firewall Banner - smaller padding on mobile */}
-                <div className={cn("py-2", isMobile ? "px-2" : "px-4")}>
-                    <EmotionalFirewallBanner />
-                </div>
-
                 {/* Workspace Content - fills remaining height, with bottom padding for mobile nav */}
                 <div className={cn(
                     "flex-1 flex flex-col min-h-0",

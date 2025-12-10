@@ -1,16 +1,27 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  SquareCard,
+  SquareCardHeader,
+  SquareCardContent,
+  SquareCardFooter,
+  SquareCardTitle,
+  SquareCardActionButton,
+} from '@/components/ui/square-card';
 import { PlatformBadge } from './PlatformBadge';
-import type { PredictionMarket, MarketOutcome } from '@/lib/types/prediction-markets';
-import { Star, StarOff, TrendingUp, TrendingDown } from 'lucide-react';
+import type { PredictionMarket, MarketOutcome, MarketPricePoint } from '@/lib/types/prediction-markets';
+import { Star, StarOff, Loader2 } from 'lucide-react';
 
 /**
  * MultiOutcomeCard - Displays markets with 3+ outcomes (polling/election style)
  *
+ * Now uses unified SquareCard component for consistent 1:1 aspect ratio
+ *
  * Features:
- * - Horizontal stacked bar showing all outcome probabilities
- * - List of top outcomes with prices
+ * - Mini sparklines for each outcome showing price trends
+ * - List of top outcomes with current percentages
  * - Color-coded outcomes
  * - Platform badge, volume
  * - Watchlist toggle
@@ -49,8 +60,11 @@ export function MultiOutcomeCard({
   onToggleWatch,
   onClick,
   className,
-  maxOutcomes = 4,
+  maxOutcomes = 3,
 }: MultiOutcomeCardProps) {
+  const [priceHistory, setPriceHistory] = useState<MarketPricePoint[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   // Get outcomes with fallback to Yes/No from legacy fields
   const outcomes = market.outcomes || [
     { name: 'Yes', price: market.yesPrice },
@@ -62,103 +76,106 @@ export function MultiOutcomeCard({
   const displayedOutcomes = sortedOutcomes.slice(0, maxOutcomes);
   const remainingCount = sortedOutcomes.length - maxOutcomes;
 
-  // Calculate total for normalization (should be ~1 but might not be exactly)
-  const total = sortedOutcomes.reduce((sum, o) => sum + o.price, 0);
+  // Fetch price history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const params = new URLSearchParams({
+          yesPrice: market.yesPrice.toString(),
+          title: market.title,
+        });
+        const response = await fetch(
+          `/api/prediction-markets/${market.platform}/${market.id}?${params.toString()}`
+        );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.statusText}`);
+        }
+        const { market: detail } = await response.json();
+        if (detail?.priceHistory) {
+          setPriceHistory(detail.priceHistory);
+        }
+      } catch (err) {
+        // Silently fail - chart will just not show
+        console.error('Failed to load price history:', err);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+    loadHistory();
+  }, [market.platform, market.id, market.yesPrice, market.title]);
 
   return (
-    <div
-      className={cn(
-        'relative flex flex-col h-full p-3 rounded-xl transition-all duration-200',
-        'border border-border/50 hover:border-border/80',
-        'bg-card/80 hover:bg-card hover:shadow-lg',
-        'cursor-pointer group overflow-hidden',
-        isWatched && 'ring-2 ring-primary/30',
-        className
-      )}
+    <SquareCard
       onClick={onClick}
+      isHighlighted={isWatched}
+      className={className}
     >
       {/* Header: Platform badge + Watchlist */}
-      <div className="flex items-center justify-between mb-1.5 shrink-0">
+      <SquareCardHeader>
         <div className="flex items-center gap-1.5">
           <PlatformBadge platform={market.platform} size="sm" />
           <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted/50 rounded">
             {outcomes.length} outcomes
           </span>
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleWatch?.();
-          }}
-          className={cn(
-            'p-1 rounded-full transition-all',
-            isWatched
-              ? 'text-yellow-500 hover:text-yellow-400'
-              : 'text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100'
-          )}
+        <SquareCardActionButton
+          onClick={() => onToggleWatch?.()}
+          isActive={isWatched}
+          activeClassName="text-yellow-500 hover:text-yellow-400"
           title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
         >
-          {isWatched ? <Star className="h-3.5 w-3.5 fill-current" /> : <StarOff className="h-3.5 w-3.5" />}
-        </button>
-      </div>
+          {isWatched ? (
+            <Star className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <StarOff className="h-3.5 w-3.5" />
+          )}
+        </SquareCardActionButton>
+      </SquareCardHeader>
 
       {/* Title */}
-      <h3
-        className="text-xs font-semibold text-foreground leading-tight line-clamp-2 mb-2 min-h-[2rem] shrink-0"
-        title={market.title}
-      >
-        {market.title}
-      </h3>
+      <SquareCardTitle className="mb-2">{market.title}</SquareCardTitle>
 
-      {/* Stacked bar visualization */}
-      <div className="h-3 rounded-full overflow-hidden bg-muted/30 mb-2 flex">
-        {displayedOutcomes.map((outcome, i) => {
-          const width = total > 0 ? (outcome.price / total) * 100 : 0;
-          const color = OUTCOME_COLORS[i % OUTCOME_COLORS.length];
-          return (
-            <div
-              key={outcome.name}
-              className={cn(color.bg, 'h-full transition-all')}
-              style={{ width: `${width}%` }}
-              title={`${outcome.name}: ${Math.round(outcome.price * 100)}%`}
-            />
-          );
-        })}
-        {remainingCount > 0 && (
-          <div
-            className="bg-muted-foreground/30 h-full"
-            style={{
-              width: `${sortedOutcomes.slice(maxOutcomes).reduce((s, o) => s + (o.price / total) * 100, 0)}%`,
-            }}
-            title={`+${remainingCount} more`}
-          />
-        )}
-      </div>
+      {/* Combined sparkline chart showing all outcomes */}
+      <SquareCardContent className="mb-2">
+        <div className="h-full bg-muted/20 rounded-lg overflow-hidden">
+          {isLoadingHistory ? (
+            <div className="h-full flex items-center justify-center">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            </div>
+          ) : priceHistory.length > 1 ? (
+            <ProbabilitySparkline data={priceHistory} currentPrice={market.yesPrice} />
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <span className="text-[10px] text-muted-foreground">No data</span>
+            </div>
+          )}
+        </div>
+      </SquareCardContent>
 
-      {/* Outcomes list */}
-      <div className="flex-1 space-y-1 min-h-[60px]">
+      {/* Outcomes list - compact */}
+      <div className="space-y-1 mb-2">
         {displayedOutcomes.map((outcome, i) => {
           const color = OUTCOME_COLORS[i % OUTCOME_COLORS.length];
-          const percent = Math.round(outcome.price * 100);
           return (
             <OutcomeRow key={outcome.name} outcome={outcome} color={color} rank={i + 1} />
           );
         })}
         {remainingCount > 0 && (
-          <div className="text-[10px] text-muted-foreground pt-0.5">
-            +{remainingCount} more outcome{remainingCount > 1 ? 's' : ''}
+          <div className="text-[10px] text-muted-foreground">
+            +{remainingCount} more
           </div>
         )}
       </div>
 
       {/* Footer: Volume */}
-      <div className="flex items-center justify-between pt-2 mt-auto border-t border-border/30 shrink-0">
+      <SquareCardFooter className="pt-2 border-t border-border/30">
         <span className="text-[10px] text-muted-foreground">Volume</span>
         <span className="text-xs font-semibold text-foreground">
           ${formatVolume(market.volume)}
         </span>
-      </div>
-    </div>
+      </SquareCardFooter>
+    </SquareCard>
   );
 }
 
@@ -201,6 +218,65 @@ function OutcomeRow({ outcome, color, rank }: OutcomeRowProps) {
         {percent}%
       </span>
     </div>
+  );
+}
+
+/**
+ * SVG Sparkline for probability history (same as BetsCarouselCard)
+ */
+interface ProbabilitySparklineProps {
+  data: MarketPricePoint[];
+  currentPrice: number;
+}
+
+function ProbabilitySparkline({ data, currentPrice }: ProbabilitySparklineProps) {
+  // Take last 30 data points max for clean visualization
+  const points = data.slice(-30);
+  if (points.length < 2) return null;
+
+  const width = 200;
+  const height = 60;
+  const padding = 4;
+
+  // Calculate min/max for y-axis (with some padding)
+  const prices = points.map((p) => p.yesPrice);
+  const minPrice = Math.max(0, Math.min(...prices) - 0.05);
+  const maxPrice = Math.min(1, Math.max(...prices) + 0.05);
+  const priceRange = maxPrice - minPrice || 0.1;
+
+  // Generate SVG path
+  const pathPoints = points.map((point, i) => {
+    const x = padding + (i / (points.length - 1)) * (width - padding * 2);
+    const y = height - padding - ((point.yesPrice - minPrice) / priceRange) * (height - padding * 2);
+    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
+
+  // Generate area path (for fill)
+  const areaPath = pathPoints + ` L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`;
+
+  // Current price y position
+  const currentY = height - padding - ((currentPrice - minPrice) / priceRange) * (height - padding * 2);
+
+  // Determine color based on trend
+  const isPositive = prices[prices.length - 1] >= prices[0];
+  const lineColor = isPositive ? '#22c55e' : '#ef4444';
+  const fillColor = isPositive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" preserveAspectRatio="none">
+      {/* Grid line at 50% */}
+      <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="currentColor" strokeOpacity={0.1} strokeDasharray="2,2" />
+
+      {/* Area fill */}
+      <path d={areaPath} fill={fillColor} />
+
+      {/* Line */}
+      <path d={pathPoints} fill="none" stroke={lineColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+
+      {/* Current price dot */}
+      <circle cx={width - padding} cy={currentY} r={3} fill={lineColor} />
+      <circle cx={width - padding} cy={currentY} r={5} fill={lineColor} fillOpacity={0.3} />
+    </svg>
   );
 }
 

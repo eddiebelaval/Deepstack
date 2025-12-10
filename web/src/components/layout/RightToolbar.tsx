@@ -12,7 +12,6 @@ import {
     Calendar,
     Newspaper,
     BarChart3,
-    Target,
     LayoutGrid,
     Diamond,
     Shield,
@@ -31,24 +30,28 @@ type ToolbarItem = {
     shortcut?: string;
 };
 
-// TradingView-inspired toolbar items
-const TOOLBAR_ITEMS: ToolbarItem[] = [
+// Category 1: Trading
+const TRADING_ITEMS: ToolbarItem[] = [
     { id: 'chart', icon: LineChart, label: 'Chart', shortcut: 'C' },
-    { id: 'watchlist', icon: List, label: 'Watchlist', shortcut: 'W' },
     { id: 'positions', icon: Briefcase, label: 'Positions', shortcut: 'P' },
-    { id: 'orders', icon: Target, label: 'Orders', shortcut: 'O' },
 ];
 
-const SECONDARY_ITEMS: ToolbarItem[] = [
+// Category 2: Research
+const RESEARCH_ITEMS: ToolbarItem[] = [
+    { id: 'watchlist', icon: List, label: 'Watchlist', shortcut: 'W' },
     { id: 'screener', icon: BarChart3, label: 'Screener' },
-    { id: 'alerts', icon: Bell, label: 'Alerts' },
-    { id: 'calendar', icon: Calendar, label: 'Calendar' },
     { id: 'news', icon: Newspaper, label: 'News' },
+    { id: 'calendar', icon: Calendar, label: 'Calendar' },
+];
+
+// Category 3: Analytics
+const ANALYTICS_ITEMS: ToolbarItem[] = [
+    { id: 'alerts', icon: Bell, label: 'Alerts' },
     { id: 'prediction-markets', icon: Activity, label: 'Predictions' },
     { id: 'deep-value', icon: Diamond, label: 'Deep Value' },
-    { id: 'hedged-positions', icon: Shield, label: 'Hedged Positions' },
-    { id: 'options-screener', icon: Filter, label: 'Options Screener' },
-    { id: 'options-builder', icon: Calculator, label: 'Strategy Builder' },
+    { id: 'hedged-positions', icon: Shield, label: 'Hedged' },
+    { id: 'options-screener', icon: Filter, label: 'Options' },
+    { id: 'options-builder', icon: Calculator, label: 'Builder' },
 ];
 
 const WIDGET_ITEMS: ToolbarItem[] = [
@@ -77,8 +80,6 @@ export function RightToolbar() {
         } else if (toolId === 'positions') {
             // Open widget panel with that widget focused
             if (!rightSidebarOpen) toggleRightSidebar();
-        } else if (toolId === 'orders') {
-            setActiveContent(activeContent === 'orders' ? 'none' : 'orders');
         } else {
             // For other tools, toggle them
             setActiveContent(activeContent === toolId ? 'none' : toolId as any);
@@ -93,9 +94,9 @@ export function RightToolbar() {
     return (
         <TooltipProvider>
             <aside className="flex flex-col items-center w-12 bg-sidebar border-l border-sidebar-border h-screen fixed right-0 top-0 z-40 py-2">
-                {/* Primary Tools */}
+                {/* Category 1: Trading */}
                 <div className="flex flex-col items-center gap-1 px-1.5">
-                    {TOOLBAR_ITEMS.map((item) => (
+                    {TRADING_ITEMS.map((item) => (
                         <Tooltip key={item.id}>
                             <TooltipTrigger asChild>
                                 <Button
@@ -124,9 +125,40 @@ export function RightToolbar() {
 
                 <Separator className="my-2 w-6" />
 
-                {/* Secondary Tools */}
+                {/* Category 2: Research */}
                 <div className="flex flex-col items-center gap-1 px-1.5">
-                    {SECONDARY_ITEMS.map((item) => (
+                    {RESEARCH_ITEMS.map((item) => (
+                        <Tooltip key={item.id}>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={isActive(item.id) ? "secondary" : "ghost"}
+                                    size="icon"
+                                    className={cn(
+                                        "h-9 w-9 rounded-lg",
+                                        isActive(item.id) && "bg-primary/20 text-primary"
+                                    )}
+                                    onClick={() => handleToolClick(item.id)}
+                                >
+                                    <item.icon className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="flex items-center gap-2">
+                                <span>{item.label}</span>
+                                {item.shortcut && (
+                                    <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
+                                        {item.shortcut}
+                                    </kbd>
+                                )}
+                            </TooltipContent>
+                        </Tooltip>
+                    ))}
+                </div>
+
+                <Separator className="my-2 w-6" />
+
+                {/* Category 3: Analytics */}
+                <div className="flex flex-col items-center gap-1 px-1.5">
+                    {ANALYTICS_ITEMS.map((item) => (
                         <Tooltip key={item.id}>
                             <TooltipTrigger asChild>
                                 <Button

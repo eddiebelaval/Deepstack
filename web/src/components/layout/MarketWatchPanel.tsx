@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUIStore } from '@/lib/stores/ui-store';
+import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { HomeWidgets } from '@/components/chat/HomeWidgets';
 import { cn } from '@/lib/utils';
@@ -26,7 +27,37 @@ export function MarketWatchPanel() {
     rightSidebarOpen,
   } = useUIStore();
 
+  const { wsConnected, wsReconnecting, lastError } = useMarketDataStore();
   const { isMobile, isTablet } = useIsMobile();
+
+  // Status bar state
+  const [currentTime, setCurrentTime] = useState<string>("");
+  const [marketOpen, setMarketOpen] = useState(false);
+
+  // Update time on client side only to avoid hydration mismatch
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      );
+
+      // Get market status (simplified - would need real market hours logic)
+      const hour = now.getUTCHours() - 5; // EST approximation
+      const isMarketHours = hour >= 9.5 && hour < 16;
+      const dayOfWeek = now.getDay();
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+      setMarketOpen(isMarketHours && isWeekday);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Don't render on mobile/tablet - HomeWidgets handled differently there
   if (isMobile || isTablet) return null;
@@ -65,26 +96,92 @@ export function MarketWatchPanel() {
         "flex items-center justify-between px-4 h-11 border-b transition-colors duration-200",
         isExpanded ? "border-border/40 bg-muted/30" : "border-border/20 bg-transparent"
       )}>
-        {/* Left: Title + Icon */}
+        {/* Left: Chevron + Title */}
         <button
           onClick={toggleMarketWatchPanel}
           className="flex items-center gap-2 hover:text-primary transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-md px-1 -ml-1"
           aria-expanded={isExpanded}
           aria-controls="market-watch-content"
         >
-          <LineChart className={cn(
-            "h-4 w-4 transition-colors",
-            isExpanded ? "text-primary" : "text-primary/70"
-          )} />
-          <span className="text-sm font-semibold text-foreground">Market Watch</span>
           <div className={cn(
             "transition-transform duration-200",
             isExpanded && "rotate-180"
           )}>
             <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
+          <LineChart className={cn(
+            "h-4 w-4 transition-colors",
+            isExpanded ? "text-primary" : "text-primary/70"
+          )} />
+          <span className="text-sm font-semibold text-foreground">Market Watch</span>
         </button>
 
+        {/* Center: Connection + Market Status with backlit glow */}
+        <div className="flex items-center gap-4 text-xs">
+          {/* Connection Status */}
+          <span
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all",
+              wsConnected
+                ? "text-profit bg-profit/10 shadow-[0_0_8px_rgba(34,197,94,0.3)]"
+                : wsReconnecting
+                ? "text-yellow-500 bg-yellow-500/10 shadow-[0_0_8px_rgba(234,179,8,0.3)]"
+                : "text-loss bg-loss/10 shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+            )}
+          >
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full",
+                wsConnected
+                  ? "bg-profit shadow-[0_0_6px_rgba(34,197,94,0.6)]"
+                  : wsReconnecting
+                  ? "bg-yellow-500 animate-pulse shadow-[0_0_6px_rgba(234,179,8,0.6)]"
+                  : "bg-loss shadow-[0_0_6px_rgba(239,68,68,0.6)]"
+              )}
+            />
+            {wsConnected
+              ? "Connected"
+              : wsReconnecting
+              ? "Reconnecting..."
+              : "Disconnected"}
+          </span>
+
+          {/* Separator */}
+          <span className="text-border/50">|</span>
+
+          {/* Market Status */}
+          <span
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all",
+              marketOpen
+                ? "text-profit bg-profit/10 shadow-[0_0_8px_rgba(34,197,94,0.3)]"
+                : "text-loss bg-loss/10 shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+            )}
+          >
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full",
+                marketOpen
+                  ? "bg-profit shadow-[0_0_6px_rgba(34,197,94,0.6)]"
+                  : "bg-loss shadow-[0_0_6px_rgba(239,68,68,0.6)]"
+              )}
+            />
+            {marketOpen ? "Market Open" : "Market Closed"}
+          </span>
+
+          {/* Error indicator (if any) */}
+          {lastError && (
+            <>
+              <span className="text-border">|</span>
+              <span className="text-loss truncate max-w-[150px]">{lastError}</span>
+            </>
+          )}
+        </div>
+
+        {/* Right: Time */}
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {currentTime || "--:--:-- --"}
+        </span>
       </div>
 
       {/* Content - Only visible when expanded, no scroll needed */}

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ActiveContentType = 'chart' | 'portfolio' | 'orders' | 'analysis' | 'deep-value' | 'hedged-positions' | 'options-screener' | 'options-builder' | 'screener' | 'alerts' | 'calendar' | 'news' | 'prediction-markets' | 'thesis' | 'journal' | 'insights' | 'none';
+export type ActiveContentType = 'chart' | 'portfolio' | 'analysis' | 'deep-value' | 'hedged-positions' | 'options-screener' | 'options-builder' | 'screener' | 'alerts' | 'calendar' | 'news' | 'prediction-markets' | 'thesis' | 'journal' | 'insights' | 'none';
 
 export interface WidgetConfig {
   id: string;

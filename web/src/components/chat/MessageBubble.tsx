@@ -40,7 +40,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   if (isUser) {
     return (
       <div className="flex justify-end mb-8">
-        <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-tr-sm max-w-[85%] shadow-sm">
+        <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl max-w-[85%] shadow-md">
           <div className="text-[15px] whitespace-pre-wrap leading-relaxed">{message.content}</div>
         </div>
       </div>
@@ -55,33 +55,33 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <ThinkingBlock content={message.thinking} defaultExpanded={false} />
         )}
 
-        <div className="text-foreground/90 text-[15px] leading-relaxed prose prose-invert prose-sm max-w-none">
+        <div className="text-foreground/90 text-[15px] leading-[1.8] prose prose-invert prose-sm max-w-3xl">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
               h1({ children }) {
-                return <h1 className="text-xl font-semibold mb-4 mt-0 text-foreground tracking-tight">{children}</h1>;
+                return <h1 className="text-2xl font-bold mb-6 mt-8 first:mt-0 text-foreground tracking-tight">{children}</h1>;
               },
               h2({ children }) {
-                return <h2 className="text-lg font-semibold mt-8 mb-4 pb-2 border-b border-border/30 text-foreground tracking-tight">{children}</h2>;
+                return <h2 className="text-xl font-semibold mt-10 mb-5 pb-2 border-b border-border/40 text-foreground tracking-tight">{children}</h2>;
               },
               h3({ children }) {
-                return <h3 className="text-base font-medium mt-6 mb-3 text-foreground">{children}</h3>;
+                return <h3 className="text-lg font-semibold mt-8 mb-4 text-foreground">{children}</h3>;
               },
               h4({ children }) {
-                return <h4 className="text-sm font-medium mt-4 mb-2 text-foreground/90">{children}</h4>;
+                return <h4 className="text-base font-medium mt-6 mb-3 text-foreground/90">{children}</h4>;
               },
               p({ children }) {
-                return <p className="mb-4 leading-[1.75]">{children}</p>;
+                return <p className="mb-6 leading-[1.8]">{children}</p>;
               },
               ul({ children }) {
-                return <ul className="my-4 ml-5 space-y-2 list-disc marker:text-muted-foreground">{children}</ul>;
+                return <ul className="my-6 ml-6 space-y-3 list-disc marker:text-muted-foreground">{children}</ul>;
               },
               ol({ children }) {
-                return <ol className="my-4 ml-5 space-y-2 list-decimal marker:text-muted-foreground">{children}</ol>;
+                return <ol className="my-6 ml-6 space-y-3 list-decimal marker:text-muted-foreground">{children}</ol>;
               },
               li({ children }) {
-                return <li className="leading-[1.7] pl-1">{children}</li>;
+                return <li className="leading-[1.8] pl-2">{children}</li>;
               },
               strong({ children }) {
                 return <strong className="font-semibold text-foreground">{children}</strong>;
