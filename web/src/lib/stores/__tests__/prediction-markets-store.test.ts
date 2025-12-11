@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { usePredictionMarketsStore } from '../prediction-markets-store';
 import { act } from '@testing-library/react';
-import type { PredictionMarket, WatchlistItem } from '@/lib/types/prediction-markets';
+import type { PredictionMarket } from '@/lib/types/prediction-markets';
 
 describe('usePredictionMarketsStore', () => {
   beforeEach(() => {
@@ -108,10 +108,10 @@ describe('usePredictionMarketsStore', () => {
 
       it('updates status filter', () => {
         act(() => {
-          usePredictionMarketsStore.getState().setFilters({ status: 'resolved' });
+          usePredictionMarketsStore.getState().setFilters({ status: 'closed' });
         });
 
-        expect(usePredictionMarketsStore.getState().filters.status).toBe('resolved');
+        expect(usePredictionMarketsStore.getState().filters.status).toBe('closed');
       });
 
       it('updates search filter', () => {
@@ -124,16 +124,16 @@ describe('usePredictionMarketsStore', () => {
 
       it('updates sort filter', () => {
         act(() => {
-          usePredictionMarketsStore.getState().setFilters({ sort: 'newest' });
+          usePredictionMarketsStore.getState().setFilters({ sort: 'expiration' });
         });
 
-        expect(usePredictionMarketsStore.getState().filters.sort).toBe('newest');
+        expect(usePredictionMarketsStore.getState().filters.sort).toBe('expiration');
       });
 
       it('updates multiple filters at once', () => {
         act(() => {
           usePredictionMarketsStore.getState().setFilters({
-            source: 'manifold',
+            source: 'kalshi',
             category: 'sports',
             status: 'active',
             search: 'championship',
@@ -141,7 +141,7 @@ describe('usePredictionMarketsStore', () => {
         });
 
         const filters = usePredictionMarketsStore.getState().filters;
-        expect(filters.source).toBe('manifold');
+        expect(filters.source).toBe('kalshi');
         expect(filters.category).toBe('sports');
         expect(filters.status).toBe('active');
         expect(filters.search).toBe('championship');

@@ -622,7 +622,7 @@ describe('usePositionsStore', () => {
       it('returns position with matching ID', () => {
         const { addPosition } = usePositionsStore.getState();
 
-        let positionId: string;
+        let positionId!: string;
         act(() => {
           addPosition({ symbol: 'AAPL', shares: 100, avgCost: 193.00, side: 'long', openDate: '2024-12-01' });
           positionId = usePositionsStore.getState().positions[0].id;

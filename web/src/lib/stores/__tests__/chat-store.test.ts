@@ -81,7 +81,7 @@ describe('useChatStore', () => {
           {
             id: 'conv-2',
             title: 'Second Chat',
-            provider: 'openai',
+            provider: 'grok',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -125,7 +125,7 @@ describe('useChatStore', () => {
         const conv2: Conversation = {
           id: 'conv-2',
           title: 'Second',
-          provider: 'openai',
+          provider: 'perplexity',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -145,7 +145,7 @@ describe('useChatStore', () => {
         const conversation: Conversation = {
           id: 'conv-test',
           title: 'Test Conversation',
-          provider: 'gemini',
+          provider: 'claude_haiku',
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T12:00:00Z',
         };
@@ -172,7 +172,7 @@ describe('useChatStore', () => {
           {
             id: 'conv-2',
             title: 'Second',
-            provider: 'openai',
+            provider: 'perplexity',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -263,7 +263,7 @@ describe('useChatStore', () => {
           useChatStore.getState().addConversation({
             id: 'conv-2',
             title: 'Other Title',
-            provider: 'openai',
+            provider: 'perplexity',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
@@ -421,33 +421,33 @@ describe('useChatStore', () => {
     });
 
     describe('setActiveProvider', () => {
-      it('changes to openai', () => {
+      it('changes to perplexity', () => {
         act(() => {
-          useChatStore.getState().setActiveProvider('openai');
+          useChatStore.getState().setActiveProvider('perplexity');
         });
 
-        expect(useChatStore.getState().activeProvider).toBe('openai');
+        expect(useChatStore.getState().activeProvider).toBe('perplexity');
       });
 
-      it('changes to gemini', () => {
+      it('changes to claude_opus', () => {
         act(() => {
-          useChatStore.getState().setActiveProvider('gemini');
+          useChatStore.getState().setActiveProvider('claude_opus');
         });
 
-        expect(useChatStore.getState().activeProvider).toBe('gemini');
+        expect(useChatStore.getState().activeProvider).toBe('claude_opus');
       });
 
-      it('changes to anthropic', () => {
+      it('changes to grok', () => {
         act(() => {
-          useChatStore.getState().setActiveProvider('anthropic');
+          useChatStore.getState().setActiveProvider('grok');
         });
 
-        expect(useChatStore.getState().activeProvider).toBe('anthropic');
+        expect(useChatStore.getState().activeProvider).toBe('grok');
       });
 
       it('stays on claude if set again', () => {
         act(() => {
-          useChatStore.getState().setActiveProvider('openai');
+          useChatStore.getState().setActiveProvider('perplexity');
           useChatStore.getState().setActiveProvider('claude');
         });
 
@@ -568,7 +568,7 @@ describe('useChatStore', () => {
         useChatStore.getState().addConversation({
           id: 'conv-123',
           title: 'Test',
-          provider: 'openai',
+          provider: 'perplexity',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -578,7 +578,7 @@ describe('useChatStore', () => {
           content: 'Test',
         });
         useChatStore.getState().setIsStreaming(true);
-        useChatStore.getState().setActiveProvider('openai');
+        useChatStore.getState().setActiveProvider('perplexity');
         useChatStore.getState().setUseExtendedThinking(true);
         useChatStore.getState().setPendingOrderTicket({
           id: 'order-1',

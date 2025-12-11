@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   useTradingStore,
-  type ChartType,
   type Timeframe,
-  type IndicatorType,
 } from '../trading-store';
 import { act } from '@testing-library/react';
 

@@ -33,6 +33,7 @@ describe('NewsFeedCard', () => {
   const baseArticle: NewsArticle = {
     id: '1',
     headline: 'Fed signals potential rate cuts in Q2',
+    summary: 'The Federal Reserve indicated potential rate cuts in the second quarter as inflation shows signs of cooling.',
     source: 'Bloomberg',
     url: 'https://example.com/article',
     publishedAt: new Date().toISOString(),

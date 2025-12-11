@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Import Radix UI mocks
+import './mocks/radix-ui';
+
 // Mock window.matchMedia for components that use media queries
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

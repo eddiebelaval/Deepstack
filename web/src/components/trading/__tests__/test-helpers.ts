@@ -11,6 +11,7 @@ import { TradeEntry } from '@/lib/stores/trades-store';
  * Creates a mock position for testing
  */
 export function createMockPosition(overrides: Partial<Position> = {}): Position {
+  const now = new Date().toISOString();
   const base: Position = {
     symbol: 'AAPL',
     quantity: 100,
@@ -21,6 +22,8 @@ export function createMockPosition(overrides: Partial<Position> = {}): Position 
     unrealized_pnl: 1000.0,
     unrealized_pnl_pct: 6.67,
     realized_pnl: 0,
+    first_trade_at: now,
+    last_trade_at: now,
     trades: [
       {
         id: '1',
@@ -28,7 +31,7 @@ export function createMockPosition(overrides: Partial<Position> = {}): Position 
         action: 'BUY',
         quantity: 100,
         price: 150.0,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
         orderType: 'MKT',
       },
     ],
@@ -224,7 +227,7 @@ export function createMockSubmitEvent(preventDefault = true) {
     };
   }
 
-  return event as React.FormEvent;
+  return event as unknown as React.FormEvent;
 }
 
 /**

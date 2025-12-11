@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useWatchlistStore, type Watchlist, type WatchlistItem } from '@/lib/stores/watchlist-store';
+import { useWatchlistStore } from '@/lib/stores/watchlist-store';
 import {
   fetchWatchlists,
   createWatchlist as createWatchlistApi,

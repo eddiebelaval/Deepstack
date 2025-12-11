@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAlertsStore } from '../alerts-store';
 import { act } from '@testing-library/react';
-import type { PriceAlert } from '../alerts-store';
 
 // Mock crypto.randomUUID - use Object.defineProperty since crypto is read-only
 const mockUUID = 'test-uuid-123';

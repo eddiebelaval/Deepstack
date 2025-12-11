@@ -13,14 +13,26 @@ export default defineConfig({
     exclude: ['src/__tests__/integration/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: './coverage',
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/**/*.test.{ts,tsx}',
+        'src/**/*.spec.{ts,tsx}',
         'src/**/__tests__/**',
+        'src/**/__mocks__/**',
         'src/**/types.ts',
         'src/**/*.d.ts',
+        'src/**/*.config.{ts,tsx}',
+        'src/**/test-utils/**',
+        'src/**/mocks/**',
       ],
+      thresholds: {
+        statements: 70,
+        branches: 60,
+        functions: 70,
+        lines: 70,
+      },
     },
   },
   resolve: {

@@ -69,7 +69,7 @@ describe('useHistoricalBars', () => {
 
   it('fetches bars with correct parameters', async () => {
     // Clear store timeframe to use option value
-    useTradingStore.setState({ timeframe: '' });
+    useTradingStore.setState({ timeframe: undefined });
 
     const { result } = renderHook(() =>
       useHistoricalBars({ timeframe: '5m', limit: 50 })

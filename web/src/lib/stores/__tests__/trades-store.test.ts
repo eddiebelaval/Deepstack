@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useTradesStore, type TradeEntry } from '../trades-store';
 import { act } from '@testing-library/react';
 
@@ -30,9 +30,8 @@ describe('useTradesStore', () => {
     it('adds a new trade to the store', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let newTrade: TradeEntry;
       act(() => {
-        newTrade = addTrade({
+        addTrade({
           symbol: 'SPY',
           action: 'BUY',
           quantity: 100,
@@ -52,8 +51,8 @@ describe('useTradesStore', () => {
     it('generates unique ID for each trade', async () => {
       const { addTrade } = useTradesStore.getState();
 
-      let trade1: TradeEntry;
-      let trade2: TradeEntry;
+      let trade1!: TradeEntry;
+      let trade2!: TradeEntry;
 
       // Add trades in separate acts to ensure different timestamps
       act(() => {
@@ -87,7 +86,7 @@ describe('useTradesStore', () => {
     it('sets createdAt timestamp on new trade', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let newTrade: TradeEntry;
+      let newTrade!: TradeEntry;
       act(() => {
         newTrade = addTrade({
           symbol: 'TSLA',
@@ -105,7 +104,7 @@ describe('useTradesStore', () => {
     it('sets updatedAt timestamp on new trade', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let newTrade: TradeEntry;
+      let newTrade!: TradeEntry;
       act(() => {
         newTrade = addTrade({
           symbol: 'META',
@@ -123,7 +122,7 @@ describe('useTradesStore', () => {
     it('supports optional notes field', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let newTrade: TradeEntry;
+      let newTrade!: TradeEntry;
       act(() => {
         newTrade = addTrade({
           symbol: 'GOOGL',
@@ -141,7 +140,7 @@ describe('useTradesStore', () => {
     it('supports optional tags field', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let newTrade: TradeEntry;
+      let newTrade!: TradeEntry;
       act(() => {
         newTrade = addTrade({
           symbol: 'AMD',
@@ -159,7 +158,7 @@ describe('useTradesStore', () => {
     it('supports optional pnl field', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let newTrade: TradeEntry;
+      let newTrade!: TradeEntry;
       act(() => {
         newTrade = addTrade({
           symbol: 'QQQ',
@@ -177,7 +176,7 @@ describe('useTradesStore', () => {
     it('supports optional userId field', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let newTrade: TradeEntry;
+      let newTrade!: TradeEntry;
       act(() => {
         newTrade = addTrade({
           userId: 'user-123',
@@ -195,9 +194,9 @@ describe('useTradesStore', () => {
     it('handles all order types correctly', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let mktTrade: TradeEntry;
-      let lmtTrade: TradeEntry;
-      let stpTrade: TradeEntry;
+      let mktTrade!: TradeEntry;
+      let lmtTrade!: TradeEntry;
+      let stpTrade!: TradeEntry;
 
       act(() => {
         mktTrade = addTrade({
@@ -231,7 +230,7 @@ describe('useTradesStore', () => {
     it('returns the created trade', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let returnedTrade: TradeEntry;
+      let returnedTrade!: TradeEntry;
       act(() => {
         returnedTrade = addTrade({
           symbol: 'IWM',
@@ -252,7 +251,7 @@ describe('useTradesStore', () => {
     it('updates trade properties', () => {
       const { addTrade, updateTrade } = useTradesStore.getState();
 
-      let tradeId: string;
+      let tradeId!: string;
       act(() => {
         const trade = addTrade({
           symbol: 'AAPL',
@@ -281,8 +280,8 @@ describe('useTradesStore', () => {
     it('updates the updatedAt timestamp', async () => {
       const { addTrade, updateTrade } = useTradesStore.getState();
 
-      let tradeId: string;
-      let originalUpdatedAt: string;
+      let tradeId!: string;
+      let originalUpdatedAt!: string;
 
       act(() => {
         const trade = addTrade({
@@ -310,8 +309,8 @@ describe('useTradesStore', () => {
     it('does not modify other trades', () => {
       const { addTrade, updateTrade } = useTradesStore.getState();
 
-      let trade1Id: string;
-      let trade2Id: string;
+      let trade1Id!: string;
+      let trade2Id!: string;
 
       act(() => {
         const t1 = addTrade({
@@ -355,7 +354,7 @@ describe('useTradesStore', () => {
     it('can update pnl field', () => {
       const { addTrade, updateTrade } = useTradesStore.getState();
 
-      let tradeId: string;
+      let tradeId!: string;
       act(() => {
         const trade = addTrade({
           symbol: 'TSLA',
@@ -380,7 +379,7 @@ describe('useTradesStore', () => {
     it('removes trade from store', () => {
       const { addTrade, deleteTrade } = useTradesStore.getState();
 
-      let tradeId: string;
+      let tradeId!: string;
       act(() => {
         const trade = addTrade({
           symbol: 'META',
@@ -404,8 +403,8 @@ describe('useTradesStore', () => {
     it('only removes specified trade', () => {
       const { addTrade, deleteTrade } = useTradesStore.getState();
 
-      let trade1Id: string;
-      let trade2Id: string;
+      let trade1Id!: string;
+      let trade2Id!: string;
 
       act(() => {
         const t1 = addTrade({
@@ -463,7 +462,7 @@ describe('useTradesStore', () => {
     it('returns trade with matching ID', () => {
       const { addTrade } = useTradesStore.getState();
 
-      let tradeId: string;
+      let tradeId!: string;
       act(() => {
         const trade = addTrade({
           symbol: 'NVDA',
@@ -491,7 +490,7 @@ describe('useTradesStore', () => {
     it('returns correct trade among multiple trades', () => {
       const { addTrade, getTradeById } = useTradesStore.getState();
 
-      let targetId: string;
+      let targetId!: string;
       act(() => {
         addTrade({ symbol: 'SPY', action: 'BUY', quantity: 100, price: 595.00, orderType: 'MKT' });
         const target = addTrade({ symbol: 'QQQ', action: 'BUY', quantity: 50, price: 412.00, orderType: 'MKT' });
@@ -642,7 +641,7 @@ describe('useTradesStore', () => {
     it('handles all actions in sequence', () => {
       const { addTrade, updateTrade, deleteTrade, getTradeById } = useTradesStore.getState();
 
-      let tradeId: string;
+      let tradeId!: string;
 
       // Add
       act(() => {
