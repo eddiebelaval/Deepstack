@@ -748,26 +748,60 @@ class PredictionMarketManager:
         await self.polymarket.close()
 
     async def get_trending_markets(
-        self, limit: int = 20, category: Optional[str] = None
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        category: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> List[PredictionMarket]:
         """
         Get trending markets from both platforms, sorted by volume.
 
         Args:
             limit: Max markets to return
+            offset: Pagination offset for infinite scroll
             category: Optional category filter
+            source: Optional platform filter (kalshi, polymarket)
 
         Returns:
             List of PredictionMarket sorted by volume
         """
         try:
-            # Fetch from both platforms in parallel
-            kalshi_task = self.kalshi.get_markets(status="open", limit=50)
-            polymarket_task = self.polymarket.get_markets(limit=50, active=True)
+            # Fetch enough data to support pagination (fetch more when offset is high)
+            fetch_limit = max(100, offset + limit + 20)
 
-            kalshi_data, polymarket_data = await asyncio.gather(
-                kalshi_task, polymarket_task, return_exceptions=True
+            # Only fetch from requested source(s)
+            fetch_kalshi = source is None or source == "kalshi"
+            fetch_polymarket = source is None or source == "polymarket"
+
+            kalshi_task = (
+                self.kalshi.get_markets(status="open", limit=fetch_limit)
+                if fetch_kalshi
+                else None
             )
+            polymarket_task = (
+                self.polymarket.get_markets(limit=fetch_limit, active=True)
+                if fetch_polymarket
+                else None
+            )
+
+            # Gather only non-None tasks
+            tasks = [t for t in [kalshi_task, polymarket_task] if t is not None]
+            results = (
+                await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
+            )
+
+            # Map results back to sources
+            result_idx = 0
+            kalshi_data = None
+            polymarket_data = None
+            if fetch_kalshi:
+                kalshi_data = results[result_idx] if result_idx < len(results) else None
+                result_idx += 1
+            if fetch_polymarket:
+                polymarket_data = (
+                    results[result_idx] if result_idx < len(results) else None
+                )
 
             markets: List[PredictionMarket] = []
 
@@ -803,7 +837,8 @@ class PredictionMarketManager:
                 reverse=True,
             )
 
-            return markets[:limit]
+            # Apply pagination: skip offset, take limit
+            return markets[offset : offset + limit]
 
         except Exception as e:
             logger.error(f"Error getting trending markets: {e}")
@@ -882,7 +917,11 @@ class PredictionMarketManager:
             return None
 
     async def get_new_markets(
-        self, limit: int = 20, category: Optional[str] = None
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        category: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> List[PredictionMarket]:
         """
         Get recently created/opened markets from both platforms.
@@ -892,19 +931,49 @@ class PredictionMarketManager:
 
         Args:
             limit: Max markets to return
+            offset: Pagination offset for infinite scroll
             category: Optional category filter
+            source: Optional platform filter (kalshi, polymarket)
 
         Returns:
             List of PredictionMarket sorted by creation date (newest first)
         """
         try:
-            # Fetch from both platforms in parallel
-            kalshi_task = self.kalshi.get_markets(status="open", limit=50)
-            polymarket_task = self.polymarket.get_markets(limit=50, active=True)
+            # Fetch enough data to support pagination
+            fetch_limit = max(100, offset + limit + 20)
 
-            kalshi_data, polymarket_data = await asyncio.gather(
-                kalshi_task, polymarket_task, return_exceptions=True
+            # Only fetch from requested source(s)
+            fetch_kalshi = source is None or source == "kalshi"
+            fetch_polymarket = source is None or source == "polymarket"
+
+            kalshi_task = (
+                self.kalshi.get_markets(status="open", limit=fetch_limit)
+                if fetch_kalshi
+                else None
             )
+            polymarket_task = (
+                self.polymarket.get_markets(limit=fetch_limit, active=True)
+                if fetch_polymarket
+                else None
+            )
+
+            # Gather only non-None tasks
+            tasks = [t for t in [kalshi_task, polymarket_task] if t is not None]
+            results = (
+                await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
+            )
+
+            # Map results back to sources
+            result_idx = 0
+            kalshi_data = None
+            polymarket_data = None
+            if fetch_kalshi:
+                kalshi_data = results[result_idx] if result_idx < len(results) else None
+                result_idx += 1
+            if fetch_polymarket:
+                polymarket_data = (
+                    results[result_idx] if result_idx < len(results) else None
+                )
 
             markets_with_dates: List[tuple] = []  # (market, created_date)
 
@@ -962,7 +1031,9 @@ class PredictionMarketManager:
                 reverse=True,
             )
 
-            return [m[0] for m in markets_with_dates[:limit]]
+            # Apply pagination: skip offset, take limit
+            paginated = markets_with_dates[offset : offset + limit]
+            return [m[0] for m in paginated]
 
         except Exception as e:
             logger.error(f"Error getting new markets: {e}")

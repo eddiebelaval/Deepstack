@@ -123,7 +123,11 @@ class MarketAnalysisResponse(BaseModel):
 @router.get("/trending", response_model=TrendingMarketsResponse)
 async def get_trending(
     limit: int = Query(20, ge=1, le=100, description="Max markets to return"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
     category: Optional[str] = Query(None, description="Filter by category"),
+    source: Optional[str] = Query(
+        None, description="Filter by platform (kalshi, polymarket)"
+    ),
 ):
     """
     Get trending prediction markets from Kalshi and Polymarket.
@@ -132,14 +136,18 @@ async def get_trending(
 
     Args:
         limit: Maximum number of markets to return (1-100)
+        offset: Pagination offset for infinite scroll
         category: Optional category filter
+        source: Optional platform filter (kalshi, polymarket)
 
     Returns:
         List of trending prediction markets
     """
     try:
         manager = get_manager()
-        markets = await manager.get_trending_markets(limit=limit, category=category)
+        markets = await manager.get_trending_markets(
+            limit=limit, offset=offset, category=category, source=source
+        )
 
         return TrendingMarketsResponse(markets=markets, count=len(markets))
 
@@ -151,7 +159,11 @@ async def get_trending(
 @router.get("/new", response_model=TrendingMarketsResponse)
 async def get_new_markets(
     limit: int = Query(20, ge=1, le=100, description="Max markets to return"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
     category: Optional[str] = Query(None, description="Filter by category"),
+    source: Optional[str] = Query(
+        None, description="Filter by platform (kalshi, polymarket)"
+    ),
 ):
     """
     Get newly created/opened prediction markets from Kalshi and Polymarket.
@@ -160,14 +172,18 @@ async def get_new_markets(
 
     Args:
         limit: Maximum number of markets to return (1-100)
+        offset: Pagination offset for infinite scroll
         category: Optional category filter
+        source: Optional platform filter (kalshi, polymarket)
 
     Returns:
         List of recently created prediction markets
     """
     try:
         manager = get_manager()
-        markets = await manager.get_new_markets(limit=limit, category=category)
+        markets = await manager.get_new_markets(
+            limit=limit, offset=offset, category=category, source=source
+        )
 
         return TrendingMarketsResponse(markets=markets, count=len(markets))
 
