@@ -6,11 +6,12 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get('limit') || '20';
+  const offset = searchParams.get('offset') || '0';
   const category = searchParams.get('category');
   const source = searchParams.get('source');
 
   try {
-    const params = new URLSearchParams({ limit });
+    const params = new URLSearchParams({ limit, offset });
     if (category) params.append('category', category);
     if (source && source !== 'all') params.append('source', source);
 
