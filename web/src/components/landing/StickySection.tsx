@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -42,7 +42,6 @@ export function StickySection({
   headerClassName,
   contentClassName,
   scrollHeight = 'min-h-fit', // Let content determine height, not viewport
-  showGradient = true,
   badge,
   badgeIcon,
   badgeColor = 'bg-primary/10 text-primary border-primary/20',
@@ -56,7 +55,6 @@ export function StickySection({
   const effectiveAlign = centerHeader !== undefined ? (centerHeader ? 'center' : 'left') : align;
   const isCenter = effectiveAlign === 'center';
   const isRight = effectiveAlign === 'right';
-  const isLeft = effectiveAlign === 'left';
 
   // Track scroll progress within this section
   const { scrollYProgress } = useScroll({
@@ -228,11 +226,6 @@ export function StickySection({
       )}
     </section>
   );
-}
-
-// Helper for motion template
-function useMotionTemplate(strings: TemplateStringsArray, ...values: MotionValue<number>[]) {
-  return useTransform(values[0], (v) => `blur(${v}px)`);
 }
 
 // ============================================================================

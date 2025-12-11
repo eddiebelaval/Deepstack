@@ -131,7 +131,7 @@ export function StreamingTicker() {
     } catch (error) {
       console.error('Error fetching ticker quotes:', error);
     }
-  }, [allSymbols.join(',')]);
+  }, [allSymbols]);
 
   // Fetch quotes on mount and periodically
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
@@ -28,7 +28,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const router = useRouter();
   const { isMobile } = useIsMobile();
 
-  const handleCommand = async (command: string) => {
+  const handleCommand = useCallback(async (command: string) => {
     // Populate input for visual feedback
     setInput(command + " ");
     if (textareaRef.current) {
@@ -60,7 +60,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     } catch (error) {
       console.error('Failed to execute command:', error);
     }
-  };
+  }, []);
 
   const handleSubmit = () => {
     if (!input.trim() || disabled || isStreaming) return;

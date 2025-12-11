@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({ theses: filtered });
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json(
             { error: 'Failed to fetch theses' },
             { status: 500 }

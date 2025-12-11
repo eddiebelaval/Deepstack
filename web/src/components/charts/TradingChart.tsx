@@ -65,7 +65,9 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
   const { activeSymbol, chartType, indicators, overlaySymbols } = useTradingStore();
   const { bars } = useMarketDataStore();
   const { fetchBars } = useMarketData();
-  const symbolBars = bars[activeSymbol] || [];
+
+  // Wrap symbolBars in useMemo to prevent dependency issues
+  const symbolBars = useMemo(() => bars[activeSymbol] || [], [bars, activeSymbol]);
 
   // Memoize bar data transformation
   const chartData = useMemo(() => {
@@ -188,11 +190,14 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
       chartRef.current = null;
       mainSeriesRef.current = null;
       volumeSeriesRef.current = null;
-      indicatorSeriesRef.current.clear();
-      overlaySeriesRef.current.clear();
+      // Copy refs to variables for cleanup
+      const currentIndicatorRefs = indicatorSeriesRef.current;
+      const currentOverlayRefs = overlaySeriesRef.current;
+      currentIndicatorRefs.clear();
+      currentOverlayRefs.clear();
       crosshairPriceRef.current = null;
     };
-  }, [onCrosshairPriceChange]); // Include callback in deps
+  }, [onCrosshairPriceChange, crosshairPriceRef, chartType]); // Include callback, ref and chartType in deps
 
   // Handle chart type changes
   useEffect(() => {
@@ -210,7 +215,7 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
     if (chartData.length > 0 && mainSeriesRef.current) {
       mainSeriesRef.current.setData(chartData as any);
     }
-  }, [chartType]);
+  }, [chartType, chartData]);
 
   // Track state for efficient updates
   const lastSymbolRef = useRef<string | null>(null);

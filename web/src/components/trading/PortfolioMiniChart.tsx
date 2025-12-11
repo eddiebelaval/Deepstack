@@ -205,7 +205,6 @@ export function PortfolioMiniChart({ className }: PortfolioMiniChartProps) {
 
     const rect = chartRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
 
     // Convert to SVG viewBox coordinates (0-100 for x, 0-50 for y)
     const svgX = (mouseX / rect.width) * 100;

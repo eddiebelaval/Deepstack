@@ -60,28 +60,6 @@ export function AlertsPanel() {
     setNewNote('');
   };
 
-  const getConditionIcon = (condition: AlertCondition) => {
-    switch (condition) {
-      case 'above':
-        return <TrendingUp className="h-3 w-3" />;
-      case 'below':
-        return <TrendingDown className="h-3 w-3" />;
-      case 'crosses':
-        return <ArrowUpDown className="h-3 w-3" />;
-    }
-  };
-
-  const getConditionLabel = (condition: AlertCondition) => {
-    switch (condition) {
-      case 'above':
-        return 'Price Above';
-      case 'below':
-        return 'Price Below';
-      case 'crosses':
-        return 'Crosses';
-    }
-  };
-
   // Show loading state
   if (isLoading) {
     return (

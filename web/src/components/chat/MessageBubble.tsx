@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { ToolUseCard } from './ToolUseCard';
 import { CodeBlock } from './CodeBlock';
 import { ThinkingBlock } from './ThinkingBlock';
-import { CalloutBlock, extractAlertType, type CalloutType } from './CalloutBlock';
+import { CalloutBlock, extractAlertType } from './CalloutBlock';
 import { cn } from '@/lib/utils';
 
 type Message = any; // import { Message } from '@ai-sdk/react';

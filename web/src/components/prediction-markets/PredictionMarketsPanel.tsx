@@ -17,7 +17,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { usePredictionMarkets, type FeedType } from '@/hooks/usePredictionMarkets';
 import { usePredictionMarketsStore, PREDICTION_REFRESH_INTERVAL } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
-import { Card } from '@/components/ui/card';
 // SquareCard imports removed - now using BetsCarouselCard
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +28,6 @@ import { PlatformBadge } from './PlatformBadge';
 import { ProbabilityBar } from './ProbabilityBar';
 import { BetsCarouselCard } from './BetsCarouselCard';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
     TrendingUp,
@@ -42,7 +40,6 @@ import {
     AlertCircle,
     WifiOff,
     Bell,
-    ChevronUp,
 } from 'lucide-react';
 
 type PlatformFilter = 'all' | 'kalshi' | 'polymarket';
@@ -54,7 +51,6 @@ export function PredictionMarketsPanel() {
     const {
         markets,
         watchlist,
-        filters,
         isLoading,
         error,
         isUnavailable,
@@ -73,8 +69,6 @@ export function PredictionMarketsPanel() {
         setSelectedMarket,
         autoRefreshEnabled,
         setAutoRefresh,
-        newMarketsCount,
-        markAsViewed,
     } = usePredictionMarketsStore();
 
     const [searchQuery, setSearchQuery] = useState('');

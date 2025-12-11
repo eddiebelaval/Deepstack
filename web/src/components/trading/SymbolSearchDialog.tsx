@@ -11,7 +11,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Plus, TrendingUp, TrendingDown, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -82,9 +81,8 @@ export function SymbolSearchDialog({
     };
 
     const activeWatchlist = getActiveWatchlist();
-    const existingSymbols = new Set(
-        activeWatchlist?.items.map((item) => item.symbol) || []
-    );
+    const watchlistSymbols = activeWatchlist?.items.map((item) => item.symbol) || [];
+    const existingSymbols = new Set(watchlistSymbols);
 
     // Filter symbols based on search query
     const filteredPopular = POPULAR_SYMBOLS.filter(

@@ -95,7 +95,7 @@ function applyFilters(data: unknown[], filters: typeof queryState.filters): unkn
 /**
  * Create a chainable query result
  */
-function createQueryResult(operation: 'select' | 'insert' | 'update' | 'delete') {
+function createQueryResult(_operation: 'select' | 'insert' | 'update' | 'delete') {
   const chain: any = {
     eq: vi.fn((column: string, value: unknown) => {
       queryState.filters.push({ column, operator: 'eq', value });

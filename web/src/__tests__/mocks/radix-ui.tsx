@@ -11,7 +11,7 @@ import { vi } from 'vitest';
 
 const SelectContext = React.createContext<any>({});
 
-export const SelectRoot = ({ children, onValueChange, value, defaultValue, open, onOpenChange, ...props }: any) => {
+export const SelectRoot = ({ children, onValueChange, value, defaultValue, onOpenChange, ...props }: any) => {
   const [internalValue, setInternalValue] = React.useState(value || defaultValue || '');
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -473,7 +473,7 @@ export const DropdownMenuCheckboxItem = React.forwardRef(
 );
 DropdownMenuCheckboxItem.displayName = 'DropdownMenuCheckboxItem';
 
-export const DropdownMenuRadioGroup = ({ children, value, onValueChange }: any) => (
+export const DropdownMenuRadioGroup = ({ children, value }: any) => (
   <div role="group" data-testid="dropdown-menu-radio-group" data-value={value}>
     {children}
   </div>

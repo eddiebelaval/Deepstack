@@ -98,7 +98,7 @@ export function RelatedPredictionMarkets({
         } finally {
             setIsLoading(false);
         }
-    }, [keywords.join(','), maxResults]);
+    }, [keywords, maxResults]);
 
     // Fetch when expanded
     useEffect(() => {

@@ -34,8 +34,6 @@ interface QuotesResponse {
 
 interface ErrorResponse {
   error: string;
-  message: string;
-  details?: unknown;
 }
 
 describe('/api/market/quotes', () => {
@@ -54,7 +52,7 @@ describe('/api/market/quotes', () => {
         'http://localhost:3000/api/market/quotes?symbols='
       );
       const response = await GET(request);
-      const data = await parseResponse<ErrorResponse>(response);
+      await parseResponse<ErrorResponse>(response);
 
       expect(response.status).toBe(400);
     });
@@ -64,7 +62,7 @@ describe('/api/market/quotes', () => {
         'http://localhost:3000/api/market/quotes?symbols=SPY$INVALID!'
       );
       const response = await GET(request);
-      const data = await parseResponse<ErrorResponse>(response);
+      await parseResponse<ErrorResponse>(response);
 
       expect(response.status).toBe(400);
     });

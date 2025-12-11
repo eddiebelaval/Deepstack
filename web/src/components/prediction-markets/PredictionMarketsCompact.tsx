@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Loader2, ChevronRight, TrendingUp, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchTrendingMarkets } from '@/lib/api/prediction-markets';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
-import type { PredictionMarket, Platform } from '@/lib/types/prediction-markets';
+import type { PredictionMarket } from '@/lib/types/prediction-markets';
 import { BetsCarouselCard } from './BetsCarouselCard';
 
 /**
@@ -43,7 +43,7 @@ export function PredictionMarketsCompact({
   const { watchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } =
     usePredictionMarketsStore();
 
-  const loadMarkets = async () => {
+  const loadMarkets = useCallback(async () => {
     try {
       setError(null);
       setLoading(true);
@@ -58,13 +58,13 @@ export function PredictionMarketsCompact({
     } finally {
       setLoading(false);
     }
-  };
+  }, [sourceFilter]);
 
   useEffect(() => {
     loadMarkets();
     const interval = setInterval(loadMarkets, 60000); // Refresh every 60 seconds
     return () => clearInterval(interval);
-  }, [sourceFilter]);
+  }, [sourceFilter, loadMarkets]);
 
   // Filter and slice to 6 for display
   const displayMarkets = markets.slice(0, 6);

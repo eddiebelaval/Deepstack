@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { TrendingUp, Star, Filter } from 'lucide-react';
+import { TrendingUp, Star } from 'lucide-react';
 
 /**
  * ScreenerPicksWidget - Displays top screener results

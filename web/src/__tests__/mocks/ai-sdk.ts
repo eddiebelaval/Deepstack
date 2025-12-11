@@ -53,7 +53,7 @@ async function* createTextStream(chunks: string[], delay = 0): AsyncIterable<str
 /**
  * Mock streamText function from 'ai' package
  */
-export const mockStreamText = vi.fn(async (options: {
+export const mockStreamText = vi.fn(async (_options: {
   model: unknown;
   system?: string;
   messages: Array<{ role: string; content: string }>;
@@ -137,7 +137,7 @@ export const mockStreamText = vi.fn(async (options: {
 /**
  * Mock generateText function from 'ai' package
  */
-export const mockGenerateText = vi.fn(async (options: {
+export const mockGenerateText = vi.fn(async (_options: {
   model: unknown;
   system?: string;
   prompt?: string;

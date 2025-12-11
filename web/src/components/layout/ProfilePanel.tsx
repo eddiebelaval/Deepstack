@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 
 export function ProfilePanel() {
     const { profileOpen, toggleProfile } = useUIStore();
-    const { user, profile, tier, isLoading } = useUser();
+    const { user, profile, tier } = useUser();
     const { signOut } = useSession();
 
     // Edit states

@@ -6,7 +6,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, ExternalLink, AlertCircle, Eye } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { fetchTrendingMarkets } from '@/lib/api/prediction-markets';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';

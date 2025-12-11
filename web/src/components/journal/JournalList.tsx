@@ -6,7 +6,6 @@ import { type ThesisEntry } from '@/lib/stores/thesis-store';
 import { useJournalSync } from '@/hooks/useJournalSync';
 import { useThesisSync } from '@/hooks/useThesisSync';
 import { useUser } from '@/hooks/useUser';
-import { canAccess } from '@/lib/subscription';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

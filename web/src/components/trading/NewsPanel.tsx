@@ -45,9 +45,6 @@ const SENTIMENT_CONFIG = {
   },
 };
 
-// Auto-refresh interval: 5 minutes
-const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
-
 export function NewsPanel() {
   const {
     articles,

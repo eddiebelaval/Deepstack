@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { GET } from '@/app/api/calendar/route';
-import { createRequest, parseResponse, type ApiResponse } from '../test-utils';
+import { createRequest, parseResponse } from '../test-utils';
 import { server } from '../setup';
 
 // Import setup to initialize MSW server

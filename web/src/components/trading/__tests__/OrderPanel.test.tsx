@@ -183,7 +183,6 @@ describe('OrderPanel', () => {
     });
 
     it('updates quantity using slider', async () => {
-      const user = userEvent.setup();
       render(<OrderPanel />);
 
       const slider = screen.getByRole('slider');
@@ -453,8 +452,6 @@ describe('OrderPanel', () => {
   // Move to E2E tests with Playwright for proper browser testing
   describe.skip('Loading States', () => {
     it('shows loading state while submitting', async () => {
-      const user = userEvent.setup();
-
       vi.mocked(usePlacePaperTrade).mockReturnValue({
         execute: mockExecute,
         isSubmitting: true,

@@ -115,9 +115,11 @@ export function MultiSeriesChart({
             resizeObserverRef.current?.disconnect();
             chartRef.current?.remove();
             chartRef.current = null;
-            seriesRefs.current.clear();
+            // Copy ref to variable for cleanup
+            const currentSeriesRefs = seriesRefs.current;
+            currentSeriesRefs.clear();
         };
-    }, []); // Only run once on mount
+    }, [logScale, onCrosshairMove]); // Include logScale and onCrosshairMove in deps
 
     // Update Log Scale
     useEffect(() => {

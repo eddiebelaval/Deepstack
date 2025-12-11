@@ -2,6 +2,11 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
 
+// Colors - Grey for topography, Green candle for ping (moved outside component to prevent re-creation)
+const GREY = { r: 140, g: 140, b: 140 };
+const GRID_COLOR = { r: 80, g: 80, b: 80 };
+const GREEN_CANDLE = { r: 34, g: 197, b: 94 }; // Tailwind green-500
+
 export function IntelligentBackground() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
@@ -28,11 +33,6 @@ export function IntelligentBackground() {
             { freq: 0.012, amp: 0.25, seed: Math.random() * 1000 },
         ]
     });
-
-    // Colors - Grey for topography, Green candle for ping
-    const GREY = { r: 140, g: 140, b: 140 };
-    const GRID_COLOR = { r: 80, g: 80, b: 80 };
-    const GREEN_CANDLE = { r: 34, g: 197, b: 94 }; // Tailwind green-500
 
     // Initialize radar origin on mount
     useEffect(() => {
@@ -308,7 +308,7 @@ export function IntelligentBackground() {
 
         timeRef.current++;
         animationRef.current = requestAnimationFrame(animate);
-    }, [getElevation, GREY, GRID_COLOR, GREEN_CANDLE]);
+    }, [getElevation]);
 
     const handleResize = useCallback(() => {
         const canvas = canvasRef.current;

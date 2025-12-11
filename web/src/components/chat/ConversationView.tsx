@@ -17,10 +17,7 @@ import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { TradingChart } from '@/components/charts/TradingChart';
-import { ChartToolbar } from '@/components/charts/ChartToolbar';
-import { DrawingToolbar } from '@/components/charts/DrawingToolbar';
+// Note: useMarketDataStore reserved for future chart integration
 import { ChartPanel } from '@/components/trading/ChartPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { PositionsPanel } from '@/components/trading/PositionsPanel';
@@ -39,7 +36,7 @@ import { PresetGrid } from './PresetGrid';
 // HomeWidgets moved to global MarketWatchPanel in DeepStackLayout
 import { cn } from '@/lib/utils';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { LineChart, X, Search, Loader2, ArrowDown } from 'lucide-react';
+import { X, ArrowDown } from 'lucide-react';
 
 // Simple message type for our use case
 type SimpleMessage = {
@@ -53,14 +50,15 @@ type SimpleMessage = {
 
 export function ConversationView() {
     const { tier } = useUser();
-    const { chatsToday, isAtLimit, remaining, canChat } = useChatLimit();
+    const { chatsToday, remaining, canChat } = useChatLimit();
     const { activeProvider, setIsStreaming, useExtendedThinking } = useChatStore();
-    const { activeContent, setActiveContent, chartPanelOpen, chartPanelCollapsed } = useUIStore();
+    const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
-    const { isLoadingBars, bars } = useMarketDataStore();
+    // Chart data - reserved for future use
+    // const { isLoadingBars, bars } = useMarketDataStore();
     const { theses: thesisEntries } = useThesisStore();
     const { entries: journalEntries } = useJournalStore();
-    const { isMobile, isDesktop } = useIsMobile();
+    const { isMobile } = useIsMobile();
     const { requireAuth } = useRequireAuth();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -91,40 +89,34 @@ export function ConversationView() {
         });
     };
 
-    // Chart loading state
-    const isChartLoading = activeSymbol ? isLoadingBars[activeSymbol] ?? false : false;
-    const hasChartData = activeSymbol ? (bars[activeSymbol]?.length ?? 0) > 0 : false;
+    // Symbol search state - Reserved for future implementation
+    // const [isSearchingSymbol, setIsSearchingSymbol] = useState(false);
+    // const [symbolSearchValue, setSymbolSearchValue] = useState('');
+    // const symbolInputRef = useRef<HTMLInputElement>(null);
 
-    // Symbol search state
+    // // Focus symbol input when search opens
+    // useEffect(() => {
+    //     if (isSearchingSymbol && symbolInputRef.current) {
+    //         symbolInputRef.current.focus();
+    //     }
+    // }, [isSearchingSymbol]);
 
-    // Symbol search state
-    const [isSearchingSymbol, setIsSearchingSymbol] = useState(false);
-    const [symbolSearchValue, setSymbolSearchValue] = useState('');
-    const symbolInputRef = useRef<HTMLInputElement>(null);
+    // const handleSymbolSearch = (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //     const symbol = symbolSearchValue.trim().toUpperCase();
+    //     if (symbol) {
+    //         setActiveSymbol(symbol);
+    //         setSymbolSearchValue('');
+    //         setIsSearchingSymbol(false);
+    //     }
+    // };
 
-    // Focus symbol input when search opens
-    useEffect(() => {
-        if (isSearchingSymbol && symbolInputRef.current) {
-            symbolInputRef.current.focus();
-        }
-    }, [isSearchingSymbol]);
-
-    const handleSymbolSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        const symbol = symbolSearchValue.trim().toUpperCase();
-        if (symbol) {
-            setActiveSymbol(symbol);
-            setSymbolSearchValue('');
-            setIsSearchingSymbol(false);
-        }
-    };
-
-    const handleSymbolKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Escape') {
-            setSymbolSearchValue('');
-            setIsSearchingSymbol(false);
-        }
-    };
+    // const handleSymbolKeyDown = (e: React.KeyboardEvent) => {
+    //     if (e.key === 'Escape') {
+    //         setSymbolSearchValue('');
+    //         setIsSearchingSymbol(false);
+    //     }
+    // };
 
     // Basic intent detection
     // NOTE: We intentionally do NOT set activeContent to 'chart' here.
@@ -132,7 +124,7 @@ export function ConversationView() {
     // We only update activeSymbol so the sidebar chart can react to it.
     // For other tools (portfolio, orders, etc.) we still set activeContent as those
     // should replace the content area.
-    const detectIntent = (content: string) => {
+    const detectIntent = useCallback((content: string) => {
         const lower = content.toLowerCase();
         // For stock mentions, only update activeSymbol (sidebar chart updates)
         // Don't replace the front page chart by setting activeContent='chart'
@@ -152,7 +144,8 @@ export function ConversationView() {
         } else if (lower.includes('prediction') || lower.includes('kalshi') || lower.includes('polymarket') || lower.includes('betting market')) {
             setActiveContent('prediction-markets');
         }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Handle tool results that control UI
     // NOTE: 'show_chart' tool explicitly swaps to the TradingChart view.
@@ -182,7 +175,8 @@ export function ConversationView() {
                 setActiveSymbol(result.symbol);
             }
         }
-    }, [setActiveContent, setActiveSymbol]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleSend = useCallback(async (content: string) => {
         // Require authentication to use AI Chat
@@ -353,7 +347,7 @@ export function ConversationView() {
             setIsLoading(false);
             setIsStreaming(false);
         }
-    }, [messages, activeProvider, activeSymbol, activeContent, thesisEntries, journalEntries, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult, requireAuth, canChat, tier]);
+    }, [messages, activeProvider, activeSymbol, activeContent, thesisEntries, journalEntries, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult, requireAuth, canChat, tier, detectIntent, useExtendedThinking]);
 
     const hasMessages = messages.length > 0;
     const hasActiveContent = activeContent !== 'none';

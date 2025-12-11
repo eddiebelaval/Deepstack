@@ -211,7 +211,7 @@ describe('NewsFeedCard', () => {
 
     it('prevents event propagation when clicking symbol', () => {
       const onSymbolClick = vi.fn();
-      const { container } = render(
+      render(
         <NewsFeedCard article={baseArticle} onSymbolClick={onSymbolClick} />
       );
 

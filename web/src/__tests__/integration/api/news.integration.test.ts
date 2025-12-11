@@ -36,10 +36,6 @@ interface NewsResponse {
   warning?: string;
 }
 
-interface ErrorResponse {
-  error: string;
-}
-
 describe('/api/news', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -73,7 +69,7 @@ describe('/api/news', () => {
     it('normalizes symbol to uppercase', async () => {
       const request = createRequest('http://localhost:3000/api/news?symbol=spy');
       const response = await GET(request);
-      const data = await parseResponse<NewsResponse>(response);
+      await parseResponse<NewsResponse>(response);
 
       expect(response.status).toBe(200);
     });

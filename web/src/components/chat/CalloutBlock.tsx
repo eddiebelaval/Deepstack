@@ -106,7 +106,6 @@ export function extractAlertType(children: React.ReactNode): { type: CalloutType
                     const alertType = match[1].toLowerCase() as CalloutType;
                     // Return the content after the alert marker
                     const remainingText = text.replace(match[0], '');
-                    const remainingChildren = [...childArray];
 
                     // Replace the first element with the remaining text if there's any
                     if (remainingText) {

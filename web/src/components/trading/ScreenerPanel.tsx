@@ -50,7 +50,7 @@ export function ScreenerPanel() {
     if (results.length === 0) {
       runScreener();
     }
-  }, []);
+  }, [results.length, runScreener]);
 
   const handleSymbolClick = (symbol: string) => {
     setActiveSymbol(symbol);

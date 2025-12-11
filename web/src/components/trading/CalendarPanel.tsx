@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Loader2, RefreshCw } from 'lucide-react';
-import { useCalendarStore, CalendarEventType } from '@/lib/stores/calendar-store';
+import { useCalendarStore } from '@/lib/stores/calendar-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { TimelineCalendar } from './TimelineCalendar';
 

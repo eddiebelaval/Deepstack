@@ -211,7 +211,6 @@ export function HomeWidgets() {
 
     const {
         getActiveWatchlist,
-        addSymbol: addWatchlistSymbol,
         removeSymbol: removeWatchlistSymbol,
         activeWatchlistId,
     } = useWatchlistStore();

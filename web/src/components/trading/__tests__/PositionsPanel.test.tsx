@@ -316,8 +316,6 @@ describe.skip('PositionsPanel', () => {
       const user = userEvent.setup();
       render(<PositionsPanel />);
 
-      const aaplCard = screen.getByText('AAPL').closest('div');
-
       // Find and click the X button
       const closeButtons = document.querySelectorAll('.lucide-x');
       if (closeButtons.length > 0) {

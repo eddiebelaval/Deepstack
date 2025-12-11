@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -77,7 +77,10 @@ export function SymbolSearch({ open: controlledOpen, onOpenChange }: SymbolSearc
   const { quotes } = useMarketDataStore();
 
   const activeWatchlist = getActiveWatchlist();
-  const watchlistSymbols = activeWatchlist?.items.map((i) => i.symbol) || [];
+  // Memoize watchlist symbols to prevent dependency issues
+  const watchlistSymbols = useMemo(() => {
+    return activeWatchlist?.items.map((i) => i.symbol) || [];
+  }, [activeWatchlist?.items]);
 
   // Load recent searches from localStorage
   useEffect(() => {

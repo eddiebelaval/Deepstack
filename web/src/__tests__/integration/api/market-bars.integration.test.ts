@@ -9,7 +9,6 @@ import { http, HttpResponse } from 'msw';
 import { GET } from '@/app/api/market/bars/route';
 import { createRequest, parseResponse, type ApiResponse } from '../test-utils';
 import { server } from '../setup';
-import { mocks } from '../mocks/handlers';
 
 // Import setup to initialize MSW server
 import '../setup';

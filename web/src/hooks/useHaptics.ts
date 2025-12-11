@@ -28,13 +28,14 @@ function isVibrationSupported(): boolean {
  * Check if we're running as a PWA (standalone mode)
  * Reserved for future use - may enable different haptic patterns in PWA mode
  */
-function _isStandaloneMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
-  );
-}
+// Disabled for now - reserved for future use
+// function _isStandaloneMode(): boolean {
+//   if (typeof window === 'undefined') return false;
+//   return (
+//     window.matchMedia('(display-mode: standalone)').matches ||
+//     (window.navigator as any).standalone === true
+//   );
+// }
 
 export interface HapticFeedback {
   /** Trigger a light haptic feedback (tap) */

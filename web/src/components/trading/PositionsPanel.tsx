@@ -67,7 +67,6 @@ export function PositionsPanel({ onAddPosition }: PositionsPanelProps) {
 
   // Calculate day change (mock for now - would need real-time data)
   const dayChange = 0;
-  const dayChangePercent = 0;
   const buyingPower = 50000; // Mock value
 
   return (

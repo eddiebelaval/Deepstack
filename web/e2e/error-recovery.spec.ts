@@ -275,7 +275,7 @@ test.describe('Error Recovery', () => {
 
       // Browser or app may show offline indicator
       const offlineText = page.getByText(/offline|no connection|network/i);
-      const hasOfflineIndicator = await offlineText.first().isVisible({ timeout: 3000 }).catch(() => false);
+      await offlineText.first().isVisible({ timeout: 3000 }).catch(() => false);
 
       // Either shows offline indicator or navigation fails (both valid)
       expect(true).toBeTruthy(); // Test passes if we get here without crash
@@ -286,9 +286,6 @@ test.describe('Error Recovery', () => {
       await page.goto('/app');
       await dismissModals(page);
       await page.waitForTimeout(1000);
-
-      // Get the HTML content
-      const onlineContent = await page.content();
 
       // Go offline
       await page.context().setOffline(true);
@@ -325,10 +322,8 @@ test.describe('Error Recovery', () => {
         page.locator('.toast, [role="status"]').first()
       ];
 
-      let foundError = false;
       for (const indicator of errorIndicators) {
         if (await indicator.isVisible({ timeout: 1000 }).catch(() => false)) {
-          foundError = true;
           break;
         }
       }
@@ -524,7 +519,7 @@ test.describe('Error Recovery', () => {
         // Attempt to access undefined property
         try {
           (window as any).nonExistent.property;
-        } catch (e) {
+        } catch (_e) {
           // Error thrown but caught
         }
       });

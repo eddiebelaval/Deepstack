@@ -87,7 +87,7 @@ export function createMockAuth() {
       return { error: null };
     }),
 
-    onAuthStateChange: vi.fn((callback: (event: string, session: typeof mockSession | null) => void) => {
+    onAuthStateChange: vi.fn((_callback: (event: string, session: typeof mockSession | null) => void) => {
       // Return unsubscribe function
       return {
         data: {

@@ -141,9 +141,6 @@ export function BetsCarousel({
     }
   };
 
-  // Get current page markets
-  const currentMarkets = displayMarkets.slice(currentPage * 2, currentPage * 2 + 2);
-
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* Header with View All */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 import { ValidationScoreModal } from './ValidationScoreModal';
 import { ValidationScoreRing } from './ValidationScoreRing';
 import { ThesisRelatedMarkets } from './ThesisRelatedMarkets';
-import { calculateValidationScore, getScoreColor } from '@/lib/thesis-validation';
+import { calculateValidationScore } from '@/lib/thesis-validation';
 
 interface ThesisDashboardProps {
     thesis: ThesisEntry;
@@ -52,14 +52,7 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
     const [linkedConversation, setLinkedConversation] = useState<Conversation | null>(null);
     const [isLoadingConversation, setIsLoadingConversation] = useState(false);
 
-    // Load linked conversation if exists
-    useEffect(() => {
-        if (thesis.conversationId) {
-            loadLinkedConversation();
-        }
-    }, [thesis.conversationId]);
-
-    const loadLinkedConversation = async () => {
+    const loadLinkedConversation = useCallback(async () => {
         if (!thesis.conversationId) return;
 
         setIsLoadingConversation(true);
@@ -71,7 +64,14 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
         } finally {
             setIsLoadingConversation(false);
         }
-    };
+    }, [thesis.conversationId]);
+
+    // Load linked conversation if exists
+    useEffect(() => {
+        if (thesis.conversationId) {
+            loadLinkedConversation();
+        }
+    }, [thesis.conversationId, loadLinkedConversation]);
 
     // Get journal entries linked to this thesis
     const linkedJournalEntries = useMemo(() => {
@@ -94,7 +94,7 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
     }, [linkedJournalEntries]);
 
     // Simulated price fetch (would be real API in production)
-    const fetchCurrentPrice = async () => {
+    const fetchCurrentPrice = useCallback(async () => {
         try {
             const response = await fetch(`/api/market/quotes?symbols=${thesis.symbol}`);
             if (response.ok) {
@@ -108,7 +108,7 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
         } catch (error) {
             console.error('Failed to fetch price', error);
         }
-    };
+    }, [thesis.symbol]);
 
     useEffect(() => {
         if (isMonitoring) {
@@ -116,7 +116,7 @@ export function ThesisDashboard({ thesis, onBack, onEdit }: ThesisDashboardProps
             const interval = setInterval(fetchCurrentPrice, 30000); // Every 30s
             return () => clearInterval(interval);
         }
-    }, [isMonitoring, thesis.symbol]);
+    }, [isMonitoring, thesis.symbol, fetchCurrentPrice]);
 
     const handleActivate = () => {
         updateThesis(thesis.id, { status: 'active' });

@@ -21,11 +21,11 @@ export function createMockSupabaseClient() {
     // Storage mock (basic implementation)
     storage: {
       from: vi.fn((bucket: string) => ({
-        upload: vi.fn(async (path: string, file: File | Blob) => ({
+        upload: vi.fn(async (path: string, _file: File | Blob) => ({
           data: { path: `${bucket}/${path}` },
           error: null,
         })),
-        download: vi.fn(async (path: string) => ({
+        download: vi.fn(async (_path: string) => ({
           data: new Blob(['mock file content']),
           error: null,
         })),
@@ -36,14 +36,14 @@ export function createMockSupabaseClient() {
           data: paths.map((p) => ({ name: p })),
           error: null,
         })),
-        list: vi.fn(async (prefix?: string) => ({
+        list: vi.fn(async (_prefix?: string) => ({
           data: [{ name: 'file1.png' }, { name: 'file2.jpg' }],
           error: null,
         })),
       })),
     },
     // Realtime mock
-    channel: vi.fn((name: string) => ({
+    channel: vi.fn((_name: string) => ({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn((callback?: (status: string) => void) => {
         if (callback) callback('SUBSCRIBED');
