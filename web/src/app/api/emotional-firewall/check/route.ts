@@ -86,10 +86,8 @@ function getCurrentStreak(): { type: 'win' | 'loss' | null; count: number } {
   return { type: firstType, count };
 }
 
-function checkFirewall(
-  _symbol?: string,
-  _positionSize?: number
-): FirewallCheckResult {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function checkFirewall(_symbol?: string, _positionSize?: number): FirewallCheckResult {
   const now = new Date();
   const reasons: string[] = [];
   const patterns: string[] = [];

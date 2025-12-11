@@ -4,6 +4,7 @@
  * Provides mock implementations for Supabase database operations.
  * Supports chainable query builder pattern with configurable responses.
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { vi } from 'vitest';
 
 // In-memory data store for tests

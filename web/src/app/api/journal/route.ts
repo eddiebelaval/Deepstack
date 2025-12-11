@@ -127,6 +127,7 @@ async function getAuthenticatedUser() {
 }
 
 // GET - List all journal entries for the authenticated user
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_request: NextRequest) {
     const { user, supabase, error } = await getAuthenticatedUser();
     if (error) return error;

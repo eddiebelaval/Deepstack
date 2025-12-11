@@ -516,11 +516,12 @@ test.describe('Error Recovery', () => {
 
       // Inject a runtime error
       await page.evaluate(() => {
-        // Attempt to access undefined property
+        // Attempt to access undefined property - this is intentional for testing
         try {
-          (window as any).nonExistent.property;
-        } catch (_e) {
-          // Error thrown but caught
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          (window as unknown as { nonExistent: { property: unknown } }).nonExistent.property;
+        } catch {
+          // Error thrown but caught - expected behavior
         }
       });
 

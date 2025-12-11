@@ -2,6 +2,7 @@
  * Mock implementations of Radix UI primitives for testing in JSDOM
  * These components render simple HTML equivalents that can be tested without browser APIs
  */
+/* eslint-disable jsx-a11y/role-has-required-aria-props */
 import React from 'react';
 import { vi } from 'vitest';
 

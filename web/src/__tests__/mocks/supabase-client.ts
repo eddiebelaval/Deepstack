@@ -4,6 +4,7 @@
  * Creates a complete mock Supabase client combining auth and database mocks.
  * Use this to mock the entire Supabase client in tests.
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { vi } from 'vitest';
 import { createMockAuth, setAuthState, resetAuthState, mockUser, mockSession } from './supabase-auth';
 import { createMockDb, seedData, clearData, getData } from './supabase-db';

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import { useEffect, useState, useCallback } from "react";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";

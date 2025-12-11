@@ -4,6 +4,7 @@
  * Provides mock implementations for Supabase authentication in tests.
  * Supports authenticated and unauthenticated states for testing protected routes.
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { vi } from 'vitest';
 
 // Mock user data

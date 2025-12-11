@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';

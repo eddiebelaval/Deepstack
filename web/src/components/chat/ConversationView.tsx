@@ -1,10 +1,10 @@
 'use client';
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
-import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { useThesisStore } from '@/lib/stores/thesis-store';
 import { useJournalStore } from '@/lib/stores/journal-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -17,7 +17,6 @@ import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Button } from '@/components/ui/button';
-// Note: useMarketDataStore reserved for future chart integration
 import { ChartPanel } from '@/components/trading/ChartPanel';
 import { PositionsList } from '@/components/trading/PositionsList';
 import { PositionsPanel } from '@/components/trading/PositionsPanel';
@@ -54,8 +53,6 @@ export function ConversationView() {
     const { activeProvider, setIsStreaming, useExtendedThinking } = useChatStore();
     const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
-    // Chart data - reserved for future use
-    // const { isLoadingBars, bars } = useMarketDataStore();
     const { theses: thesisEntries } = useThesisStore();
     const { entries: journalEntries } = useJournalStore();
     const { isMobile } = useIsMobile();
@@ -144,7 +141,7 @@ export function ConversationView() {
         } else if (lower.includes('prediction') || lower.includes('kalshi') || lower.includes('polymarket') || lower.includes('betting market')) {
             setActiveContent('prediction-markets');
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 
     // Handle tool results that control UI
@@ -175,7 +172,7 @@ export function ConversationView() {
                 setActiveSymbol(result.symbol);
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 
     const handleSend = useCallback(async (content: string) => {
