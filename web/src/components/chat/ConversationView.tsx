@@ -35,6 +35,7 @@ import { InsightsPanel } from '@/components/insights/InsightsPanel';
 import { PresetGrid } from './PresetGrid';
 // HomeWidgets moved to global MarketWatchPanel in DeepStackLayout
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { X, ArrowDown } from 'lucide-react';
 
@@ -486,37 +487,16 @@ export function ConversationView() {
 
                 {/* Centered Welcome Message - scrollable if content overflows */}
                 <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center" style={{ overscrollBehavior: 'contain' }}>
-                    <div className="text-center space-y-3 max-w-2xl px-4">
-                        <div className="flex justify-center mb-4">
-                            <div className={cn(
-                                "rounded-2xl bg-primary/10",
-                                isMobile ? "p-2" : "p-3"
-                            )}>
-                                <svg className={cn(
-                                    "text-primary",
-                                    isMobile ? "h-6 w-6" : "h-8 w-8"
-                                )} fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                                </svg>
-                            </div>
-                        </div>
-                        <h2 className={cn(
-                            "font-semibold text-foreground",
-                            isMobile ? "text-xl" : "text-2xl"
-                        )}>
-                            Welcome to deepstack
-                        </h2>
-                        <p className={cn(
-                            "text-muted-foreground max-w-md mx-auto leading-relaxed",
-                            isMobile ? "text-sm" : "text-base"
-                        )}>
-                            {isMobile
-                                ? "Your AI trading assistant for charts, portfolio, and trades."
-                                : "I can analyze charts, review your portfolio, find trading setups, and help you execute trades."
+                    <div className="text-center max-w-2xl px-4">
+                        <EmptyState
+                            subtitle={isMobile
+                                ? "Your AI trading assistant"
+                                : "I can analyze charts, review your portfolio, and find trading setups."
                             }
-                        </p>
+                            size={isMobile ? "md" : "lg"}
+                        />
                         {tier === 'free' && (
-                            <p className="text-xs text-muted-foreground mt-2">
+                            <p className="text-xs text-muted-foreground mt-4">
                                 {remaining} AI chats remaining today
                             </p>
                         )}

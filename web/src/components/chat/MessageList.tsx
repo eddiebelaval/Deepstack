@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 type Message = any; // import { Message } from '@ai-sdk/react';
 import { MessageBubble } from './MessageBubble';
 import { Loader2, Sparkles } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type MessageListProps = {
   messages: Message[];
@@ -35,18 +36,9 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col p-6">
-        <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <div className="max-w-md space-y-3">
-            <span className="text-3xl font-urbanist font-normal text-primary tracking-tight">
-              deepstack
-            </span>
-            <p className="text-sm text-muted-foreground">
-              What would you like to analyze?
-            </p>
-          </div>
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <EmptyState subtitle="What would you like to analyze?" size="md" />
         </div>
-
-
       </div>
     );
   }
