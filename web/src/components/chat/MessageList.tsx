@@ -37,8 +37,8 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
       <div className="flex-1 flex flex-col p-6">
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <div className="max-w-md space-y-3">
-            <span className="text-3xl font-mono font-bold text-primary tracking-tight">
-              DEEPSTACK
+            <span className="text-3xl font-urbanist font-normal text-primary tracking-tight">
+              deepstack
             </span>
             <p className="text-sm text-muted-foreground">
               What would you like to analyze?

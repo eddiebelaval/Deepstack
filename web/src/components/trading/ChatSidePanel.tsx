@@ -153,8 +153,8 @@ export function ChatSidePanel() {
           {messages.length === 0 ? (
           <div className="space-y-3">
             <div className="text-center text-muted-foreground py-6">
-              <span className="text-xl font-mono font-bold text-primary tracking-tight block mb-2">
-                DEEPSTACK
+              <span className="text-xl font-urbanist font-normal text-primary tracking-tight block mb-2">
+                deepstack
               </span>
               <p className="text-sm">
                 Ask about {activeSymbol} or any trading question
