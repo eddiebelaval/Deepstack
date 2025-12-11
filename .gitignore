@@ -131,3 +131,4 @@ web/out/
 # Allow data directory but ignore sensitive content
 !data/
 data/paper_trading.db
+.env*.local
