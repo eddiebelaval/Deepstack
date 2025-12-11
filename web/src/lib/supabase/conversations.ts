@@ -1,18 +1,21 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
 import type { Conversation } from '../stores/chat-store';
 
+// Helper to check if error is "table doesn't exist"
+function isTableMissingError(error: { code?: string; message?: string }): boolean {
+  return error.code === '42P01' || error.message?.includes('does not exist') || false;
+}
+
 /**
  * Fetch all conversations for the current user
  */
 export async function fetchConversations(): Promise<Conversation[]> {
   if (!isSupabaseConfigured() || !supabase) {
-    console.warn('Supabase not configured, using local storage');
     return [];
   }
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    console.warn('No authenticated user');
     return [];
   }
 
@@ -23,6 +26,10 @@ export async function fetchConversations(): Promise<Conversation[]> {
     .order('updated_at', { ascending: false });
 
   if (error) {
+    // Silently return empty array if table doesn't exist yet
+    if (isTableMissingError(error)) {
+      return [];
+    }
     console.error('Error fetching conversations:', error);
     throw error;
   }
@@ -51,6 +58,9 @@ export async function fetchRecentConversations(): Promise<Conversation[]> {
     .limit(10);
 
   if (error) {
+    if (isTableMissingError(error)) {
+      return [];
+    }
     console.error('Error fetching recent conversations:', error);
     throw error;
   }
@@ -73,8 +83,8 @@ export async function fetchConversationById(id: string): Promise<Conversation | 
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return null; // Not found
+    if (error.code === 'PGRST116' || isTableMissingError(error)) {
+      return null; // Not found or table missing
     }
     console.error('Error fetching conversation:', error);
     throw error;

@@ -12,18 +12,20 @@ const withSerwist = withSerwistInit({
 
 // Content Security Policy configuration
 // Reference: OWASP CSP Cheat Sheet - https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html
+const isDev = process.env.NODE_ENV === 'development';
+
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https:;
-  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://*.sentry.io https://deepstack-api-production.up.railway.app wss://deepstack-api-production.up.railway.app;
-  font-src 'self';
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://*.sentry.io https://deepstack-api-production.up.railway.app wss://deepstack-api-production.up.railway.app${isDev ? ' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*' : ''};
+  font-src 'self' https://r2cdn.perplexity.ai;
   frame-ancestors 'none';
   base-uri 'self';
   form-action 'self';
   object-src 'none';
-  upgrade-insecure-requests;
+  ${isDev ? '' : 'upgrade-insecure-requests;'}
 `.replace(/\s{2,}/g, ' ').trim();
 
 const nextConfig: NextConfig = {

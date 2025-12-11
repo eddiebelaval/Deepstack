@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,12 @@ export function SortableWidget({
 }: SortableWidgetProps) {
   const definition = getWidgetDefinition(widget.type);
   const Icon = definition.icon;
+  // Track if component has mounted to avoid hydration mismatch from DnD Kit IDs
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const {
     attributes,
@@ -40,6 +46,12 @@ export function SortableWidget({
     transition,
   };
 
+  // Filter out aria-describedby during SSR to prevent hydration mismatch
+  // DnD Kit generates different IDs on server vs client
+  const safeAttributes = isMounted
+    ? attributes
+    : { ...attributes, 'aria-describedby': undefined };
+
   return (
     <Card
       ref={setNodeRef}
@@ -51,7 +63,7 @@ export function SortableWidget({
     >
       <CardHeader className="p-3 pb-2 flex flex-row items-center gap-2">
         <button
-          {...attributes}
+          {...safeAttributes}
           {...listeners}
           className="cursor-grab active:cursor-grabbing touch-none"
         >

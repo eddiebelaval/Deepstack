@@ -1,60 +1,111 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from './useSession';
 import type { SubscriptionTier } from '@/lib/subscription';
 
+// Profile from profiles table (basic user info)
 export interface UserProfile {
     id: string;
     email: string | null;
     full_name: string | null;
-    subscription_tier: SubscriptionTier;
-    stripe_customer_id: string | null;
-    stripe_subscription_id: string | null;
-    subscription_status: 'inactive' | 'active' | 'past_due' | 'canceled' | 'trialing';
-    subscription_starts_at: string | null;
-    subscription_ends_at: string | null;
+    avatar_url: string | null;
     created_at: string;
     updated_at: string;
 }
 
+// Combined profile with subscription data from subscriptions table
+export interface UserProfileWithSubscription extends UserProfile {
+    subscription_tier: SubscriptionTier;
+    subscription_status: 'inactive' | 'active' | 'past_due' | 'canceled' | 'trialing';
+    subscription_ends_at: string | null;
+}
+
 export function useProfile() {
     const user = useUser();
-    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [profile, setProfile] = useState<UserProfileWithSubscription | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const fetchAttempted = useRef(false);
 
     useEffect(() => {
         if (!user) {
             setProfile(null);
             setIsLoading(false);
+            fetchAttempted.current = false;
+            return;
+        }
+
+        // Prevent repeated fetch attempts for the same user
+        if (fetchAttempted.current) {
             return;
         }
 
         const fetchProfile = async () => {
+            fetchAttempted.current = true;
+
             try {
                 const supabase = createClient();
                 if (!supabase) {
                     setProfile(null);
+                    setIsLoading(false);
                     return;
                 }
-                const { data, error: fetchError } = await supabase
+
+                // Fetch profile - use maybeSingle() to handle no rows gracefully
+                const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', user.id)
-                    .single();
+                    .maybeSingle();
 
-                if (fetchError) {
-                    throw fetchError;
+                // Profile not found is not an error - user may not have profile yet
+                if (profileError && profileError.code !== 'PGRST116') {
+                    throw profileError;
                 }
 
-                setProfile(data as UserProfile);
+                // Fetch subscription data
+                const { data: subData } = await supabase
+                    .from('subscriptions')
+                    .select('tier, status, active, current_period_end')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                // Build combined profile
+                const combinedProfile: UserProfileWithSubscription = {
+                    id: user.id,
+                    email: profileData?.email ?? user.email ?? null,
+                    full_name: profileData?.full_name ?? null,
+                    avatar_url: profileData?.avatar_url ?? null,
+                    created_at: profileData?.created_at ?? new Date().toISOString(),
+                    updated_at: profileData?.updated_at ?? new Date().toISOString(),
+                    subscription_tier: (subData?.tier?.toLowerCase() as SubscriptionTier) ?? 'free',
+                    subscription_status: subData?.active ? 'active' : 'inactive',
+                    subscription_ends_at: subData?.current_period_end ?? null,
+                };
+
+                setProfile(combinedProfile);
                 setError(null);
             } catch (err) {
-                console.error('Error fetching profile:', err);
+                // Only log unexpected errors, not "no rows" which is expected
+                const pgError = err as { code?: string };
+                if (pgError.code !== 'PGRST116') {
+                    console.error('Error fetching profile:', err);
+                }
                 setError(err as Error);
-                setProfile(null);
+                // Still provide a minimal profile from auth user
+                setProfile({
+                    id: user.id,
+                    email: user.email ?? null,
+                    full_name: null,
+                    avatar_url: null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    subscription_tier: 'free',
+                    subscription_status: 'inactive',
+                    subscription_ends_at: null,
+                });
             } finally {
                 setIsLoading(false);
             }
@@ -76,8 +127,10 @@ export function useProfile() {
                     table: 'profiles',
                     filter: `id=eq.${user.id}`,
                 },
-                (payload) => {
-                    setProfile(payload.new as UserProfile);
+                () => {
+                    // Reset fetch flag to allow refetch on realtime update
+                    fetchAttempted.current = false;
+                    fetchProfile();
                 }
             )
             .subscribe();
@@ -91,7 +144,7 @@ export function useProfile() {
         profile,
         isLoading,
         error,
-        tier: profile?.subscription_tier || 'free',
+        tier: profile?.subscription_tier ?? 'free',
         isActive: profile?.subscription_status === 'active',
     };
 }
