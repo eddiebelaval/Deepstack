@@ -17,7 +17,7 @@ const ContentSecurityPolicy = `
   script-src 'self' 'unsafe-inline' 'unsafe-eval';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https:;
-  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://*.sentry.io;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://*.sentry.io https://deepstack-api-production.up.railway.app wss://deepstack-api-production.up.railway.app;
   font-src 'self';
   frame-ancestors 'none';
   base-uri 'self';
