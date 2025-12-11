@@ -83,7 +83,7 @@ export function useHistoricalBars(options: UseHistoricalBarsOptions = {}) {
     if (opts.autoFetch && activeSymbol) {
       fetchBars(activeSymbol);
     }
-  }, [effectiveTimeframe]);
+  }, [effectiveTimeframe, opts.autoFetch, activeSymbol, fetchBars]);
 
   return {
     fetchBars,

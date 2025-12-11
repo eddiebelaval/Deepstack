@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,11 +14,11 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error to console and potentially to error tracking service
+    // Log error to console and error tracking service
     console.error('Application error:', error);
 
-    // Could send to Sentry/LogRocket here:
-    // Sentry.captureException(error);
+    // Send to Sentry for production error tracking
+    Sentry.captureException(error);
   }, [error]);
 
   const isDev = process.env.NODE_ENV === 'development';

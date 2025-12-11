@@ -15,13 +15,13 @@ export function PaywallModal() {
 
         if (typeof window !== 'undefined') {
             window.addEventListener('deepstack-paywall', handlePaywallEvent);
-            // @ts-ignore - CustomEvent detail typing
+            // @ts-expect-error - CustomEvent detail typing
             window.addEventListener('deepstack-credits', handleCreditEvent);
         }
         return () => {
             if (typeof window !== 'undefined') {
                 window.removeEventListener('deepstack-paywall', handlePaywallEvent);
-                // @ts-ignore
+                // @ts-expect-error - CustomEvent detail typing
                 window.removeEventListener('deepstack-credits', handleCreditEvent);
             }
         };
@@ -52,7 +52,7 @@ export function PaywallModal() {
                             <div className="space-y-2">
                                 <h2 className="text-2xl font-bold tracking-tight">Unlock Professional Research</h2>
                                 <p className="text-muted-foreground">
-                                    You've reached the limit of the Free Research Tier. Upgrade to Pro for:
+                                    You&apos;ve reached the limit of the Free Research Tier. Upgrade to Pro for:
                                 </p>
                             </div>
 

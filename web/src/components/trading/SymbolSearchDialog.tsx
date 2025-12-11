@@ -200,7 +200,7 @@ export function SymbolSearchDialog({
                             filteredPopular.length === 0 &&
                             filteredRecent.length === 0 && (
                                 <div className="text-center py-8 text-muted-foreground">
-                                    No symbols found. Press Enter to add "{searchQuery.toUpperCase()}"
+                                    No symbols found. Press Enter to add &quot;{searchQuery.toUpperCase()}&quot;
                                 </div>
                             )}
                     </div>

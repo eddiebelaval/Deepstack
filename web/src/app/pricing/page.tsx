@@ -125,7 +125,7 @@ export default function PricingPage() {
                     Choose Your Path to Better Trading
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Unlike other platforms that profit when you overtrade, we're traders like you.
+                    Unlike other platforms that profit when you overtrade, we&apos;re traders like you.
                     Our mission: <span className="text-amber-400 font-semibold">empower retail traders</span> on their journey to financial freedom.
                 </p>
             </div>
@@ -192,19 +192,19 @@ export default function PricingPage() {
                     Why the Emotional Firewall Matters
                 </h2>
                 <p className="text-muted-foreground mb-4">
-                    82% of retail traders lose money. Most losses aren't from bad analysis—they're from emotional decisions:
+                    82% of retail traders lose money. Most losses aren&apos;t from bad analysis—they&apos;re from emotional decisions:
                     revenge trading, overtrading, and FOMO.
                 </p>
                 <p className="text-muted-foreground">
                     The Emotional Firewall detects these patterns and <span className="text-emerald-400 font-semibold">stops you before you blow up your account</span>.
-                    It's like having an experienced trading mentor watching over your shoulder 24/7.
+                    It&apos;s like having an experienced trading mentor watching over your shoulder 24/7.
                 </p>
             </div>
 
             {/* Trader-Focused Messaging */}
             <div className="max-w-4xl mx-auto mt-12 text-center">
                 <p className="text-lg text-muted-foreground">
-                    We're not a broker making money on your trades. We're <span className="text-amber-400 font-semibold">traders building tools for traders</span>.
+                    We&apos;re not a broker making money on your trades. We&apos;re <span className="text-amber-400 font-semibold">traders building tools for traders</span>.
                     Use this platform to empower you on your journey to financial freedom.
                 </p>
             </div>

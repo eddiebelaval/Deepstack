@@ -165,7 +165,7 @@ export function WidgetSelector({ open, onOpenChange }: WidgetSelectorProps) {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <p className="text-sm text-muted-foreground">
-                    No widgets found matching "{searchQuery}"
+                    No widgets found matching &quot;{searchQuery}&quot;
                   </p>
                 </div>
               )}

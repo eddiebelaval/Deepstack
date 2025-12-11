@@ -339,7 +339,7 @@ describe('POST /api/chat', () => {
       );
       expect(mockStreamText).toHaveBeenCalledWith(
         expect.objectContaining({
-          system: expect.stringMatching(/YES: 65%.*NO: 35%/s),
+          system: expect.stringMatching(/YES: 65%[\s\S]*NO: 35%/),
         })
       );
     });
@@ -511,7 +511,7 @@ describe('POST /api/chat', () => {
 
       await POST(request);
 
-      const callArgs = mockStreamText.mock.calls[0][0];
+      const callArgs = mockStreamText.mock.calls[0][0] as any;
       expect(callArgs.experimental_thinking).toBeUndefined();
     });
 
@@ -527,7 +527,7 @@ describe('POST /api/chat', () => {
 
       await POST(request);
 
-      const callArgs = mockStreamText.mock.calls[0][0];
+      const callArgs = mockStreamText.mock.calls[0][0] as any;
       expect(callArgs.experimental_thinking).toBeUndefined();
     });
   });

@@ -127,7 +127,7 @@ async function getAuthenticatedUser() {
 }
 
 // GET - List all journal entries for the authenticated user
-export async function GET() {
+export async function GET(_request: NextRequest) {
     const { user, supabase, error } = await getAuthenticatedUser();
     if (error) return error;
 

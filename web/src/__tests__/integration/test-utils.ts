@@ -18,7 +18,11 @@ export function createRequest(
 ): NextRequest {
   const { method = 'GET', body, headers = {} } = options;
 
-  const requestInit: RequestInit = {
+  const requestInit: {
+    method?: string;
+    headers?: HeadersInit;
+    body?: BodyInit | null;
+  } = {
     method,
     headers: {
       'Content-Type': 'application/json',

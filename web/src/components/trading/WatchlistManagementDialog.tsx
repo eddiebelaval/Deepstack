@@ -301,8 +301,8 @@ export function WatchlistManagementDialog({
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Watchlist?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will permanently delete the watchlist "
-                            {watchlists.find((w) => w.id === deleteId)?.name}" and all its
+                            This will permanently delete the watchlist &quot;
+                            {watchlists.find((w) => w.id === deleteId)?.name}&quot; and all its
                             symbols. This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>

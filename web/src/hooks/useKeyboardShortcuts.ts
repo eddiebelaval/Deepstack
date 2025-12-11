@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { create } from "zustand";
 import { useTradingStore } from "@/lib/stores/trading-store";
 
@@ -47,7 +47,8 @@ export function useKeyboardShortcuts() {
   } = useTradingStore();
   const { toggleSearch, setSearchOpen } = useSearchPaletteStore();
 
-  const shortcuts: ShortcutConfig[] = [
+  // Memoize shortcuts array to prevent re-creating on every render
+  const shortcuts: ShortcutConfig[] = useMemo(() => [
     // Search / Command Palette
     {
       key: "k",
@@ -147,7 +148,7 @@ export function useKeyboardShortcuts() {
       handler: () => setChartType("area"),
       description: "Area chart",
     },
-  ];
+  ], [toggleSearch, setSearchOpen, toggleChatPanel, toggleWatchlist, toggleOrderPanel, setTimeframe, setChartType]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {

@@ -21,7 +21,7 @@ export default function OfflinePage() {
         {/* Title */}
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold text-foreground">
-            You're Offline
+            You&apos;re Offline
           </h1>
           <p className="text-muted-foreground">
             deepstack requires an internet connection for real-time market data and trading.
@@ -30,7 +30,7 @@ export default function OfflinePage() {
 
         {/* Explanation */}
         <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground text-left space-y-2">
-          <p className="font-medium text-foreground">While offline, you can't:</p>
+          <p className="font-medium text-foreground">While offline, you can&apos;t:</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
             <li>View live market data</li>
             <li>Execute trades</li>

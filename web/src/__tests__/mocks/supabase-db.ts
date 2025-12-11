@@ -72,13 +72,13 @@ function applyFilters(data: unknown[], filters: typeof queryState.filters): unkn
         case 'neq':
           return value !== filter.value;
         case 'gt':
-          return value > filter.value;
+          return (value as number) > (filter.value as number);
         case 'gte':
-          return value >= filter.value;
+          return (value as number) >= (filter.value as number);
         case 'lt':
-          return value < filter.value;
+          return (value as number) < (filter.value as number);
         case 'lte':
-          return value <= filter.value;
+          return (value as number) <= (filter.value as number);
         case 'like':
           return String(value).includes(String(filter.value));
         case 'ilike':
@@ -274,7 +274,8 @@ export function createMockDb() {
             );
 
             if (existingIndex >= 0) {
-              Object.assign(dataStore[table][existingIndex], item, {
+              const target = dataStore[table][existingIndex] as Record<string, unknown>;
+              Object.assign(target, item, {
                 updated_at: new Date().toISOString(),
               });
             } else {
