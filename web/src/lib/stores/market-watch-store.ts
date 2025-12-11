@@ -8,11 +8,22 @@ const DEFAULT_CUSTOM = ['SPY', 'AAPL'];
 
 // Display names for common symbols
 export const SYMBOL_DISPLAY_NAMES: Record<string, string> = {
+  // Market Indices
   'SPY': 'S&P 500',
   'QQQ': 'NASDAQ 100',
   'DIA': 'Dow Jones',
   'IWM': 'Russell 2000',
   'VIX': 'Volatility',
+  'VTI': 'Total Market',
+  'EFA': 'EAFE',
+  'EEM': 'Emerging',
+  'GLD': 'Gold',
+  'TLT': 'Treasuries',
+  'XLF': 'Financials',
+  'XLE': 'Energy',
+  'XLK': 'Technology',
+  'XLV': 'Healthcare',
+  // Crypto
   'BTC/USD': 'Bitcoin',
   'ETH/USD': 'Ethereum',
   'DOGE/USD': 'Dogecoin',

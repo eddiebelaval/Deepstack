@@ -20,6 +20,7 @@ import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagem
 import { SymbolSearchDialog } from '@/components/trading/SymbolSearchDialog';
 import { PositionsPanel } from '@/components/trading/PositionsPanel';
 import { PositionEntryForm } from '@/components/trading/PositionEntryForm';
+import { IndexScrollWheel, AVAILABLE_INDICES } from '@/components/ui/index-scroll-wheel';
 
 // deepstack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
@@ -655,22 +656,41 @@ export function HomeWidgets() {
                 {/* Glass Asset Cards - Color-coded edge glow effect */}
                 {activeTab !== 'predictions' && activeTab !== 'positions' && (
                     <div className="mt-2 pt-2 border-t border-border/30">
-                        <div className="flex gap-3 justify-center flex-wrap pb-1">
-                            {seriesMetrics.map((metric) => metric && (
-                                <GlassAssetCard
-                                    key={metric.symbol}
-                                    symbol={metric.symbol}
-                                    displayName={metric.displayName}
-                                    price={metric.price}
-                                    percentChange={metric.percentChange}
-                                    color={metric.color}
-                                    isVisible={visibleSymbols.has(metric.symbol)}
-                                    onClick={() => toggleSymbol(metric.symbol)}
-                                    onRemove={(isEditMode && canEdit) ? () => handleRemoveSymbol(metric.symbol) : undefined}
-                                    isCrypto={isCrypto}
-                                    showRemoveAlways={isEditMode}
+                        <div className="flex gap-3 items-center pb-1">
+                            {/* Index Scroll Wheel - only show on Indices tab */}
+                            {activeTab === 'market' && (
+                                <IndexScrollWheel
+                                    selectedSymbols={indices}
+                                    onSelect={(symbol) => {
+                                        // Toggle: if already in list, remove; otherwise add (if room)
+                                        if (indices.includes(symbol)) {
+                                            removeSymbol('indices', symbol);
+                                        } else if (indices.length < 8) {
+                                            addSymbol('indices', symbol);
+                                        }
+                                    }}
+                                    className="shrink-0"
                                 />
-                            ))}
+                            )}
+
+                            {/* Asset cards - centered in remaining space */}
+                            <div className="flex gap-3 justify-center flex-wrap flex-1">
+                                {seriesMetrics.map((metric) => metric && (
+                                    <GlassAssetCard
+                                        key={metric.symbol}
+                                        symbol={metric.symbol}
+                                        displayName={metric.displayName}
+                                        price={metric.price}
+                                        percentChange={metric.percentChange}
+                                        color={metric.color}
+                                        isVisible={visibleSymbols.has(metric.symbol)}
+                                        onClick={() => toggleSymbol(metric.symbol)}
+                                        onRemove={(isEditMode && canEdit) ? () => handleRemoveSymbol(metric.symbol) : undefined}
+                                        isCrypto={isCrypto}
+                                        showRemoveAlways={isEditMode}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}
