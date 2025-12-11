@@ -11,6 +11,7 @@ import { ProviderSelector } from "@/components/chat/ProviderSelector";
 import { X, Send, Loader2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LLMProvider } from "@/lib/llm/providers";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Message = {
   id: string;
@@ -152,13 +153,11 @@ export function ChatSidePanel() {
         <ScrollArea className="h-full p-3" viewportRef={scrollRef} hideScrollbar>
           {messages.length === 0 ? (
           <div className="space-y-3">
-            <div className="text-center text-muted-foreground py-6">
-              <span className="text-xl font-mono font-bold text-primary tracking-tight block mb-2">
-                DEEPSTACK
-              </span>
-              <p className="text-sm">
-                Ask about {activeSymbol} or any trading question
-              </p>
+            <div className="py-6">
+              <EmptyState
+                subtitle={`Ask about ${activeSymbol} or any trading question`}
+                size="sm"
+              />
             </div>
 
             {/* Quick Prompts */}
