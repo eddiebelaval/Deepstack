@@ -274,7 +274,15 @@ export function ProfilePanel() {
                                             </p>
                                         </div>
                                         {tier === 'free' && (
-                                            <Button size="sm" variant="default" className="text-xs">
+                                            <Button
+                                                size="sm"
+                                                variant="default"
+                                                className="text-xs"
+                                                onClick={() => {
+                                                    toggleProfile(); // Close panel
+                                                    window.location.href = '/pricing';
+                                                }}
+                                            >
                                                 Upgrade
                                             </Button>
                                         )}
