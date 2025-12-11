@@ -12,7 +12,8 @@ const barsRequestSchema = z.object({
     .regex(/^[A-Z0-9./-]+$/i, 'Symbol must contain only letters, numbers, dots, slashes, and hyphens')
     .transform((s: string) => s.toUpperCase()),
   timeframe: z.string()
-    .regex(/^(1m|5m|15m|30m|1h|2h|4h|1d|1w|1M)$/, 'Invalid timeframe. Valid values: 1m, 5m, 15m, 30m, 1h, 2h, 4h, 1d, 1w, 1M')
+    .transform((s: string) => s.toLowerCase()) // Normalize to lowercase
+    .pipe(z.string().regex(/^(1m|5m|15m|30m|1h|2h|4h|1d|1w|1m)$/, 'Invalid timeframe. Valid values: 1m, 5m, 15m, 30m, 1h, 2h, 4h, 1d, 1w, 1M'))
     .default('1d'),
   limit: z.string()
     .regex(/^\d+$/, 'Limit must be a number')
@@ -107,8 +108,20 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    const bars = data.bars || data;
+
+    // If backend returns empty bars, use mock data for better UX
+    if (!bars || (Array.isArray(bars) && bars.length === 0)) {
+      console.warn('Backend returned empty bars, using mock data');
+      const mockBars = generateMockBars(symbol, limit);
+      return apiSuccess(
+        { bars: mockBars },
+        { isMock: true, warning: MOCK_DATA_WARNING }
+      );
+    }
+
     // Wrap backend response in standard format
-    return apiSuccess({ bars: data.bars || data }, { isMock: data.mock || false });
+    return apiSuccess({ bars }, { isMock: data.mock || false });
   } catch (error) {
     // Backend unavailable - return mock data so UI still works
     console.warn('Backend unavailable for bars, returning mock data:', error);
