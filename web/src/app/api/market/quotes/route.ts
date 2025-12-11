@@ -9,8 +9,8 @@ const quotesRequestSchema = z.object({
     .min(1, 'At least one symbol is required')
     .transform(s => s.split(',').map(sym => sym.trim().toUpperCase()).join(','))
     .refine(
-      s => s.split(',').every(sym => /^[A-Z0-9.-]+$/.test(sym)),
-      'All symbols must contain only letters, numbers, dots, and hyphens'
+      s => s.split(',').every(sym => /^[A-Z0-9.\-\/]+$/.test(sym)),
+      'All symbols must contain only letters, numbers, dots, hyphens, and slashes'
     ),
 });
 
