@@ -72,11 +72,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol')?.toUpperCase();
     const limit = searchParams.get('limit') || '10';
+    const pageToken = searchParams.get('page_token');
 
     try {
       // Try to fetch from Python backend (which can use Alpaca News API)
       const params = new URLSearchParams({ limit });
       if (symbol) params.append('symbol', symbol);
+      if (pageToken) params.append('page_token', pageToken);
 
       const response = await fetch(
         `${API_BASE_URL}/api/news?${params.toString()}`,
@@ -104,7 +106,10 @@ export async function GET(request: NextRequest) {
         sentiment: item.sentiment || inferSentiment(item.headline || '', item.summary || ''),
       }));
 
-      return NextResponse.json({ articles });
+      return NextResponse.json({
+        articles,
+        next_page_token: data.next_page_token || null,
+      });
     } catch (error) {
       console.warn('Backend unavailable for news, returning mock data:', error);
 
@@ -116,6 +121,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         articles,
+        next_page_token: null,
         mock: true,
         warning: 'Using simulated data - backend unavailable',
       });

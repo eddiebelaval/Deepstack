@@ -136,18 +136,20 @@ class AlpacaClient:
         limit: int = 10,
         start_date: Optional[datetime] = None,
         include_content: bool = False,
-    ) -> List[Dict]:
+        page_token: Optional[str] = None,
+    ) -> Dict:
         """
-        Get market news.
+        Get market news with pagination support.
 
         Args:
             symbol: Optional symbol to filter by
             limit: Max number of articles (default 10)
             start_date: Optional start date filter
             include_content: Whether to include full article content
+            page_token: Optional pagination token for loading more articles
 
         Returns:
-            List of news articles
+            Dict with 'articles' list and optional 'next_page_token'
         """
         try:
             from alpaca.data.requests import NewsRequest
@@ -159,6 +161,9 @@ class AlpacaClient:
 
             if start_date:
                 params.start = start_date
+
+            if page_token:
+                params.page_token = page_token
 
             # Run in executor since NewsClient is synchronous
             news_set = await asyncio.get_event_loop().run_in_executor(
@@ -196,11 +201,17 @@ class AlpacaClient:
                     }
                 )
 
-            return results
+            # Extract next_page_token for pagination
+            next_token = getattr(news_set, "next_page_token", None)
+
+            return {
+                "articles": results,
+                "next_page_token": next_token,
+            }
 
         except Exception as e:
             logger.error(f"Error fetching news: {e}")
-            return []
+            return {"articles": [], "next_page_token": None}
 
     async def _check_rate_limit(self) -> None:
         """

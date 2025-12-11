@@ -261,8 +261,12 @@ class DeepStackAPIServer:
             return HealthResponse(status="healthy", timestamp=datetime.now())
 
         @self.app.get("/api/news")
-        async def get_news(symbol: Optional[str] = None, limit: int = 10):
-            """Get market news."""
+        async def get_news(
+            symbol: Optional[str] = None,
+            limit: int = 10,
+            page_token: Optional[str] = None,
+        ):
+            """Get market news with pagination support."""
             try:
                 if not self.alpaca_client:
                     # Debug: log config values to understand why client is None
@@ -272,15 +276,17 @@ class DeepStackAPIServer:
                         f"Alpaca client not initialized. "
                         f"Config key={key}, secret={secret}"
                     )
-                    return {"news": []}
+                    return {"news": [], "next_page_token": None}
 
-                articles = await self.alpaca_client.get_news(symbol=symbol, limit=limit)
-                return {"news": articles}
+                result = await self.alpaca_client.get_news(
+                    symbol=symbol, limit=limit, page_token=page_token
+                )
+                return {
+                    "news": result.get("articles", []),
+                    "next_page_token": result.get("next_page_token"),
+                }
             except Exception as e:
                 logger.error(f"News error: {e}")
-                # Return empty list or error response properly
-                # For now returning error response structure compatible with
-                # frontend expectations
                 return JSONResponse(
                     status_code=500,
                     content={"error": "Failed to fetch news", "details": str(e)},

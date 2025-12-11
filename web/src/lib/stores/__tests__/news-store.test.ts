@@ -15,7 +15,7 @@ describe('useNewsStore', () => {
         isLoading: false,
         error: null,
         filterSymbol: null,
-        page: 1,
+        nextPageToken: null,
         hasMore: true,
         isLoadingMore: false,
         lastFetchTime: null,
@@ -48,9 +48,9 @@ describe('useNewsStore', () => {
       expect(state.filterSymbol).toBeNull();
     });
 
-    it('starts at page 1', () => {
+    it('has no next page token initially', () => {
       const state = useNewsStore.getState();
-      expect(state.page).toBe(1);
+      expect(state.nextPageToken).toBeNull();
     });
 
     it('has more pages initially', () => {
@@ -175,32 +175,27 @@ describe('useNewsStore', () => {
       expect(lastFetchTime!).toBeGreaterThanOrEqual(beforeTime);
     });
 
-    it('resets to page 1 on fetch', async () => {
+    it('resets nextPageToken on fetch', async () => {
       act(() => {
-        useNewsStore.setState({ page: 3 });
+        useNewsStore.setState({ nextPageToken: 'old-token' });
       });
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: mockArticles }),
+        json: async () => ({ articles: mockArticles, next_page_token: 'new-token' }),
       });
 
       await act(async () => {
         await useNewsStore.getState().fetchNews();
       });
 
-      expect(useNewsStore.getState().page).toBe(1);
+      expect(useNewsStore.getState().nextPageToken).toBe('new-token');
     });
 
-    it('sets hasMore to true when full page returned', async () => {
-      const fullPage = Array.from({ length: 15 }, (_, i) => ({
-        ...mockArticles[0],
-        id: `article-${i}`,
-      }));
-
+    it('sets hasMore to true when next_page_token returned', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: fullPage }),
+        json: async () => ({ articles: mockArticles, next_page_token: 'abc123' }),
       });
 
       await act(async () => {
@@ -208,14 +203,13 @@ describe('useNewsStore', () => {
       });
 
       expect(useNewsStore.getState().hasMore).toBe(true);
+      expect(useNewsStore.getState().nextPageToken).toBe('abc123');
     });
 
-    it('sets hasMore to false when partial page returned', async () => {
-      const partialPage = mockArticles.slice(0, 5);
-
+    it('sets hasMore to false when no next_page_token', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: partialPage }),
+        json: async () => ({ articles: mockArticles, next_page_token: null }),
       });
 
       await act(async () => {
@@ -223,6 +217,7 @@ describe('useNewsStore', () => {
       });
 
       expect(useNewsStore.getState().hasMore).toBe(false);
+      expect(useNewsStore.getState().nextPageToken).toBeNull();
     });
 
     it('handles fetch errors', async () => {
@@ -329,7 +324,7 @@ describe('useNewsStore', () => {
       act(() => {
         useNewsStore.setState({
           articles: mockArticles,
-          page: 1,
+          nextPageToken: 'initial-token',
           hasMore: true,
         });
       });
@@ -338,7 +333,7 @@ describe('useNewsStore', () => {
     it('loads more articles', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: moreArticles }),
+        json: async () => ({ articles: moreArticles, next_page_token: 'next-token' }),
       });
 
       await act(async () => {
@@ -347,7 +342,7 @@ describe('useNewsStore', () => {
 
       const state = useNewsStore.getState();
       expect(state.articles).toHaveLength(30);
-      expect(state.page).toBe(2);
+      expect(state.nextPageToken).toBe('next-token');
     });
 
     it('sets loading more state', async () => {
@@ -357,7 +352,7 @@ describe('useNewsStore', () => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: async () => ({ articles: moreArticles }),
+                json: async () => ({ articles: moreArticles, next_page_token: 'next' }),
               });
             }, 100);
           })
@@ -388,7 +383,19 @@ describe('useNewsStore', () => {
 
     it('does not load if no more pages', async () => {
       act(() => {
-        useNewsStore.setState({ hasMore: false });
+        useNewsStore.setState({ hasMore: false, nextPageToken: null });
+      });
+
+      await act(async () => {
+        await useNewsStore.getState().loadMore();
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('does not load if no nextPageToken', async () => {
+      act(() => {
+        useNewsStore.setState({ hasMore: true, nextPageToken: null });
       });
 
       await act(async () => {
@@ -406,7 +413,7 @@ describe('useNewsStore', () => {
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: duplicateArticles }),
+        json: async () => ({ articles: duplicateArticles, next_page_token: 'next' }),
       });
 
       await act(async () => {
@@ -421,12 +428,12 @@ describe('useNewsStore', () => {
 
     it('includes symbol filter in request', async () => {
       act(() => {
-        useNewsStore.setState({ filterSymbol: 'AAPL' });
+        useNewsStore.setState({ filterSymbol: 'AAPL', nextPageToken: 'token' });
       });
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: moreArticles }),
+        json: async () => ({ articles: moreArticles, next_page_token: 'next' }),
       });
 
       await act(async () => {
@@ -460,13 +467,13 @@ describe('useNewsStore', () => {
       expect(useNewsStore.getState().filterSymbol).toBe('AAPL');
     });
 
-    it('resets page to 1', () => {
+    it('resets nextPageToken on filter change', () => {
       act(() => {
-        useNewsStore.setState({ page: 3 });
+        useNewsStore.setState({ nextPageToken: 'old-token' });
         useNewsStore.getState().setFilterSymbol('TSLA');
       });
 
-      expect(useNewsStore.getState().page).toBe(1);
+      expect(useNewsStore.getState().nextPageToken).toBeNull();
     });
 
     it('sets hasMore to true', () => {
@@ -507,13 +514,13 @@ describe('useNewsStore', () => {
       expect(useNewsStore.getState().filterSymbol).toBeNull();
     });
 
-    it('resets page to 1', () => {
+    it('resets nextPageToken on clear', () => {
       act(() => {
-        useNewsStore.setState({ page: 3, filterSymbol: 'AAPL' });
+        useNewsStore.setState({ nextPageToken: 'token', filterSymbol: 'AAPL' });
         useNewsStore.getState().clearFilter();
       });
 
-      expect(useNewsStore.getState().page).toBe(1);
+      expect(useNewsStore.getState().nextPageToken).toBeNull();
     });
 
     it('fetches all news', async () => {

@@ -25,8 +25,8 @@ interface NewsState {
   error: string | null;
   filterSymbol: string | null;
 
-  // Pagination
-  page: number;
+  // Pagination (cursor-based)
+  nextPageToken: string | null;
   hasMore: boolean;
   isLoadingMore: boolean;
 
@@ -52,7 +52,7 @@ export const useNewsStore = create<NewsState>()(
       isLoading: false,
       error: null,
       filterSymbol: null,
-      page: 1,
+      nextPageToken: null,
       hasMore: true,
       isLoadingMore: false,
       lastFetchTime: null,
@@ -64,14 +64,13 @@ export const useNewsStore = create<NewsState>()(
 
         // If reset, start fresh
         if (reset) {
-          set({ isLoading: true, error: null, page: 1 });
+          set({ isLoading: true, error: null, nextPageToken: null });
         }
 
         try {
           const params = new URLSearchParams();
           if (symbol) params.append('symbol', symbol);
           params.append('limit', PAGE_SIZE.toString());
-          params.append('page', '1');
 
           const response = await fetch(`/api/news?${params.toString()}`);
           if (!response.ok) throw new Error('Failed to fetch news');
@@ -86,8 +85,8 @@ export const useNewsStore = create<NewsState>()(
           set({
             articles: newArticles,
             isLoading: false,
-            hasMore: newArticles.length >= PAGE_SIZE,
-            page: 1,
+            hasMore: !!data.next_page_token,
+            nextPageToken: data.next_page_token || null,
             lastFetchTime: Date.now(),
             newArticleCount: reset ? 0 : trulyNewCount,
           });
@@ -101,16 +100,15 @@ export const useNewsStore = create<NewsState>()(
 
       loadMore: async () => {
         const state = get();
-        if (state.isLoadingMore || !state.hasMore) return;
+        if (state.isLoadingMore || !state.hasMore || !state.nextPageToken) return;
 
         set({ isLoadingMore: true });
 
         try {
-          const nextPage = state.page + 1;
           const params = new URLSearchParams();
           if (state.filterSymbol) params.append('symbol', state.filterSymbol);
           params.append('limit', PAGE_SIZE.toString());
-          params.append('page', nextPage.toString());
+          params.append('page_token', state.nextPageToken);
 
           const response = await fetch(`/api/news?${params.toString()}`);
           if (!response.ok) throw new Error('Failed to fetch more news');
@@ -124,8 +122,8 @@ export const useNewsStore = create<NewsState>()(
 
           set({
             articles: [...state.articles, ...uniqueNewArticles],
-            page: nextPage,
-            hasMore: moreArticles.length >= PAGE_SIZE,
+            nextPageToken: data.next_page_token || null,
+            hasMore: !!data.next_page_token,
             isLoadingMore: false,
           });
         } catch (error) {
@@ -135,12 +133,12 @@ export const useNewsStore = create<NewsState>()(
       },
 
       setFilterSymbol: (symbol) => {
-        set({ filterSymbol: symbol, page: 1, hasMore: true });
+        set({ filterSymbol: symbol, nextPageToken: null, hasMore: true });
         get().fetchNews(symbol || undefined, true);
       },
 
       clearFilter: () => {
-        set({ filterSymbol: null, page: 1, hasMore: true });
+        set({ filterSymbol: null, nextPageToken: null, hasMore: true });
         get().fetchNews(undefined, true);
       },
 
