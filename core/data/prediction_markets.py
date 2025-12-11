@@ -735,17 +735,32 @@ class PredictionMarketManager:
     Unified manager for multiple prediction market platforms.
 
     Provides single interface to query Kalshi and Polymarket simultaneously.
+    Includes caching to reduce external API calls and improve response times.
     """
+
+    # Cache TTL in seconds (30 seconds for trending data)
+    CACHE_TTL = 30
 
     def __init__(self):
         self.kalshi = KalshiClient()
         self.polymarket = PolymarketClient()
-        logger.info("PredictionMarketManager initialized")
+        # Cache for combined market data (key: cache_key, value: (timestamp, data))
+        self._trending_cache: TTLCache = TTLCache(maxsize=50, ttl=self.CACHE_TTL)
+        self._new_markets_cache: TTLCache = TTLCache(maxsize=50, ttl=self.CACHE_TTL)
+        # Locks to prevent concurrent fetches for the same cache key
+        self._fetch_locks: Dict[str, asyncio.Lock] = {}
+        logger.info("PredictionMarketManager initialized with caching")
 
     async def close(self):
         """Close all client sessions."""
         await self.kalshi.close()
         await self.polymarket.close()
+
+    def _get_lock(self, cache_key: str) -> asyncio.Lock:
+        """Get or create a lock for a cache key to prevent concurrent fetches."""
+        if cache_key not in self._fetch_locks:
+            self._fetch_locks[cache_key] = asyncio.Lock()
+        return self._fetch_locks[cache_key]
 
     async def get_trending_markets(
         self,
@@ -757,6 +772,10 @@ class PredictionMarketManager:
         """
         Get trending markets from both platforms, sorted by volume.
 
+        Uses caching to reduce external API calls. Cache key is based on
+        category and source filters only - pagination is applied after cache lookup.
+        Uses locking to prevent multiple concurrent fetches for the same data.
+
         Args:
             limit: Max markets to return
             offset: Pagination offset for infinite scroll
@@ -766,83 +785,110 @@ class PredictionMarketManager:
         Returns:
             List of PredictionMarket sorted by volume
         """
-        try:
-            # Fetch enough data to support pagination (fetch more when offset is high)
-            fetch_limit = max(100, offset + limit + 20)
+        # Build cache key from filter params (not pagination)
+        cache_key = f"trending:{category or 'all'}:{source or 'all'}"
 
-            # Only fetch from requested source(s)
-            fetch_kalshi = source is None or source == "kalshi"
-            fetch_polymarket = source is None or source == "polymarket"
+        # Check cache first (outside lock for fast cache hits)
+        if cache_key in self._trending_cache:
+            cached_markets = self._trending_cache[cache_key]
+            logger.debug(f"Cache hit for {cache_key}, {len(cached_markets)} markets")
+            return cached_markets[offset : offset + limit]
 
-            kalshi_task = (
-                self.kalshi.get_markets(status="open", limit=fetch_limit)
-                if fetch_kalshi
-                else None
-            )
-            polymarket_task = (
-                self.polymarket.get_markets(limit=fetch_limit, active=True)
-                if fetch_polymarket
-                else None
-            )
+        # Acquire lock to prevent concurrent fetches
+        async with self._get_lock(cache_key):
+            # Double-check cache after acquiring lock (may have been populated)
+            if cache_key in self._trending_cache:
+                cached_markets = self._trending_cache[cache_key]
+                logger.debug(f"Cache hit (after lock) for {cache_key}")
+                return cached_markets[offset : offset + limit]
 
-            # Gather only non-None tasks
-            tasks = [t for t in [kalshi_task, polymarket_task] if t is not None]
-            results = (
-                await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
-            )
+            try:
+                # Fetch a large batch to cache (supports pagination from cache)
+                fetch_limit = 200
 
-            # Map results back to sources
-            result_idx = 0
-            kalshi_data = None
-            polymarket_data = None
-            if fetch_kalshi:
-                kalshi_data = results[result_idx] if result_idx < len(results) else None
-                result_idx += 1
-            if fetch_polymarket:
-                polymarket_data = (
-                    results[result_idx] if result_idx < len(results) else None
+                # Only fetch from requested source(s)
+                fetch_kalshi = source is None or source == "kalshi"
+                fetch_polymarket = source is None or source == "polymarket"
+
+                kalshi_task = (
+                    self.kalshi.get_markets(status="open", limit=fetch_limit)
+                    if fetch_kalshi
+                    else None
+                )
+                polymarket_task = (
+                    self.polymarket.get_markets(limit=fetch_limit, active=True)
+                    if fetch_polymarket
+                    else None
                 )
 
-            markets: List[PredictionMarket] = []
+                # Gather only non-None tasks
+                tasks = [t for t in [kalshi_task, polymarket_task] if t is not None]
+                results = (
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                    if tasks
+                    else []
+                )
 
-            # Process Kalshi markets
-            if isinstance(kalshi_data, dict):
-                for raw in kalshi_data.get("markets", []):
-                    try:
-                        market = self.kalshi.normalize_market(raw)
-                        if (
-                            category is None
-                            or market.category.lower() == category.lower()
-                        ):
-                            markets.append(market)
-                    except Exception as e:
-                        logger.warning(f"Failed to normalize Kalshi market: {e}")
+                # Map results back to sources
+                result_idx = 0
+                kalshi_data = None
+                polymarket_data = None
+                if fetch_kalshi:
+                    kalshi_data = (
+                        results[result_idx] if result_idx < len(results) else None
+                    )
+                    result_idx += 1
+                if fetch_polymarket:
+                    polymarket_data = (
+                        results[result_idx] if result_idx < len(results) else None
+                    )
 
-            # Process Polymarket markets
-            if isinstance(polymarket_data, list):
-                for raw in polymarket_data:
-                    try:
-                        market = self.polymarket.normalize_market(raw)
-                        if (
-                            category is None
-                            or market.category.lower() == category.lower()
-                        ):
-                            markets.append(market)
-                    except Exception as e:
-                        logger.warning(f"Failed to normalize Polymarket market: {e}")
+                markets: List[PredictionMarket] = []
 
-            # Sort by volume (24h if available, else total volume)
-            markets.sort(
-                key=lambda m: m.volume_24h if m.volume_24h else m.volume,
-                reverse=True,
-            )
+                # Process Kalshi markets
+                if isinstance(kalshi_data, dict):
+                    for raw in kalshi_data.get("markets", []):
+                        try:
+                            market = self.kalshi.normalize_market(raw)
+                            if (
+                                category is None
+                                or market.category.lower() == category.lower()
+                            ):
+                                markets.append(market)
+                        except Exception as e:
+                            logger.warning(f"Failed to normalize Kalshi market: {e}")
 
-            # Apply pagination: skip offset, take limit
-            return markets[offset : offset + limit]
+                # Process Polymarket markets
+                if isinstance(polymarket_data, list):
+                    for raw in polymarket_data:
+                        try:
+                            market = self.polymarket.normalize_market(raw)
+                            if (
+                                category is None
+                                or market.category.lower() == category.lower()
+                            ):
+                                markets.append(market)
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to normalize Polymarket market: {e}"
+                            )
 
-        except Exception as e:
-            logger.error(f"Error getting trending markets: {e}")
-            return []
+                # Sort by volume (24h if available, else total volume)
+                markets.sort(
+                    key=lambda m: m.volume_24h if m.volume_24h else m.volume,
+                    reverse=True,
+                )
+
+                # Cache the full sorted list
+                self._trending_cache[cache_key] = markets
+                logger.debug(f"Cached {len(markets)} markets for {cache_key}")
+
+                # Apply pagination: skip offset, take limit
+                return markets[offset : offset + limit]
+
+            except Exception as e:
+                logger.error(f"Error getting trending markets: {e}")
+                return []
 
     async def search(self, query: str) -> List[PredictionMarket]:
         """
@@ -929,6 +975,8 @@ class PredictionMarketManager:
         Polymarket API returns markets with 'startDate' or 'createdAt'.
         Kalshi API returns markets with 'open_time'.
 
+        Uses caching to reduce external API calls.
+
         Args:
             limit: Max markets to return
             offset: Pagination offset for infinite scroll
@@ -938,9 +986,18 @@ class PredictionMarketManager:
         Returns:
             List of PredictionMarket sorted by creation date (newest first)
         """
+        # Build cache key from filter params (not pagination)
+        cache_key = f"new:{category or 'all'}:{source or 'all'}"
+
+        # Check cache first
+        if cache_key in self._new_markets_cache:
+            cached_markets = self._new_markets_cache[cache_key]
+            logger.debug(f"Cache hit for {cache_key}, {len(cached_markets)} markets")
+            return cached_markets[offset : offset + limit]
+
         try:
-            # Fetch enough data to support pagination
-            fetch_limit = max(100, offset + limit + 20)
+            # Fetch a large batch to cache
+            fetch_limit = 200
 
             # Only fetch from requested source(s)
             fetch_kalshi = source is None or source == "kalshi"
@@ -1031,9 +1088,15 @@ class PredictionMarketManager:
                 reverse=True,
             )
 
+            # Extract just the markets (without dates) for caching
+            sorted_markets = [m[0] for m in markets_with_dates]
+
+            # Cache the full sorted list
+            self._new_markets_cache[cache_key] = sorted_markets
+            logger.debug(f"Cached {len(sorted_markets)} new markets for {cache_key}")
+
             # Apply pagination: skip offset, take limit
-            paginated = markets_with_dates[offset : offset + limit]
-            return [m[0] for m in paginated]
+            return sorted_markets[offset : offset + limit]
 
         except Exception as e:
             logger.error(f"Error getting new markets: {e}")
