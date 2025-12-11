@@ -80,12 +80,12 @@ export const usePredictionMarketsStore = create<PredictionMarketsState>()(
 
       setSelectedMarket: (market) => set({ selectedMarket: market }),
 
-      setMarkets: (markets) => set({ markets, hasMore: markets.length >= 20, lastFetchTime: Date.now() }),
+      setMarkets: (markets) => set({ markets, hasMore: markets.length >= 30, lastFetchTime: Date.now() }),
 
       appendMarkets: (newMarkets) =>
         set((state) => ({
           markets: [...state.markets, ...newMarkets],
-          hasMore: newMarkets.length >= 20,
+          hasMore: newMarkets.length >= 30,
         })),
 
       setLoading: (isLoading) => set({ isLoading }),

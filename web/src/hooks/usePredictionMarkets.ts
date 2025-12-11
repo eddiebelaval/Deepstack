@@ -33,7 +33,7 @@
  * ```
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import {
   fetchTrendingMarkets,
@@ -45,6 +45,9 @@ import type { PredictionMarket } from '@/lib/types/prediction-markets';
 
 export type FeedType = 'trending' | 'new';
 
+// Page size for infinite scroll
+const PAGE_SIZE = 30;
+
 export function usePredictionMarkets() {
   const {
     markets,
@@ -53,8 +56,10 @@ export function usePredictionMarkets() {
     filters,
     isLoading,
     error,
+    hasMore,
     setFilters,
     setMarkets,
+    appendMarkets,
     setLoading,
     setError,
     setSelectedMarket,
@@ -66,23 +71,28 @@ export function usePredictionMarkets() {
 
   const [isUnavailable, setIsUnavailable] = useState(false);
   const [feedType, setFeedType] = useState<FeedType>('trending');
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const offsetRef = useRef(0);
 
   /**
-   * Load markets based on current filters and feed type
+   * Load markets based on current filters and feed type (resets to first page)
    */
   const loadMarkets = useCallback(async (feed: FeedType = feedType) => {
     setLoading(true);
     setError(null);
+    offsetRef.current = 0; // Reset offset when loading fresh
 
     try {
       const fetchFn = feed === 'new' ? fetchNewMarkets : fetchTrendingMarkets;
       const { markets: fetchedMarkets, unavailable } = await fetchFn({
         category: filters.category || undefined,
         source: filters.source !== 'all' ? filters.source : undefined,
-        limit: 20,
+        limit: PAGE_SIZE,
+        offset: 0,
       });
 
       setMarkets(fetchedMarkets);
+      offsetRef.current = fetchedMarkets.length;
       setIsUnavailable(!!unavailable);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load markets');
@@ -90,6 +100,36 @@ export function usePredictionMarkets() {
       setLoading(false);
     }
   }, [filters, feedType, setMarkets, setLoading, setError]);
+
+  /**
+   * Load more markets for infinite scroll (appends to existing)
+   */
+  const loadMoreMarkets = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    setError(null);
+
+    try {
+      const fetchFn = feedType === 'new' ? fetchNewMarkets : fetchTrendingMarkets;
+      const { markets: fetchedMarkets, unavailable } = await fetchFn({
+        category: filters.category || undefined,
+        source: filters.source !== 'all' ? filters.source : undefined,
+        limit: PAGE_SIZE,
+        offset: offsetRef.current,
+      });
+
+      if (fetchedMarkets.length > 0) {
+        appendMarkets(fetchedMarkets);
+        offsetRef.current += fetchedMarkets.length;
+      }
+      setIsUnavailable(!!unavailable);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load more markets');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [filters, feedType, hasMore, isLoadingMore, appendMarkets, setError]);
 
   /**
    * Search markets by query
@@ -171,13 +211,16 @@ export function usePredictionMarkets() {
     filters,
     isUnavailable,
     feedType,
+    hasMore,
 
     // Loading states
     isLoading,
+    isLoadingMore,
     error,
 
     // Actions
     loadMarkets,
+    loadMoreMarkets,
     searchMarkets,
     loadMarketDetail,
     setFilters,

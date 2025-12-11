@@ -25,6 +25,7 @@ import type { PredictionMarket } from '@/lib/types/prediction-markets';
 
 export interface FetchMarketsOptions {
   limit?: number;
+  offset?: number;
   category?: string;
   source?: 'all' | 'kalshi' | 'polymarket';
 }
@@ -49,6 +50,7 @@ export async function fetchTrendingMarkets(
 ): Promise<MarketsResponse> {
   const params = new URLSearchParams();
   if (options.limit) params.append('limit', options.limit.toString());
+  if (options.offset) params.append('offset', options.offset.toString());
   if (options.category) params.append('category', options.category);
   if (options.source) params.append('source', options.source);
 
@@ -68,6 +70,7 @@ export async function fetchNewMarkets(
 ): Promise<MarketsResponse> {
   const params = new URLSearchParams();
   if (options.limit) params.append('limit', options.limit.toString());
+  if (options.offset) params.append('offset', options.offset.toString());
   if (options.category) params.append('category', options.category);
   if (options.source) params.append('source', options.source);
 

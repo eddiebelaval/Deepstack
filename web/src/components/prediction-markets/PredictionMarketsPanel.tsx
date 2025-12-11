@@ -13,7 +13,7 @@
  * - "Link to Thesis" action
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePredictionMarkets, type FeedType } from '@/hooks/usePredictionMarkets';
 import { usePredictionMarketsStore, PREDICTION_REFRESH_INTERVAL } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
@@ -40,6 +40,7 @@ import {
     AlertCircle,
     WifiOff,
     Bell,
+    Loader2,
 } from 'lucide-react';
 
 type PlatformFilter = 'all' | 'kalshi' | 'polymarket';
@@ -52,16 +53,22 @@ export function PredictionMarketsPanel() {
         markets,
         watchlist,
         isLoading,
+        isLoadingMore,
         error,
         isUnavailable,
         feedType,
+        hasMore,
         loadMarkets,
+        loadMoreMarkets,
         searchMarkets,
         setFilters,
         setFeedType,
         toggleWatchlist,
         isInWatchlist,
     } = usePredictionMarkets();
+
+    // Ref for infinite scroll sentinel
+    const loadMoreRef = useRef<HTMLDivElement>(null);
 
     // Use Zustand store for selectedMarket and auto-refresh state
     const {
@@ -79,6 +86,24 @@ export function PredictionMarketsPanel() {
     useEffect(() => {
         loadMarkets(feedType);
     }, [platformFilter, feedType, loadMarkets]);
+
+    // Infinite scroll: observe the sentinel element
+    useEffect(() => {
+        const sentinel = loadMoreRef.current;
+        if (!sentinel) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoading && !isLoadingMore) {
+                    loadMoreMarkets();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [hasMore, isLoading, isLoadingMore, loadMoreMarkets]);
 
     // Auto-refresh: poll for new markets
     useEffect(() => {
@@ -250,9 +275,9 @@ export function PredictionMarketsPanel() {
                     <ScrollArea className="h-full">
                         <div className="p-4">
                             {isLoading && filteredMarkets.length === 0 ? (
-                                // Loading skeletons - grid layout matching cards
-                                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
-                                    {[...Array(8)].map((_, i) => (
+                                // Loading skeletons - grid layout matching cards (168px = 140px * 1.2)
+                                <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-4">
+                                    {[...Array(12)].map((_, i) => (
                                         <Skeleton key={i} className="aspect-square w-full rounded-xl" />
                                     ))}
                                 </div>
@@ -285,25 +310,45 @@ export function PredictionMarketsPanel() {
                                     )}
                                 </div>
                             ) : (
-                                // Market cards - grid layout with sparkline cards
-                                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
-                                    {filteredMarkets.map((market) => (
-                                        <div
-                                            key={`${market.platform}-${market.id}`}
-                                            className={cn(
-                                                'rounded-xl transition-all',
-                                                selectedMarket?.id === market.id && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                                            )}
-                                        >
-                                            <BetsCarouselCard
-                                                market={market}
-                                                isWatched={isInWatchlist(market.platform, market.id)}
-                                                onToggleWatch={() => toggleWatchlist(market)}
-                                                onClick={() => setSelectedMarket(market)}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
+                                <>
+                                    {/* Market cards - grid layout with sparkline cards (168px = 140px * 1.2 for 20% bigger) */}
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-4">
+                                        {filteredMarkets.map((market) => (
+                                            <div
+                                                key={`${market.platform}-${market.id}`}
+                                                className={cn(
+                                                    'rounded-xl transition-all',
+                                                    selectedMarket?.id === market.id && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                                                )}
+                                            >
+                                                <BetsCarouselCard
+                                                    market={market}
+                                                    isWatched={isInWatchlist(market.platform, market.id)}
+                                                    onToggleWatch={() => toggleWatchlist(market)}
+                                                    onClick={() => setSelectedMarket(market)}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Infinite scroll sentinel + loading indicator */}
+                                    <div
+                                        ref={loadMoreRef}
+                                        className="flex items-center justify-center py-8"
+                                    >
+                                        {isLoadingMore && (
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span className="text-sm">Loading more markets...</span>
+                                            </div>
+                                        )}
+                                        {!hasMore && filteredMarkets.length > 0 && (
+                                            <span className="text-sm text-muted-foreground">
+                                                All markets loaded ({filteredMarkets.length} total)
+                                            </span>
+                                        )}
+                                    </div>
+                                </>
                             )}
                         </div>
                     </ScrollArea>
