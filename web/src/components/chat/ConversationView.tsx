@@ -12,6 +12,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useUser } from '@/hooks/useUser';
 import { useChatLimit } from '@/hooks/useChatLimit';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
+import { ChatLimitBanner } from '@/components/ui/upgrade-banner';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -49,7 +50,7 @@ type SimpleMessage = {
 
 export function ConversationView() {
     const { tier } = useUser();
-    const { chatsToday, remaining, canChat } = useChatLimit();
+    const { chatsToday, dailyLimit, remaining, canChat } = useChatLimit();
     const { activeProvider, setIsStreaming, useExtendedThinking } = useChatStore();
     const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
@@ -349,6 +350,9 @@ export function ConversationView() {
     const hasMessages = messages.length > 0;
     const hasActiveContent = activeContent !== 'none';
 
+    // Show chat limit indicator for free users near or at limit
+    const showChatLimitIndicator = tier === 'free' && (remaining <= 2 || chatsToday >= dailyLimit);
+
     const handlePresetClick = (prompt: string) => {
         handleSend(prompt);
     };
@@ -549,6 +553,13 @@ export function ConversationView() {
                         <PresetGrid onSelect={handlePresetClick} />
                     </div>
 
+                    {/* Chat Limit Indicator */}
+                    {showChatLimitIndicator && (
+                        <div className="w-full max-w-md mx-auto">
+                            <ChatLimitBanner used={chatsToday} limit={dailyLimit} />
+                        </div>
+                    )}
+
                     {/* Chat Input */}
                     <div className="w-full">
                         <ChatInput onSend={handleSend} disabled={isLoading} />
@@ -680,7 +691,10 @@ export function ConversationView() {
 
                         {/* Chat Input */}
                         <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
-                            <div className="max-w-3xl mx-auto w-full">
+                            <div className="max-w-3xl mx-auto w-full space-y-2">
+                                {showChatLimitIndicator && (
+                                    <ChatLimitBanner used={chatsToday} limit={dailyLimit} className="mb-2" />
+                                )}
                                 <ChatInput onSend={handleSend} disabled={isLoading} />
                             </div>
                         </div>
@@ -722,7 +736,10 @@ export function ConversationView() {
 
                     {/* Chat Input */}
                     <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
-                        <div className="max-w-3xl mx-auto w-full">
+                        <div className="max-w-3xl mx-auto w-full space-y-2">
+                            {showChatLimitIndicator && (
+                                <ChatLimitBanner used={chatsToday} limit={dailyLimit} className="mb-2" />
+                            )}
                             <ChatInput onSend={handleSend} disabled={isLoading} />
                         </div>
                     </div>

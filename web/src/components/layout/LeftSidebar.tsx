@@ -11,6 +11,9 @@ import { useChatStore } from '@/lib/stores/chat-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
+import { SidebarUpgradeBanner } from '@/components/ui/upgrade-banner';
+import { useUser } from '@/hooks/useUser';
+import { useChatLimit } from '@/hooks/useChatLimit';
 import {
     MessageSquare,
     Plus,
@@ -28,8 +31,13 @@ export function LeftSidebar() {
     const { leftSidebarOpen, toggleLeftSidebar, setLeftSidebarOpen, toggleProfile, toggleSettings, profileOpen, settingsOpen, activeContent, setActiveContent } = useUIStore();
     const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
     const { isMobile, isTablet, isDesktop } = useIsMobile();
+    const { tier } = useUser();
+    const { chatsToday, dailyLimit, isLoading: chatLimitLoading } = useChatLimit();
     const chatHistoryRef = useRef<HTMLDivElement>(null);
     const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
+
+    // Show upgrade banner for free tier users
+    const showUpgradeBanner = tier === 'free';
 
     const handleNewChat = () => {
         setCurrentConversation(null);
@@ -309,6 +317,15 @@ export function LeftSidebar() {
                         />
                     )}
                 </div>
+
+                {/* Upgrade Banner for Free Users */}
+                {showUpgradeBanner && showExpanded && (
+                    <div className="px-2 pb-2">
+                        <SidebarUpgradeBanner
+                            showUsage={!chatLimitLoading ? { used: chatsToday, limit: dailyLimit } : undefined}
+                        />
+                    </div>
+                )}
 
                 {/* Bottom Section - User Menu with Profile & Settings */}
                 <div className="mt-auto border-t border-sidebar-border p-2">
