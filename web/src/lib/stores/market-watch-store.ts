@@ -13,7 +13,7 @@ export const SYMBOL_DISPLAY_NAMES: Record<string, string> = {
   'QQQ': 'NASDAQ 100',
   'DIA': 'Dow Jones',
   'IWM': 'Russell 2000',
-  'VIX': 'Volatility',
+  'VIXY': 'Volatility',
   'VTI': 'Total Market',
   'EFA': 'EAFE',
   'EEM': 'Emerging',

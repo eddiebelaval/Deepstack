@@ -25,7 +25,7 @@ export const AVAILABLE_INDICES: AssetItem[] = [
   { symbol: 'QQQ', name: 'NASDAQ 100', shortName: 'NDX', description: 'US Tech' },
   { symbol: 'DIA', name: 'Dow Jones', shortName: 'DOW', description: 'US Blue Chip' },
   { symbol: 'IWM', name: 'Russell 2000', shortName: 'RUT', description: 'US Small Cap' },
-  { symbol: 'VIX', name: 'Volatility', shortName: 'VIX', description: 'Fear Index' },
+  { symbol: 'VIXY', name: 'Volatility', shortName: 'VIXY', description: 'VIX ETF' },
   { symbol: 'VTI', name: 'Total Market', shortName: 'VTI', description: 'All US Stocks' },
   { symbol: 'EFA', name: 'EAFE', shortName: 'EAFE', description: 'Intl Developed' },
   { symbol: 'EEM', name: 'Emerging', shortName: 'EM', description: 'Emerging Mkts' },
