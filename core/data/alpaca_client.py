@@ -14,10 +14,14 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.historical import CryptoHistoricalDataClient, StockHistoricalDataClient
 from alpaca.data.live import StockDataStream
 from alpaca.data.models import Bar, Quote, Trade
-from alpaca.data.requests import StockBarsRequest, StockLatestQuoteRequest
+from alpaca.data.requests import (
+    CryptoBarsRequest,
+    StockBarsRequest,
+    StockLatestQuoteRequest,
+)
 from alpaca.data.timeframe import TimeFrame
 from alpaca.trading.client import TradingClient
 
@@ -83,6 +87,9 @@ class AlpacaClient:
             url_override=base_url,
         )
         self.data_client = StockHistoricalDataClient(
+            api_key=api_key, secret_key=secret_key
+        )
+        self.crypto_data_client = CryptoHistoricalDataClient(
             api_key=api_key, secret_key=secret_key
         )
 
@@ -399,6 +406,94 @@ class AlpacaClient:
 
         except Exception as e:
             logger.error(f"Error getting bars for {symbol}: {e}")
+            return None
+
+    async def get_crypto_bars(
+        self,
+        symbol: str,
+        timeframe: TimeFrameEnum = TimeFrameEnum.DAY_1,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        limit: int = 100,
+    ) -> Optional[List[Dict]]:
+        """
+        Get historical bar data for a cryptocurrency.
+
+        Args:
+            symbol: Crypto symbol (e.g., 'BTC/USD', 'ETH/USD')
+            timeframe: TimeFrame enum value (default: 1 day)
+            start_date: Start date (default: 30 days ago)
+            end_date: End date (default: today)
+            limit: Maximum number of bars to return
+
+        Returns:
+            List of bar data dicts with OHLCV; None if error
+        """
+        try:
+            await self._check_rate_limit()
+
+            # Set default dates
+            if end_date is None:
+                end_date = datetime.now()
+            if start_date is None:
+                start_date = end_date - timedelta(days=30)
+
+            # Map timeframe string to TimeFrame object
+            timeframe_map = {
+                TimeFrameEnum.MINUTE_1: TimeFrame.Minute,
+                TimeFrameEnum.MINUTE_5: TimeFrame.Minute,
+                TimeFrameEnum.MINUTE_15: TimeFrame.Minute,
+                TimeFrameEnum.MINUTE_30: TimeFrame.Minute,
+                TimeFrameEnum.HOUR_1: TimeFrame.Hour,
+                TimeFrameEnum.DAY_1: TimeFrame.Day,
+                TimeFrameEnum.WEEK_1: TimeFrame.Week,
+                TimeFrameEnum.MONTH_1: TimeFrame.Month,
+            }
+
+            tf = timeframe_map.get(timeframe, TimeFrame.Day)
+
+            # Create request for crypto bars
+            request = CryptoBarsRequest(
+                symbol_or_symbols=symbol,
+                timeframe=tf,
+                start=start_date,
+                end=end_date,
+                limit=limit,
+            )
+
+            bars = self.crypto_data_client.get_crypto_bars(request)
+
+            # BarSet object uses .data dict for symbol lookup
+            if not bars or not bars.data or symbol not in bars.data:
+                logger.warning(f"No crypto bar data received for {symbol}")
+                return None
+
+            result = []
+            for bar in bars.data[symbol]:
+                result.append(
+                    {
+                        "symbol": symbol,
+                        "timestamp": bar.timestamp.isoformat(),
+                        "open": bar.open,
+                        "high": bar.high,
+                        "low": bar.low,
+                        "close": bar.close,
+                        "volume": bar.volume,
+                        "trade_count": (
+                            bar.trade_count if hasattr(bar, "trade_count") else None
+                        ),
+                        "vwap": bar.vwap if hasattr(bar, "vwap") else None,
+                    }
+                )
+
+            logger.debug(
+                f"Retrieved {len(result)} crypto bars for {symbol} "
+                f"with timeframe {timeframe}"
+            )
+            return result
+
+        except Exception as e:
+            logger.error(f"Error getting crypto bars for {symbol}: {e}")
             return None
 
     async def get_account(self) -> Optional[Dict]:

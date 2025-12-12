@@ -411,11 +411,14 @@ class DeepStackAPIServer:
 
         @self.app.get("/api/market/bars")
         async def get_market_bars(symbol: str, timeframe: str = "1d", limit: int = 100):
-            """Get historical market bars from Alpaca."""
+            """Get historical market bars from Alpaca (stocks and crypto)."""
             try:
                 if not self.alpaca_client:
                     logger.warning("Alpaca client not available for bars request")
                     raise DataError(message="Market data service not available")
+
+                # Detect if this is a crypto symbol (contains '/')
+                is_crypto = "/" in symbol
 
                 # Map timeframe string to TimeFrameEnum
                 timeframe_map = {
@@ -459,13 +462,22 @@ class DeepStackAPIServer:
 
                 # Don't pass limit to Alpaca - we'll slice the result
                 # Alpaca returns bars in ascending order (oldest first)
-                bars = await self.alpaca_client.get_bars(
-                    symbol=symbol,
-                    timeframe=tf_enum,
-                    start_date=start_date,
-                    end_date=now,
-                    limit=10000,  # Fetch more, then slice
-                )
+                if is_crypto:
+                    bars = await self.alpaca_client.get_crypto_bars(
+                        symbol=symbol,
+                        timeframe=tf_enum,
+                        start_date=start_date,
+                        end_date=now,
+                        limit=10000,  # Fetch more, then slice
+                    )
+                else:
+                    bars = await self.alpaca_client.get_bars(
+                        symbol=symbol,
+                        timeframe=tf_enum,
+                        start_date=start_date,
+                        end_date=now,
+                        limit=10000,  # Fetch more, then slice
+                    )
 
                 if not bars:
                     logger.warning(f"No bar data returned for {symbol}")
