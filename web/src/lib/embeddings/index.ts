@@ -15,7 +15,15 @@ export type {
   RAGContext,
 } from './types';
 
-// Ollama client
+// OpenAI client (primary - for production)
+export {
+  getOpenAIEmbeddingClient,
+  OpenAIEmbeddingClient,
+  type OpenAIEmbeddingConfig,
+  type OpenAIEmbeddingResponse,
+} from './openai-client';
+
+// Ollama client (legacy - for local development)
 export {
   ollamaClient,
   OllamaEmbeddingClient,
@@ -28,7 +36,7 @@ export {
 export {
   upsertEmbedding,
   deleteEmbedding,
-  checkOllamaHealth,
+  checkEmbeddingServiceHealth,
   buildJournalEmbeddingText,
   buildThesisEmbeddingText,
   buildMessageEmbeddingText,

@@ -302,24 +302,24 @@ export async function POST(request: NextRequest) {
 /**
  * GET - Health check for embedding service
  *
- * Verifies Ollama is running and embedding model is available.
+ * Verifies OpenAI API key is configured for embeddings.
  */
 export async function GET() {
   const { error } = await getAuthenticatedUser();
   if (error) return error;
 
   try {
-    const { checkOllamaHealth } = await import('@/lib/embeddings');
-    const isHealthy = await checkOllamaHealth();
+    const { checkEmbeddingServiceHealth } = await import('@/lib/embeddings');
+    const isHealthy = checkEmbeddingServiceHealth();
 
     return NextResponse.json({
       healthy: isHealthy,
       message: isHealthy
         ? 'Embedding service is healthy'
-        : 'Ollama service unavailable or model not found',
+        : 'OpenAI API key not configured',
     });
   } catch (err) {
-    console.error('Error checking Ollama health:', err);
+    console.error('Error checking embedding service health:', err);
     return NextResponse.json(
       {
         healthy: false,
