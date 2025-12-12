@@ -369,12 +369,13 @@ class AlpacaClient:
 
             bars = self.data_client.get_stock_bars(request)
 
-            if not bars or symbol not in bars:
+            # BarSet object uses .data dict for symbol lookup
+            if not bars or not bars.data or symbol not in bars.data:
                 logger.warning(f"No bar data received for {symbol}")
                 return None
 
             result = []
-            for bar in bars[symbol]:
+            for bar in bars.data[symbol]:
                 result.append(
                     {
                         "symbol": symbol,

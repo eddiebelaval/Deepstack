@@ -9,7 +9,7 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import stripe
@@ -33,7 +33,7 @@ from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
 from .broker.paper_trader import PaperTrader
 from .config import get_config
-from .data.alpaca_client import AlpacaClient
+from .data.alpaca_client import AlpacaClient, TimeFrameEnum
 from .data.alphavantage_client import AlphaVantageClient
 from .data.market_data import MarketDataManager
 from .exceptions import (
@@ -411,58 +411,87 @@ class DeepStackAPIServer:
 
         @self.app.get("/api/market/bars")
         async def get_market_bars(symbol: str, timeframe: str = "1d", limit: int = 100):
-            """Get historical market bars."""
+            """Get historical market bars from Alpaca."""
             try:
-                if not self.market_data_manager:
-                    self.market_data_manager = MarketDataManager(self.config)
+                if not self.alpaca_client:
+                    logger.warning("Alpaca client not available for bars request")
+                    raise DataError(message="Market data service not available")
 
-                # Calculate start/end dates based on limit and timeframe
-                # For simplicity, we'll ask for a wide range and let the manager
-                # handle it or we could calculate it.
-                # MarketDataManager.get_historical_data takes start_date, end_date.
+                # Map timeframe string to TimeFrameEnum
+                timeframe_map = {
+                    "1m": TimeFrameEnum.MINUTE_1,
+                    "1min": TimeFrameEnum.MINUTE_1,
+                    "5m": TimeFrameEnum.MINUTE_5,
+                    "5min": TimeFrameEnum.MINUTE_5,
+                    "15m": TimeFrameEnum.MINUTE_15,
+                    "15min": TimeFrameEnum.MINUTE_15,
+                    "30m": TimeFrameEnum.MINUTE_30,
+                    "30min": TimeFrameEnum.MINUTE_30,
+                    "1h": TimeFrameEnum.HOUR_1,
+                    "1H": TimeFrameEnum.HOUR_1,
+                    "4h": TimeFrameEnum.HOUR_1,  # Alpaca doesn't support 4h
+                    "4H": TimeFrameEnum.HOUR_1,
+                    "1d": TimeFrameEnum.DAY_1,
+                    "1D": TimeFrameEnum.DAY_1,
+                    "1w": TimeFrameEnum.WEEK_1,
+                    "1W": TimeFrameEnum.WEEK_1,
+                    "1wk": TimeFrameEnum.WEEK_1,
+                    "1mo": TimeFrameEnum.MONTH_1,
+                    "1M": TimeFrameEnum.MONTH_1,
+                }
 
-                # Calculate start date based on timeframe to ensure sufficient history
+                tf_enum = timeframe_map.get(timeframe, TimeFrameEnum.DAY_1)
+
+                # Calculate start date based on timeframe to get enough history
                 now = datetime.now()
+                if tf_enum in [TimeFrameEnum.MINUTE_1, TimeFrameEnum.MINUTE_5]:
+                    start_date = now - timedelta(days=7)  # ~1 week of minute data
+                elif tf_enum in [TimeFrameEnum.MINUTE_15, TimeFrameEnum.MINUTE_30]:
+                    start_date = now - timedelta(days=30)  # 1 month
+                elif tf_enum == TimeFrameEnum.HOUR_1:
+                    start_date = now - timedelta(days=90)  # 3 months
+                elif tf_enum == TimeFrameEnum.DAY_1:
+                    start_date = now - timedelta(days=365 * 2)  # 2 years
+                elif tf_enum == TimeFrameEnum.WEEK_1:
+                    start_date = now - timedelta(days=365 * 5)  # 5 years
+                else:  # MONTH_1
+                    start_date = now - timedelta(days=365 * 10)  # 10 years
 
-                # Map timeframe to yfinance-compatible interval
-                # yfinance expects: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d,
-                # 1wk, 1mo, 3mo
-                yf_interval = timeframe
-                if timeframe in ["1w", "1W"]:
-                    yf_interval = "1wk"
-                    start_date = now.replace(year=now.year - 10)
-                elif timeframe in ["1mo", "1M"]:
-                    yf_interval = "1mo"
-                    start_date = now.replace(year=now.year - 20)
-                elif timeframe in ["1d", "1D"]:
-                    yf_interval = "1d"
-                    start_date = now.replace(year=now.year - 5)
-                elif timeframe in ["4h", "4H"]:
-                    yf_interval = "1h"  # yfinance doesn't support 4h, use 1h
-                    start_date = now.replace(year=now.year - 2)
-                else:
-                    # 1h and others
-                    yf_interval = "1h"
-                    start_date = now.replace(year=now.year - 1)
-
-                end_date = now
-
-                bars = await self.market_data_manager.get_historical_data(
-                    symbol, start_date, end_date, yf_interval
+                # Don't pass limit to Alpaca - we'll slice the result
+                # Alpaca returns bars in ascending order (oldest first)
+                bars = await self.alpaca_client.get_bars(
+                    symbol=symbol,
+                    timeframe=tf_enum,
+                    start_date=start_date,
+                    end_date=now,
+                    limit=10000,  # Fetch more, then slice
                 )
 
-                # Format for frontend
+                if not bars:
+                    logger.warning(f"No bar data returned for {symbol}")
+                    return []
+
+                # Take the most recent N bars (last N since ascending order)
+                bars = bars[-limit:] if len(bars) > limit else bars
+
+                # Format for frontend (time as Unix timestamp)
                 return [
                     {
-                        "time": int(bar.timestamp.timestamp()),
-                        "open": bar.open,
-                        "high": bar.high,
-                        "low": bar.low,
-                        "close": bar.close,
-                        "volume": bar.volume,
+                        "time": int(
+                            datetime.fromisoformat(
+                                bar["timestamp"].replace("Z", "+00:00")
+                            ).timestamp()
+                        ),
+                        "open": bar["open"],
+                        "high": bar["high"],
+                        "low": bar["low"],
+                        "close": bar["close"],
+                        "volume": bar["volume"],
                     }
                     for bar in bars
                 ]
+            except DataError:
+                raise
             except Exception as e:
                 logger.error(
                     f"Error getting market bars for {symbol}: {e}", exc_info=True
