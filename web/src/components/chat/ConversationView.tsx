@@ -257,66 +257,16 @@ export function ConversationView() {
             let thinkingContent = '';
             const assistantId = crypto.randomUUID();
             const toolInvocations: any[] = [];
-            let buffer = '';
 
             if (reader) {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    buffer += decoder.decode(value, { stream: true });
-
-                    // Process complete lines from buffer
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-                    for (const line of lines) {
-                        if (!line.trim()) continue;
-
-                        // AI SDK data stream format: "0:text" or "9:tool_call" etc.
-                        const colonIndex = line.indexOf(':');
-                        if (colonIndex === -1) {
-                            // Plain text (fallback)
-                            assistantContent += line;
-                            continue;
-                        }
-
-                        const prefix = line.substring(0, colonIndex);
-                        const data = line.substring(colonIndex + 1);
-
-                        try {
-                            if (prefix === '0') {
-                                // Text chunk
-                                const text = JSON.parse(data);
-                                assistantContent += text;
-                            } else if (prefix === '3') {
-                                // Thinking chunk (extended thinking)
-                                const text = JSON.parse(data);
-                                thinkingContent += text;
-                            } else if (prefix === '9') {
-                                // Tool call
-                                const toolCall = JSON.parse(data);
-                                toolInvocations.push(toolCall);
-                            } else if (prefix === 'a') {
-                                // Tool result
-                                const toolResult = JSON.parse(data);
-                                // Handle UI-controlling tool results
-                                if (toolResult?.result) {
-                                    handleToolResult(toolResult.toolName || '', toolResult.result);
-                                }
-                            } else if (prefix === 'e') {
-                                // Error
-                                const errorData = JSON.parse(data);
-                                console.error('Stream error:', errorData);
-                            }
-                            // Ignore other prefixes (d=done, etc.)
-                        } catch {
-                            // If parsing fails, treat as plain text
-                            if (prefix === '0') {
-                                assistantContent += data;
-                            }
-                        }
-                    }
+                    // Decode the chunk and accumulate directly
+                    // toTextStreamResponse() sends raw UTF-8 text, not prefixed data stream
+                    const chunk = decoder.decode(value, { stream: true });
+                    assistantContent += chunk;
 
                     setMessages(prev => {
                         const existing = prev.find(m => m.id === assistantId);
