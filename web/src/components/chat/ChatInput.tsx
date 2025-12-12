@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Send, Loader2, Brain, LogIn } from 'lucide-react';
 import { ProviderSelector } from './ProviderSelector';
-import { ActivePersonaIndicator } from './ActivePersonaIndicator';
+import { PersonaFolderTab } from './PersonaFolderTab';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
@@ -109,7 +109,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [isMobile]);
 
   return (
-    <div ref={containerRef} className={cn("glass-input relative", isMobile ? "p-3" : "p-4")}>
+    <div ref={containerRef} className={cn("glass-input relative", isMobile ? "p-3" : "p-4 pt-5")}>
+      {/* Manila Folder Tab for Persona Selection */}
+      {!isMobile && <PersonaFolderTab disabled={isStreaming} />}
+
       <div className={cn("flex items-end", isMobile ? "gap-2" : "gap-3")}>
         {/* Hide provider selector on mobile to save space */}
         {!isMobile && (
@@ -118,11 +121,6 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             onChange={setActiveProvider}
             disabled={isStreaming}
           />
-        )}
-
-        {/* Show active persona indicator */}
-        {!isMobile && (
-          <ActivePersonaIndicator showLabel />
         )}
 
         {/* Hide extended thinking button on mobile */}
