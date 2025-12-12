@@ -208,9 +208,10 @@ body:has(.landing-page) > div > div > div {
   background: oklch(0.22 0.01 55 / 85%);
   backdrop-filter: blur(12px);
   border: 1px solid oklch(0.35 0.01 55 / 50%);
-  /* Fully rounded top, flat bottom to meet container */
-  border-radius: 0.625rem 0.625rem 0 0;
+  /* Left corner flush (square), right corner rounded for smooth tab */
+  border-radius: 0 0.625rem 0 0;
   border-bottom: none;
+  border-left: none; /* Flush with container edge */
   /* Subtle lift shadow */
   box-shadow:
     0 -2px 8px oklch(0 0 0 / 15%),
@@ -255,9 +256,9 @@ body:has(.landing-page) > div > div > div {
 .glass-input-with-tab::before {
   content: '';
   position: absolute;
-  /* Position at top-left where tab connects */
+  /* Position at top-left where tab connects - flush with left edge */
   top: -1px;
-  left: 1rem;
+  left: 0;
   /* Match tab width roughly */
   width: 140px;
   height: 1px;

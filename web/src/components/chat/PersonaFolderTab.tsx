@@ -81,7 +81,7 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
   };
 
   return (
-    <div ref={containerRef} className="absolute -top-6 left-4 z-[60]">
+    <div ref={containerRef} className="absolute -top-6 left-0 z-[60]">
       {/* Lifted Folder Tab - sticks out above container */}
       <motion.button
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -120,17 +120,17 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
         </motion.div>
       </motion.button>
 
-      {/* Dropdown Panel - Glass Panel */}
+      {/* Dropdown Panel - Opens UPWARD */}
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            initial={{ opacity: 0, y: 8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
-              // Position below the tab (drops down), aligned to left edge
-              "absolute top-full left-0 mt-1 w-72",
+              // Position ABOVE the tab (opens up), aligned to left edge
+              "absolute bottom-full left-0 mb-1 w-72",
               // Unified glass-panel styling
               "glass-panel",
               "overflow-hidden"
