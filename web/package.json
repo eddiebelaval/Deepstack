@@ -22,7 +22,13 @@
     "test:e2e:webkit": "playwright test --project=webkit",
     "test:e2e:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
     "test:e2e:report": "playwright show-report",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "load:smoke": "k6 run tests/load/smoke.js",
+    "load:test": "k6 run tests/load/load.js",
+    "load:stress": "k6 run tests/load/stress.js",
+    "load:spike": "k6 run tests/load/spike.js",
+    "load:soak": "k6 run tests/load/soak.js",
+    "load:ci": "k6 run tests/load/ci.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.53",

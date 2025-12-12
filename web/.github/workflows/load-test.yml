@@ -1,0 +1,255 @@
+name: Load Testing
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'web/src/app/api/**'
+      - 'web/tests/load/**'
+
+  push:
+    branches: [main]
+    paths:
+      - 'web/src/app/api/**'
+
+  schedule:
+    - cron: '0 2 * * *'
+
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: true
+        default: 'ci'
+        type: choice
+        options:
+          - smoke
+          - ci
+          - load
+          - stress
+
+env:
+  K6_VERSION: '0.49.0'
+
+jobs:
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build application
+        run: npm run build
+        working-directory: web
+
+      - name: Start server
+        run: |
+          npm run start &
+          sleep 10
+        working-directory: web
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run smoke test
+        run: k6 run tests/load/smoke.js
+        working-directory: web
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-results
+          path: web/tests/load/results/
+          retention-days: 7
+
+  ci-load-test:
+    name: CI Load Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'ci')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build application
+        run: npm run build
+        working-directory: web
+
+      - name: Start server
+        run: |
+          npm run start &
+          sleep 15
+        working-directory: web
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Create results directory
+        run: mkdir -p tests/load/results
+        working-directory: web
+
+      - name: Run CI load test
+        run: k6 run tests/load/ci.js
+        working-directory: web
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-load-test-results
+          path: web/tests/load/results/
+          retention-days: 30
+
+  nightly-load-test:
+    name: Nightly Load Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'load')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build application
+        run: npm run build
+        working-directory: web
+
+      - name: Start server
+        run: |
+          npm run start &
+          sleep 15
+        working-directory: web
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Create results directory
+        run: mkdir -p tests/load/results
+        working-directory: web
+
+      - name: Run full load test
+        run: k6 run tests/load/load.js --out json=tests/load/results/load-results.json
+        working-directory: web
+        env:
+          BASE_URL: http://localhost:3000
+        timeout-minutes: 30
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-load-test-results
+          path: web/tests/load/results/
+          retention-days: 90
+
+  stress-test:
+    name: Stress Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'stress'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build application
+        run: npm run build
+        working-directory: web
+
+      - name: Start server
+        run: |
+          npm run start &
+          sleep 15
+        working-directory: web
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Create results directory
+        run: mkdir -p tests/load/results
+        working-directory: web
+
+      - name: Run stress test
+        run: k6 run tests/load/stress.js --out json=tests/load/results/stress-results.json
+        working-directory: web
+        env:
+          BASE_URL: http://localhost:3000
+        timeout-minutes: 45
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stress-test-results
+          path: web/tests/load/results/
+          retention-days: 90
