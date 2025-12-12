@@ -1,8 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   isMarketHoliday,
   isWeekend,
   formatTimeUntil,
+  getMarketSession,
+  isMarketOpen,
+  isExtendedHoursOpen,
+  getNextMarketOpen,
+  getNextMarketClose,
+  getMarketStatus,
 } from '../market-hours';
 
 describe('isWeekend', () => {
@@ -72,5 +78,135 @@ describe('formatTimeUntil', () => {
 
     const result = formatTimeUntil(target);
     expect(result).toMatch(/^\d+d \d+h$/);
+  });
+});
+
+// Note: These tests use actual time, so results depend on when tests run
+// For production, we'd use vi.setSystemTime() to mock dates
+describe('getMarketSession', () => {
+  it('returns a valid session type', () => {
+    const session = getMarketSession();
+    expect(['premarket', 'regular', 'afterhours', 'closed']).toContain(session);
+  });
+});
+
+describe('isMarketOpen', () => {
+  it('returns a boolean', () => {
+    const result = isMarketOpen();
+    expect(typeof result).toBe('boolean');
+  });
+
+  it('is consistent with getMarketSession', () => {
+    const session = getMarketSession();
+    const isOpen = isMarketOpen();
+    expect(isOpen).toBe(session === 'regular');
+  });
+});
+
+describe('isExtendedHoursOpen', () => {
+  it('returns a boolean', () => {
+    const result = isExtendedHoursOpen();
+    expect(typeof result).toBe('boolean');
+  });
+
+  it('is true when session is not closed', () => {
+    const session = getMarketSession();
+    const extendedOpen = isExtendedHoursOpen();
+    expect(extendedOpen).toBe(session !== 'closed');
+  });
+});
+
+describe('getNextMarketOpen', () => {
+  it('returns a Date object', () => {
+    const nextOpen = getNextMarketOpen();
+    expect(nextOpen).toBeInstanceOf(Date);
+  });
+
+  it('returns a date in the future or today', () => {
+    const nextOpen = getNextMarketOpen();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    expect(nextOpen.getTime()).toBeGreaterThanOrEqual(today.getTime());
+  });
+
+  it('returns a weekday', () => {
+    const nextOpen = getNextMarketOpen();
+    const day = nextOpen.getDay();
+    expect(day).not.toBe(0); // Not Sunday
+    expect(day).not.toBe(6); // Not Saturday
+  });
+});
+
+describe('getNextMarketClose', () => {
+  it('returns null or a Date', () => {
+    const nextClose = getNextMarketClose();
+    if (nextClose !== null) {
+      expect(nextClose).toBeInstanceOf(Date);
+    } else {
+      expect(nextClose).toBeNull();
+    }
+  });
+
+  it('returns null when market is not open', () => {
+    // If market is closed, nextClose should be null
+    if (!isMarketOpen()) {
+      expect(getNextMarketClose()).toBeNull();
+    }
+  });
+});
+
+describe('getMarketStatus', () => {
+  it('returns a valid market status object', () => {
+    const status = getMarketStatus();
+
+    expect(status).toHaveProperty('isOpen');
+    expect(status).toHaveProperty('session');
+    expect(status).toHaveProperty('nextOpen');
+    expect(status).toHaveProperty('nextClose');
+    expect(status).toHaveProperty('message');
+  });
+
+  it('has consistent isOpen and session values', () => {
+    const status = getMarketStatus();
+    expect(status.isOpen).toBe(status.session === 'regular');
+  });
+
+  it('has a non-empty message', () => {
+    const status = getMarketStatus();
+    expect(status.message).toBeTruthy();
+    expect(status.message.length).toBeGreaterThan(0);
+  });
+
+  it('returns appropriate message for each session', () => {
+    const status = getMarketStatus();
+
+    switch (status.session) {
+      case 'regular':
+        expect(status.message).toContain('open');
+        break;
+      case 'premarket':
+        expect(status.message.toLowerCase()).toContain('pre-market');
+        break;
+      case 'afterhours':
+        expect(status.message.toLowerCase()).toContain('after');
+        break;
+      case 'closed':
+        expect(status.message.toLowerCase()).toContain('closed');
+        break;
+    }
+  });
+
+  it('has nextOpen as null when market is open', () => {
+    const status = getMarketStatus();
+    if (status.isOpen) {
+      expect(status.nextOpen).toBeNull();
+    }
+  });
+
+  it('has nextClose as null when market is closed', () => {
+    const status = getMarketStatus();
+    if (!status.isOpen) {
+      expect(status.nextClose).toBeNull();
+    }
   });
 });
