@@ -38,6 +38,7 @@ import { PresetGrid } from './PresetGrid';
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { EmotionalFirewallBanner } from '@/components/emotional-firewall';
 import { X, ArrowDown } from 'lucide-react';
 
 // Simple message type for our use case
@@ -486,6 +487,11 @@ export function ConversationView() {
                         <PresetGrid onSelect={handlePresetClick} />
                     </div>
 
+                    {/* Emotional Firewall Banner */}
+                    <div className="w-full">
+                        <EmotionalFirewallBanner compact />
+                    </div>
+
                     {/* Chat Limit Indicator */}
                     {showChatLimitIndicator && (
                         <div className="w-full max-w-md mx-auto">
@@ -625,6 +631,7 @@ export function ConversationView() {
                         {/* Chat Input */}
                         <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
                             <div className="max-w-3xl mx-auto w-full space-y-2">
+                                <EmotionalFirewallBanner compact className="mb-2" />
                                 {showChatLimitIndicator && (
                                     <ChatLimitBanner used={chatsToday} limit={dailyLimit} className="mb-2" />
                                 )}
@@ -670,6 +677,7 @@ export function ConversationView() {
                     {/* Chat Input */}
                     <div className="flex-shrink-0 p-3 bg-background/90 backdrop-blur-md border-t border-border/30">
                         <div className="max-w-3xl mx-auto w-full space-y-2">
+                            <EmotionalFirewallBanner compact className="mb-2" />
                             {showChatLimitIndicator && (
                                 <ChatLimitBanner used={chatsToday} limit={dailyLimit} className="mb-2" />
                             )}

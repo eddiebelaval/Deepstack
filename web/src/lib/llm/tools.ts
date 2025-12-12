@@ -545,7 +545,7 @@ export const tradingTools = {
     execute: async () => {
       const baseUrl = getBaseUrl();
       try {
-        const response = await fetch(`${baseUrl}/api/emotional-firewall/status`, { cache: 'no-store' });
+        const response = await fetch(`${baseUrl}/api/emotional-firewall/check`, { cache: 'no-store' });
 
         if (response.ok) {
           const data = await response.json();
