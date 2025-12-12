@@ -22,7 +22,24 @@ export const AVAILABLE_INDICES = [
   { symbol: 'XLV', name: 'Healthcare', description: 'Health Sector' },
 ];
 
+export interface Category {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+}
+
 interface IndexScrollWheelProps {
+  /** Mode: 'symbol' scrolls through individual symbols, 'category' scrolls through categories */
+  mode?: 'symbol' | 'category';
+  /** Categories to display (only used in category mode) */
+  categories?: Category[];
+  /** Current category index (only used in category mode) */
+  categoryIndex?: number;
+  /** Called when category changes (only in category mode) */
+  onCategoryChange?: (index: number) => void;
+
+  // Symbol mode props
   selectedSymbols: string[];
   onSelect: (symbol: string) => void;
   /** Called when the wheel navigates to a new index (for auto-adding to chart) */
@@ -32,50 +49,89 @@ interface IndexScrollWheelProps {
   className?: string;
 }
 
-export function IndexScrollWheel({ selectedSymbols, onSelect, onNavigate, symbolColors = {}, className }: IndexScrollWheelProps) {
+export function IndexScrollWheel({
+  mode = 'symbol',
+  categories,
+  categoryIndex,
+  onCategoryChange,
+  selectedSymbols,
+  onSelect,
+  onNavigate,
+  symbolColors = {},
+  className
+}: IndexScrollWheelProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const wheelRef = useRef<HTMLDivElement>(null);
 
-  // Fire onNavigate when currentIndex changes (after initial render)
+  // Determine which data source to use based on mode
+  const items = mode === 'category' ? (categories || []) : AVAILABLE_INDICES;
+  const activeIndex = mode === 'category' ? (categoryIndex ?? 0) : currentIndex;
+
+  // Fire onNavigate/onCategoryChange when index changes (after initial render)
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
-    if (onNavigate) {
+    if (mode === 'symbol' && onNavigate) {
       onNavigate(AVAILABLE_INDICES[currentIndex].symbol);
     }
-  }, [currentIndex, onNavigate]);
+  }, [currentIndex, onNavigate, mode]);
 
   // Get current and adjacent items for display
   const getVisibleItems = useCallback(() => {
-    const total = AVAILABLE_INDICES.length;
-    const prevIndex = (currentIndex - 1 + total) % total;
-    const nextIndex = (currentIndex + 1) % total;
+    const total = items.length;
+    if (total === 0) {
+      return { prev: null, current: null, next: null };
+    }
+    const prevIndex = (activeIndex - 1 + total) % total;
+    const nextIndex = (activeIndex + 1) % total;
 
-    return {
-      prev: AVAILABLE_INDICES[prevIndex],
-      current: AVAILABLE_INDICES[currentIndex],
-      next: AVAILABLE_INDICES[nextIndex],
-    };
-  }, [currentIndex]);
+    if (mode === 'category') {
+      return {
+        prev: categories?.[prevIndex] || null,
+        current: categories?.[activeIndex] || null,
+        next: categories?.[nextIndex] || null,
+      };
+    } else {
+      return {
+        prev: AVAILABLE_INDICES[prevIndex],
+        current: AVAILABLE_INDICES[currentIndex],
+        next: AVAILABLE_INDICES[nextIndex],
+      };
+    }
+  }, [currentIndex, activeIndex, items.length, mode, categories]);
 
   const scrollUp = useCallback(() => {
     if (isAnimating) return;
     setIsAnimating(true);
-    setCurrentIndex((prev) => (prev - 1 + AVAILABLE_INDICES.length) % AVAILABLE_INDICES.length);
+
+    if (mode === 'category') {
+      const newIndex = (activeIndex - 1 + items.length) % items.length;
+      onCategoryChange?.(newIndex);
+    } else {
+      setCurrentIndex((prev) => (prev - 1 + AVAILABLE_INDICES.length) % AVAILABLE_INDICES.length);
+    }
+
     setTimeout(() => setIsAnimating(false), 200);
-  }, [isAnimating]);
+  }, [isAnimating, mode, activeIndex, items.length, onCategoryChange]);
 
   const scrollDown = useCallback(() => {
     if (isAnimating) return;
     setIsAnimating(true);
-    setCurrentIndex((prev) => (prev + 1) % AVAILABLE_INDICES.length);
+
+    if (mode === 'category') {
+      const newIndex = (activeIndex + 1) % items.length;
+      onCategoryChange?.(newIndex);
+    } else {
+      setCurrentIndex((prev) => (prev + 1) % AVAILABLE_INDICES.length);
+    }
+
     setTimeout(() => setIsAnimating(false), 200);
-  }, [isAnimating]);
+  }, [isAnimating, mode, activeIndex, items.length, onCategoryChange]);
 
   // Handle mouse wheel scrolling
   useEffect(() => {
@@ -119,10 +175,40 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, onNavigate, symbol
   };
 
   const { prev, current, next } = getVisibleItems();
-  const isSelected = selectedSymbols.includes(current.symbol);
-  const currentColor = symbolColors[current.symbol];
-  const prevColor = symbolColors[prev.symbol];
-  const nextColor = symbolColors[next.symbol];
+
+  // Determine colors based on mode
+  let currentColor: string | undefined;
+  let prevColor: string | undefined;
+  let nextColor: string | undefined;
+  let isSelected = false;
+
+  if (mode === 'category') {
+    // In category mode, use the category's color
+    currentColor = (current as Category | null)?.color;
+    prevColor = (prev as Category | null)?.color;
+    nextColor = (next as Category | null)?.color;
+  } else {
+    // In symbol mode, use symbolColors map
+    const currentSymbol = current as typeof AVAILABLE_INDICES[number] | null;
+    const prevSymbol = prev as typeof AVAILABLE_INDICES[number] | null;
+    const nextSymbol = next as typeof AVAILABLE_INDICES[number] | null;
+
+    isSelected = currentSymbol ? selectedSymbols.includes(currentSymbol.symbol) : false;
+    currentColor = currentSymbol ? symbolColors[currentSymbol.symbol] : undefined;
+    prevColor = prevSymbol ? symbolColors[prevSymbol.symbol] : undefined;
+    nextColor = nextSymbol ? symbolColors[nextSymbol.symbol] : undefined;
+  }
+
+  // Empty state for category mode
+  if (mode === 'category' && (!categories || categories.length === 0)) {
+    return (
+      <div className={cn("relative flex flex-col items-center", className)}>
+        <div className="relative w-[100px] h-[90px] flex items-center justify-center">
+          <div className="text-xs text-muted-foreground/50">No categories</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative flex flex-col items-center", className)}>
@@ -167,78 +253,96 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, onNavigate, symbol
           {/* Scroll items */}
           <div className="flex flex-col items-center justify-center h-full py-1">
             {/* Previous item (dimmed) */}
-            <div
-              className={cn(
-                "flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
-                isAnimating && "transform -translate-y-1"
-              )}
-              onClick={scrollUp}
-            >
-              {prevColor && (
-                <div
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: prevColor, opacity: 0.6 }}
-                />
-              )}
-              {prev.name}
-            </div>
+            {prev && (
+              <div
+                className={cn(
+                  "flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
+                  isAnimating && "transform -translate-y-1"
+                )}
+                onClick={scrollUp}
+              >
+                {prevColor && (
+                  <div
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: prevColor, opacity: 0.6 }}
+                  />
+                )}
+                {prev.name}
+              </div>
+            )}
 
             {/* Current item (highlighted) */}
-            <button
-              onClick={() => onSelect(current.symbol)}
-              className={cn(
-                "flex flex-col items-center py-1.5 px-3 rounded-lg transition-all duration-200",
-                "hover:bg-primary/10",
-                isSelected && "bg-primary/15"
-              )}
-            >
-              <div className="flex items-center gap-1.5">
-                {currentColor && (
+            {current && (
+              <button
+                onClick={() => {
+                  // Only call onSelect in symbol mode
+                  if (mode === 'symbol' && 'symbol' in current) {
+                    onSelect(current.symbol);
+                  }
+                }}
+                className={cn(
+                  "flex flex-col items-center py-1.5 px-3 rounded-lg transition-all duration-200",
+                  mode === 'symbol' && "hover:bg-primary/10",
+                  mode === 'symbol' && isSelected && "bg-primary/15",
+                  mode === 'category' && "scale-110" // Slightly larger in category mode
+                )}
+                disabled={mode === 'category'} // Not clickable in category mode
+              >
+                <div className="flex items-center gap-1.5">
+                  {currentColor && (
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{
+                        backgroundColor: currentColor,
+                        boxShadow: `0 0 6px ${currentColor}80`
+                      }}
+                    />
+                  )}
+                  <span className={cn(
+                    "font-bold text-foreground leading-tight",
+                    mode === 'category' ? "text-sm" : "text-xs"
+                  )}>
+                    {current.name}
+                  </span>
+                </div>
+                <span className="text-[8px] text-muted-foreground leading-tight">
+                  {current.description}
+                </span>
+                {/* Selection indicator - only shown in symbol mode */}
+                {mode === 'symbol' && (
                   <div
-                    className="h-2 w-2 rounded-full"
+                    className={cn(
+                      "h-0.5 w-8 mt-1 rounded-full transition-all duration-200",
+                      isSelected
+                        ? "opacity-100"
+                        : "bg-muted-foreground/30 opacity-50"
+                    )}
                     style={{
-                      backgroundColor: currentColor,
-                      boxShadow: `0 0 6px ${currentColor}80`
+                      backgroundColor: currentColor || (isSelected ? 'hsl(var(--primary))' : undefined)
                     }}
                   />
                 )}
-                <span className="text-xs font-bold text-foreground leading-tight">
-                  {current.name}
-                </span>
-              </div>
-              <span className="text-[8px] text-muted-foreground leading-tight">
-                {current.description}
-              </span>
-              {/* Selection indicator - uses the index color when selected */}
-              <div
-                className={cn(
-                  "h-0.5 w-8 mt-1 rounded-full transition-all duration-200",
-                  isSelected
-                    ? "opacity-100"
-                    : "bg-muted-foreground/30 opacity-50"
-                )}
-                style={{
-                  backgroundColor: currentColor || (isSelected ? 'hsl(var(--primary))' : undefined)
-                }}
-              />
-            </button>
+              </button>
+            )}
 
             {/* Next item (dimmed) */}
-            <div
-              className={cn(
-                "flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
-                isAnimating && "transform translate-y-1"
-              )}
-              onClick={scrollDown}
-            >
-              {nextColor && (
-                <div
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: nextColor, opacity: 0.6 }}
-                />
-              )}
-              {next.name}
-            </div>
+            {next && (
+              <div
+                className={cn(
+                  "flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
+                  isAnimating && "transform translate-y-1"
+                )}
+                onClick={scrollDown}
+              >
+                {nextColor && (
+                  <div
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: nextColor, opacity: 0.6 }}
+                  />
+                )}
+                {next.name}
+              </div>
+            )}
           </div>
         </div>
 
@@ -261,7 +365,7 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, onNavigate, symbol
 
       {/* Counter indicator */}
       <div className="text-[8px] text-muted-foreground/60 mt-1">
-        {currentIndex + 1} / {AVAILABLE_INDICES.length}
+        {activeIndex + 1} / {items.length}
       </div>
     </div>
   );

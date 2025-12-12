@@ -13,7 +13,7 @@ import { useUIStore } from '@/lib/stores/ui-store';
 import { usePositionsStore } from '@/lib/stores/positions-store';
 import { LazyMultiSeriesChart } from '@/components/lazy';
 import { type SeriesData } from '@/components/charts/MultiSeriesChart';
-import { useMultipleBarData, usePrefetchBars } from '@/hooks/useBarData';
+import { useMultipleBarData } from '@/hooks/useBarData';
 import { Loader2, ChevronRight, Plus, X, Pencil, RotateCcw, Settings, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BetsCarousel } from '@/components/prediction-markets';
@@ -21,7 +21,8 @@ import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagem
 import { SymbolSearchDialog } from '@/components/trading/SymbolSearchDialog';
 import { PositionsPanel } from '@/components/trading/PositionsPanel';
 import { PositionEntryForm } from '@/components/trading/PositionEntryForm';
-import { IndexControlPanel, AVAILABLE_INDICES, AVAILABLE_CRYPTO, type AssetItem } from '@/components/ui/index-control-panel';
+import { IndexControlPanel, type AssetItem } from '@/components/ui/index-control-panel';
+import { getCategoriesForTab, getSymbolsForCategory } from '@/lib/data/market-categories';
 
 // deepstack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
@@ -183,7 +184,7 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function HomeWidgets() {
-    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto' | 'custom' | 'predictions' | 'positions'>('market');
+    const [activeTab, setActiveTab] = useState<'market' | 'watchlist' | 'crypto' | 'etfs' | 'custom' | 'predictions' | 'positions'>('market');
     const [timeframe, setTimeframe] = useState('1D');
     const [isLogScale, setIsLogScale] = useState(false);
     const [displayMode, setDisplayMode] = useState<'$' | '%'>('%'); // Default to % like Webull
@@ -207,17 +208,18 @@ export function HomeWidgets() {
     const [seriesData, setSeriesData] = useState<SeriesData[]>([]);
     const [visibleSymbols, setVisibleSymbols] = useState<Set<string>>(new Set());
 
-    // Use market watch store for persisted symbol lists
+    // Use market watch store for persisted symbol lists and category navigation
     const {
-        indices,
-        crypto,
         custom,
+        selectedCategoryIndex,
+        setSelectedCategory,
         isEditMode,
         addSymbol,
         removeSymbol,
         toggleEditMode,
         resetIndices,
         resetCrypto,
+        resetEtfs,
         resetCustom,
     } = useMarketWatchStore();
 
@@ -243,7 +245,10 @@ export function HomeWidgets() {
     }, [isAddingSymbol]);
 
     // Determine which tab type we're on for store operations
-    const currentTabType = activeTab === 'market' ? 'indices' : activeTab === 'crypto' ? 'crypto' : activeTab === 'custom' ? 'custom' : null;
+    const currentTabType = activeTab === 'market' ? 'indices'
+        : activeTab === 'crypto' ? 'crypto'
+        : activeTab === 'etfs' ? 'etfs'
+        : activeTab === 'custom' ? 'custom' : null;
     const canEdit = activeTab !== 'predictions' && activeTab !== 'positions';
     const isWatchlistTab = activeTab === 'watchlist';
 
@@ -257,31 +262,30 @@ export function HomeWidgets() {
         setIsAddingSymbol(false);
     };
 
-    // Remove symbol from current tab
-    const handleRemoveSymbol = (symbol: string) => {
-        if (isWatchlistTab && activeWatchlistId) {
-            removeWatchlistSymbol(activeWatchlistId, symbol);
-        } else if (currentTabType) {
-            removeSymbol(currentTabType, symbol);
-        }
-    };
-
     // Reset current tab to defaults
     const handleReset = () => {
         if (activeTab === 'market') resetIndices();
         else if (activeTab === 'crypto') resetCrypto();
+        else if (activeTab === 'etfs') resetEtfs();
         else if (activeTab === 'custom') resetCustom();
     };
 
-    // Determine symbols based on tab - now using store values
+    // Determine symbols based on tab - category-based for market/crypto/etfs, list-based for others
     const symbols = useMemo(() => {
-        if (activeTab === 'market') return indices;
-        if (activeTab === 'crypto') return crypto;
+        // Category-based tabs: get symbols from selected category
+        if (activeTab === 'market') {
+            return getSymbolsForCategory('market', selectedCategoryIndex.market);
+        }
+        if (activeTab === 'crypto') {
+            return getSymbolsForCategory('crypto', selectedCategoryIndex.crypto);
+        }
+        if (activeTab === 'etfs') {
+            return getSymbolsForCategory('etfs', selectedCategoryIndex.etfs);
+        }
+        // List-based tabs
         if (activeTab === 'custom') return custom;
         return activeWatchlist?.items.map(i => i.symbol).slice(0, 8) || [];
-    }, [activeTab, activeWatchlist, indices, crypto, custom]);
-
-    const isCrypto = activeTab === 'crypto';
+    }, [activeTab, activeWatchlist, custom, selectedCategoryIndex]);
 
     // Initialize visibility when symbols change
     useEffect(() => {
@@ -387,8 +391,9 @@ export function HomeWidgets() {
 
     const tabTitle = activeTab === 'market' ? 'United States' :
         activeTab === 'crypto' ? 'Cryptocurrency' :
-            activeTab === 'custom' ? 'Custom Comparison' :
-                activeTab === 'positions' ? 'My Positions' : 'Watchlist';
+            activeTab === 'etfs' ? 'Exchange-Traded Funds' :
+                activeTab === 'custom' ? 'Custom Comparison' :
+                    activeTab === 'positions' ? 'My Positions' : 'Watchlist';
 
     return (
         <div className="w-full h-full max-w-5xl mx-auto flex flex-col">
@@ -507,6 +512,7 @@ export function HomeWidgets() {
                         {[
                             { key: 'market', label: 'Indices' },
                             { key: 'crypto', label: 'Crypto' },
+                            { key: 'etfs', label: 'ETFs' },
                             { key: 'positions', label: 'Positions', icon: Briefcase },
                             { key: 'predictions', label: 'Bets' },
                             { key: 'watchlist', label: 'Watchlist' },
@@ -634,34 +640,20 @@ export function HomeWidgets() {
                     </div>
                 )}
 
-                {/* Index Control Panel - Unified wheel + grid for Indices tab */}
-                {activeTab === 'market' && (
+                {/* Category-based Control Panel for Market, Crypto, ETFs tabs */}
+                {/* Uses IndexControlPanel in category mode - wheel shows categories, grid shows tickers */}
+                {(activeTab === 'market' || activeTab === 'crypto' || activeTab === 'etfs') && (
                     <div className="mt-2 pt-2 border-t border-border/30 pb-2">
                         <IndexControlPanel
-                            selectedSymbols={indices}
-                            activeIndices={seriesMetrics
-                                .filter((m): m is NonNullable<typeof m> => m !== null)
-                                .map(m => ({
-                                    symbol: m.symbol,
-                                    name: m.displayName,
-                                    price: m.price,
-                                    percentChange: m.percentChange,
-                                    color: m.color
-                                }))}
-                            symbolColors={symbolColors}
-                            onAdd={(symbol) => addSymbol('indices', symbol)}
-                            onRemove={(symbol) => removeSymbol('indices', symbol)}
-                            maxSymbols={12}
-                        />
-                    </div>
-                )}
-
-                {/* Unified Asset Control Panel for Crypto tab */}
-                {activeTab === 'crypto' && (
-                    <div className="mt-2 pt-2 border-t border-border/30 pb-2">
-                        <IndexControlPanel
-                            availableAssets={AVAILABLE_CRYPTO}
-                            selectedSymbols={crypto}
+                            mode="category"
+                            categories={getCategoriesForTab(activeTab).map(cat => ({
+                                id: cat.id,
+                                name: cat.name,
+                                description: cat.description,
+                                color: cat.color,
+                            }))}
+                            categoryIndex={selectedCategoryIndex[activeTab]}
+                            onCategoryChange={(idx) => setSelectedCategory(activeTab as 'market' | 'crypto' | 'etfs', idx)}
                             activeAssets={seriesMetrics
                                 .filter((m): m is NonNullable<typeof m> => m !== null)
                                 .map(m => ({
@@ -672,9 +664,13 @@ export function HomeWidgets() {
                                     color: m.color
                                 }))}
                             symbolColors={symbolColors}
-                            onAdd={(symbol) => addSymbol('crypto', symbol)}
-                            onRemove={(symbol) => removeSymbol('crypto', symbol)}
-                            maxSymbols={12}
+                            onToggle={toggleSymbol}
+                            onRemove={(symbol) => {
+                                // Toggle off from visibility
+                                const newSet = new Set(visibleSymbols);
+                                newSet.delete(symbol);
+                                setVisibleSymbols(newSet);
+                            }}
                         />
                     </div>
                 )}

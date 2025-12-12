@@ -9,6 +9,9 @@ import { ChevronUp, ChevronDown, X } from 'lucide-react';
 // A unified, premium trading terminal component combining wheel selector + grid
 // Design: Luxury glass morphism with amber/gold accents
 // Now generic - works with any asset type (indices, crypto, watchlist, custom)
+// Supports two modes:
+//   - 'symbol' mode: wheel scrolls through individual symbols (original behavior)
+//   - 'category' mode: wheel scrolls through categories, grid shows category tickers
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Asset item interface for wheel selector
@@ -17,6 +20,15 @@ export interface AssetItem {
   name: string;
   shortName: string;
   description: string;
+}
+
+// Category interface for category mode
+export interface CategoryItem {
+  id: string;
+  name: string;
+  shortName?: string;
+  description: string;
+  color: string;
 }
 
 // Available market indices
@@ -81,34 +93,86 @@ interface AssetControlPanelProps {
   className?: string;
 }
 
-// Backwards compatible alias
-type IndexControlPanelProps = Omit<AssetControlPanelProps, 'availableAssets' | 'activeAssets'> & {
-  availableAssets?: AssetItem[];
-  activeIndices?: IndexData[];
-  activeAssets?: IndexData[];
-};
+// Extended props for category mode
+interface CategoryControlPanelProps {
+  /** Mode: 'symbol' for individual symbols, 'category' for category navigation */
+  mode: 'category';
+  /** Categories to show in the wheel */
+  categories: CategoryItem[];
+  /** Current category index */
+  categoryIndex: number;
+  /** Called when category changes */
+  onCategoryChange: (index: number) => void;
+  /** Active assets with price data (tickers from the selected category) */
+  activeAssets: IndexData[];
+  /** Map of symbol to chart line color */
+  symbolColors: Record<string, string>;
+  /** Called to toggle a symbol on/off the chart */
+  onToggle: (symbol: string) => void;
+  /** Called to remove a symbol */
+  onRemove: (symbol: string) => void;
+  className?: string;
+}
 
-export function IndexControlPanel({
-  availableAssets = AVAILABLE_INDICES,
-  selectedSymbols,
-  activeIndices,
-  activeAssets,
-  symbolColors,
-  onAdd,
-  onRemove,
-  maxSymbols = 12,
-  className
-}: IndexControlPanelProps) {
-  // Use activeAssets if provided, fall back to activeIndices for backwards compatibility
-  const assets = activeAssets || activeIndices || [];
+// Backwards compatible alias for symbol mode
+type IndexControlPanelProps = (
+  Omit<AssetControlPanelProps, 'availableAssets' | 'activeAssets'> & {
+    mode?: 'symbol';
+    availableAssets?: AssetItem[];
+    activeIndices?: IndexData[];
+    activeAssets?: IndexData[];
+  }
+) | CategoryControlPanelProps;
 
-  const [currentWheelIndex, setCurrentWheelIndex] = useState(0);
+export function IndexControlPanel(props: IndexControlPanelProps) {
+  // Determine mode
+  const isCategory = props.mode === 'category';
+
+  // Extract props based on mode
+  const {
+    className,
+    symbolColors,
+    onRemove,
+  } = props;
+
+  // Symbol mode props
+  const availableAssets = !isCategory ? (props.availableAssets ?? AVAILABLE_INDICES) : [];
+  const selectedSymbols = !isCategory ? props.selectedSymbols : [];
+  const activeIndices = !isCategory ? props.activeIndices : undefined;
+  const activeAssetsSymbolMode = !isCategory ? props.activeAssets : undefined;
+  const onAdd = !isCategory ? props.onAdd : () => {};
+  const maxSymbols = !isCategory ? (props.maxSymbols ?? 12) : 12;
+
+  // Category mode props
+  const categories = isCategory ? props.categories : [];
+  const categoryIndex = isCategory ? props.categoryIndex : 0;
+  const onCategoryChange = isCategory ? props.onCategoryChange : () => {};
+  const activeAssetsCategoryMode = isCategory ? props.activeAssets : [];
+  const onToggle = isCategory ? props.onToggle : () => {};
+
+  // Use activeAssets based on mode
+  const assets = isCategory
+    ? activeAssetsCategoryMode
+    : (activeAssetsSymbolMode || activeIndices || []);
+
+  // Internal state for symbol mode wheel index
+  const [internalWheelIndex, setInternalWheelIndex] = useState(0);
+  // Use external index for category mode, internal for symbol mode
+  const currentWheelIndex = isCategory ? categoryIndex : internalWheelIndex;
+  const setCurrentWheelIndex = isCategory
+    ? (idx: number | ((prev: number) => number)) => {
+        const newIdx = typeof idx === 'function' ? idx(categoryIndex) : idx;
+        onCategoryChange(newIdx);
+      }
+    : setInternalWheelIndex;
+
   const [isAnimating, setIsAnimating] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
 
-  // Fire add when navigating to unselected asset
+  // For symbol mode: Fire add when navigating to unselected asset
   const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isCategory) return; // Skip for category mode
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
@@ -118,36 +182,52 @@ export function IndexControlPanel({
     if (!selectedSymbols.includes(symbol) && selectedSymbols.length < maxSymbols) {
       onAdd(symbol);
     }
-  }, [currentWheelIndex, selectedSymbols, maxSymbols, onAdd, availableAssets]);
+  }, [isCategory, currentWheelIndex, selectedSymbols, maxSymbols, onAdd, availableAssets]);
 
-  // Get visible wheel items
+  // Get visible wheel items - different structure for category vs symbol mode
   const wheelItems = useMemo(() => {
-    if (availableAssets.length === 0) {
-      return { prev: null, current: null, next: null };
+    if (isCategory) {
+      if (categories.length === 0) {
+        return { prev: null, current: null, next: null };
+      }
+      const total = categories.length;
+      const prev = (currentWheelIndex - 1 + total) % total;
+      const next = (currentWheelIndex + 1) % total;
+      return {
+        prev: { ...categories[prev], shortName: categories[prev].shortName || categories[prev].name.slice(0, 6) },
+        current: { ...categories[currentWheelIndex], shortName: categories[currentWheelIndex].shortName || categories[currentWheelIndex].name },
+        next: { ...categories[next], shortName: categories[next].shortName || categories[next].name.slice(0, 6) },
+      };
+    } else {
+      if (availableAssets.length === 0) {
+        return { prev: null, current: null, next: null };
+      }
+      const total = availableAssets.length;
+      const prev = (currentWheelIndex - 1 + total) % total;
+      const next = (currentWheelIndex + 1) % total;
+      return {
+        prev: availableAssets[prev],
+        current: availableAssets[currentWheelIndex],
+        next: availableAssets[next],
+      };
     }
-    const total = availableAssets.length;
-    const prev = (currentWheelIndex - 1 + total) % total;
-    const next = (currentWheelIndex + 1) % total;
-    return {
-      prev: availableAssets[prev],
-      current: availableAssets[currentWheelIndex],
-      next: availableAssets[next],
-    };
-  }, [currentWheelIndex, availableAssets]);
+  }, [isCategory, currentWheelIndex, availableAssets, categories]);
+
+  const wheelLength = isCategory ? categories.length : availableAssets.length;
 
   const scrollUp = useCallback(() => {
-    if (isAnimating || availableAssets.length === 0) return;
+    if (isAnimating || wheelLength === 0) return;
     setIsAnimating(true);
-    setCurrentWheelIndex(prev => (prev - 1 + availableAssets.length) % availableAssets.length);
+    setCurrentWheelIndex(prev => (prev - 1 + wheelLength) % wheelLength);
     setTimeout(() => setIsAnimating(false), 180);
-  }, [isAnimating, availableAssets.length]);
+  }, [isAnimating, wheelLength, setCurrentWheelIndex]);
 
   const scrollDown = useCallback(() => {
-    if (isAnimating || availableAssets.length === 0) return;
+    if (isAnimating || wheelLength === 0) return;
     setIsAnimating(true);
-    setCurrentWheelIndex(prev => (prev + 1) % availableAssets.length);
+    setCurrentWheelIndex(prev => (prev + 1) % wheelLength);
     setTimeout(() => setIsAnimating(false), 180);
-  }, [isAnimating, availableAssets.length]);
+  }, [isAnimating, wheelLength, setCurrentWheelIndex]);
 
   // Mouse wheel handling
   useEffect(() => {
@@ -161,8 +241,14 @@ export function IndexControlPanel({
     return () => el.removeEventListener('wheel', handler);
   }, [scrollUp, scrollDown]);
 
-  const currentColor = wheelItems.current ? (symbolColors[wheelItems.current.symbol] || '#f59e0b') : '#f59e0b';
-  const isCurrentSelected = wheelItems.current ? selectedSymbols.includes(wheelItems.current.symbol) : false;
+  // Current color based on mode
+  const currentColor = isCategory
+    ? (wheelItems.current as CategoryItem | null)?.color || '#f59e0b'
+    : wheelItems.current ? (symbolColors[(wheelItems.current as AssetItem).symbol] || '#f59e0b') : '#f59e0b';
+
+  const isCurrentSelected = !isCategory && wheelItems.current
+    ? selectedSymbols.includes((wheelItems.current as AssetItem).symbol)
+    : false;
 
   // Build grid slots (12 slots, filled with active assets)
   const gridSlots = useMemo(() => {
@@ -174,13 +260,14 @@ export function IndexControlPanel({
   }, [assets]);
 
   // Early return for empty state
-  if (availableAssets.length === 0 || !wheelItems.current) {
+  const isEmpty = isCategory ? categories.length === 0 : availableAssets.length === 0;
+  if (isEmpty || !wheelItems.current) {
     return (
       <div className={cn("relative", className)}>
         <div className="relative flex items-center rounded-xl overflow-hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xl" />
           <div className="relative z-10 p-6 text-center text-white/50 text-sm">
-            No assets available
+            {isCategory ? 'No categories available' : 'No assets available'}
           </div>
         </div>
       </div>
@@ -258,34 +345,55 @@ export function IndexControlPanel({
             </button>
           </div>
 
-          {/* CENTER LINE - Asset name sits exactly on the seam */}
-          <button
-            onClick={() => {
-              if (isCurrentSelected) {
-                onRemove(wheelItems.current.symbol);
-              } else if (selectedSymbols.length < maxSymbols) {
-                onAdd(wheelItems.current.symbol);
-              }
-            }}
-            className={cn(
-              "relative z-10 flex items-center gap-1.5 px-2 py-0.5 rounded transition-all duration-200 shrink-0 mt-1",
-              "hover:bg-white/5",
-              isCurrentSelected && "bg-white/5"
-            )}
-          >
-            {/* Color indicator */}
+          {/* CENTER LINE - Asset/Category name sits exactly on the seam */}
+          {isCategory ? (
+            // Category mode: just display, not clickable
             <div
-              className="h-2 w-2 rounded-full transition-all duration-300 shrink-0"
-              style={{
-                backgroundColor: isCurrentSelected ? currentColor : 'rgba(255,255,255,0.2)',
-                boxShadow: isCurrentSelected ? `0 0 6px ${currentColor}` : 'none',
+              className="relative z-10 flex items-center gap-1.5 px-2 py-0.5 rounded transition-all duration-200 shrink-0 mt-1"
+            >
+              {/* Color indicator - always shows category color */}
+              <div
+                className="h-2 w-2 rounded-full transition-all duration-300 shrink-0"
+                style={{
+                  backgroundColor: currentColor,
+                  boxShadow: `0 0 6px ${currentColor}`,
+                }}
+              />
+              {/* Category Name - THE CENTER POINT */}
+              <span className="text-[11px] font-semibold text-white tracking-wide">
+                {(wheelItems.current as CategoryItem).name}
+              </span>
+            </div>
+          ) : (
+            // Symbol mode: clickable to add/remove
+            <button
+              onClick={() => {
+                if (isCurrentSelected) {
+                  onRemove((wheelItems.current as AssetItem).symbol);
+                } else if (selectedSymbols.length < maxSymbols) {
+                  onAdd((wheelItems.current as AssetItem).symbol);
+                }
               }}
-            />
-            {/* Asset Name - THE CENTER POINT */}
-            <span className="text-[11px] font-semibold text-white tracking-wide">
-              {wheelItems.current.name}
-            </span>
-          </button>
+              className={cn(
+                "relative z-10 flex items-center gap-1.5 px-2 py-0.5 rounded transition-all duration-200 shrink-0 mt-1",
+                "hover:bg-white/5",
+                isCurrentSelected && "bg-white/5"
+              )}
+            >
+              {/* Color indicator */}
+              <div
+                className="h-2 w-2 rounded-full transition-all duration-300 shrink-0"
+                style={{
+                  backgroundColor: isCurrentSelected ? currentColor : 'rgba(255,255,255,0.2)',
+                  boxShadow: isCurrentSelected ? `0 0 6px ${currentColor}` : 'none',
+                }}
+              />
+              {/* Asset Name - THE CENTER POINT */}
+              <span className="text-[11px] font-semibold text-white tracking-wide">
+                {(wheelItems.current as AssetItem).name}
+              </span>
+            </button>
+          )}
 
           {/* Lower half - grows to balance upper */}
           <div className="flex-1 flex flex-col items-center justify-start pt-0.5">
@@ -317,7 +425,7 @@ export function IndexControlPanel({
 
             {/* Counter */}
             <div className="relative z-10 text-[8px] text-white/20 font-medium tracking-wider">
-              {currentWheelIndex + 1}/{availableAssets.length}
+              {currentWheelIndex + 1}/{wheelLength}
             </div>
           </div>
         </div>

@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import {
+  getCategoriesForTab,
+  getSymbolsForCategory,
+} from '@/lib/data/market-categories';
 
 // Default symbol lists
 const DEFAULT_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM'];
 const DEFAULT_CRYPTO = ['BTC/USD', 'ETH/USD', 'DOGE/USD', 'XRP/USD'];
+const DEFAULT_ETFS = ['SPY', 'QQQ', 'GLD', 'TLT'];
 const DEFAULT_CUSTOM = ['SPY', 'AAPL'];
 
 // Display names for common symbols
@@ -45,7 +50,15 @@ type MarketWatchState = {
   // Symbol lists for each tab
   indices: string[];
   crypto: string[];
+  etfs: string[];
   custom: string[];
+
+  // Category selection for wheel navigation
+  selectedCategoryIndex: {
+    market: number;
+    crypto: number;
+    etfs: number;
+  };
 
   // Edit mode state
   isEditMode: boolean;
@@ -53,11 +66,14 @@ type MarketWatchState = {
   // Actions
   setIndices: (symbols: string[]) => void;
   setCrypto: (symbols: string[]) => void;
+  setEtfs: (symbols: string[]) => void;
   setCustom: (symbols: string[]) => void;
 
-  addSymbol: (tab: 'indices' | 'crypto' | 'custom', symbol: string) => void;
-  removeSymbol: (tab: 'indices' | 'crypto' | 'custom', symbol: string) => void;
-  reorderSymbols: (tab: 'indices' | 'crypto' | 'custom', fromIndex: number, toIndex: number) => void;
+  addSymbol: (tab: 'indices' | 'crypto' | 'etfs' | 'custom', symbol: string) => void;
+  removeSymbol: (tab: 'indices' | 'crypto' | 'etfs' | 'custom', symbol: string) => void;
+  reorderSymbols: (tab: 'indices' | 'crypto' | 'etfs' | 'custom', fromIndex: number, toIndex: number) => void;
+
+  setSelectedCategory: (tab: 'market' | 'crypto' | 'etfs', index: number) => void;
 
   setEditMode: (enabled: boolean) => void;
   toggleEditMode: () => void;
@@ -65,6 +81,7 @@ type MarketWatchState = {
   // Reset to defaults
   resetIndices: () => void;
   resetCrypto: () => void;
+  resetEtfs: () => void;
   resetCustom: () => void;
   resetAll: () => void;
 };
@@ -75,12 +92,22 @@ export const useMarketWatchStore = create<MarketWatchState>()(
       // Initial state
       indices: DEFAULT_INDICES,
       crypto: DEFAULT_CRYPTO,
+      etfs: DEFAULT_ETFS,
       custom: DEFAULT_CUSTOM,
+
+      // Category selection state (default to first category in each tab)
+      selectedCategoryIndex: {
+        market: 0,
+        crypto: 0,
+        etfs: 0,
+      },
+
       isEditMode: false,
 
       // Set entire lists
       setIndices: (symbols) => set({ indices: symbols.slice(0, 8) }),
       setCrypto: (symbols) => set({ crypto: symbols.slice(0, 8) }),
+      setEtfs: (symbols) => set({ etfs: symbols.slice(0, 8) }),
       setCustom: (symbols) => set({ custom: symbols.slice(0, 8) }),
 
       // Add symbol to a tab (max 8)
@@ -110,6 +137,20 @@ export const useMarketWatchStore = create<MarketWatchState>()(
         set({ [tab]: currentList });
       },
 
+      // Set selected category for wheel navigation
+      setSelectedCategory: (tab, index) => {
+        // Validate index is within bounds
+        const categories = getCategoriesForTab(tab);
+        if (index >= 0 && index < categories.length) {
+          set((state) => ({
+            selectedCategoryIndex: {
+              ...state.selectedCategoryIndex,
+              [tab]: index,
+            },
+          }));
+        }
+      },
+
       // Edit mode
       setEditMode: (enabled) => set({ isEditMode: enabled }),
       toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
@@ -117,11 +158,18 @@ export const useMarketWatchStore = create<MarketWatchState>()(
       // Reset functions
       resetIndices: () => set({ indices: DEFAULT_INDICES }),
       resetCrypto: () => set({ crypto: DEFAULT_CRYPTO }),
+      resetEtfs: () => set({ etfs: DEFAULT_ETFS }),
       resetCustom: () => set({ custom: DEFAULT_CUSTOM }),
       resetAll: () => set({
         indices: DEFAULT_INDICES,
         crypto: DEFAULT_CRYPTO,
+        etfs: DEFAULT_ETFS,
         custom: DEFAULT_CUSTOM,
+        selectedCategoryIndex: {
+          market: 0,
+          crypto: 0,
+          etfs: 0,
+        },
         isEditMode: false,
       }),
     }),
@@ -129,11 +177,16 @@ export const useMarketWatchStore = create<MarketWatchState>()(
       name: 'deepstack-market-watch',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        // Only persist the symbol lists, not edit mode
+        // Persist the symbol lists and category selection
         indices: state.indices,
         crypto: state.crypto,
+        etfs: state.etfs,
         custom: state.custom,
+        selectedCategoryIndex: state.selectedCategoryIndex,
       }),
     }
   )
 );
+
+// Re-export category helpers for convenience
+export { getCategoriesForTab, getSymbolsForCategory };
