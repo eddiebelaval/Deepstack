@@ -84,7 +84,8 @@ describe('usePredictionMarkets', () => {
     expect(predictionMarketsApi.fetchTrendingMarkets).toHaveBeenCalledWith({
       category: undefined,
       source: undefined,
-      limit: 20,
+      limit: 30, // PAGE_SIZE = 30 in usePredictionMarkets hook
+      offset: 0,
     });
   });
 
@@ -118,7 +119,8 @@ describe('usePredictionMarkets', () => {
     expect(predictionMarketsApi.fetchTrendingMarkets).toHaveBeenCalledWith({
       category: 'Crypto',
       source: 'polymarket',
-      limit: 20,
+      limit: 30, // PAGE_SIZE = 30 in usePredictionMarkets hook
+      offset: 0,
     });
   });
 

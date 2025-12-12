@@ -261,7 +261,8 @@ describe('usePredictionMarketsStore', () => {
       });
 
       it('sets hasMore to true for full page', () => {
-        const fullPage = Array.from({ length: 20 }, (_, i) => ({
+        // PAGE_SIZE = 30 in the store
+        const fullPage = Array.from({ length: 30 }, (_, i) => ({
           ...mockMarkets[0],
           id: `market-${i}`,
         }));
@@ -300,7 +301,8 @@ describe('usePredictionMarketsStore', () => {
       });
 
       it('updates hasMore based on new markets count', () => {
-        const moreMarkets = Array.from({ length: 20 }, (_, i) => ({
+        // PAGE_SIZE = 30 in the store
+        const moreMarkets = Array.from({ length: 30 }, (_, i) => ({
           ...mockMarkets[0],
           id: `market-more-${i}`,
         }));

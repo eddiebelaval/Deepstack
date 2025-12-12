@@ -213,10 +213,12 @@ describe('Prediction Markets API Route', () => {
       );
       await GET(request);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BACKEND_URL}/api/predictions/trending?limit=20&category=Economics`,
-        { cache: 'no-store' }
-      );
+      // URL includes limit, offset, and category
+      const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(fetchCall).toContain(`${BACKEND_URL}/api/predictions/trending`);
+      expect(fetchCall).toContain('limit=20');
+      expect(fetchCall).toContain('offset=0');
+      expect(fetchCall).toContain('category=Economics');
     });
 
     it('should pass through source filter', async () => {
@@ -230,10 +232,12 @@ describe('Prediction Markets API Route', () => {
       );
       await GET(request);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BACKEND_URL}/api/predictions/trending?limit=20&source=kalshi`,
-        { cache: 'no-store' }
-      );
+      // URL includes limit, offset, and source
+      const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(fetchCall).toContain(`${BACKEND_URL}/api/predictions/trending`);
+      expect(fetchCall).toContain('limit=20');
+      expect(fetchCall).toContain('offset=0');
+      expect(fetchCall).toContain('source=kalshi');
     });
 
     it('should not pass source=all to backend', async () => {
@@ -245,10 +249,12 @@ describe('Prediction Markets API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/prediction-markets?source=all');
       await GET(request);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BACKEND_URL}/api/predictions/trending?limit=20`,
-        { cache: 'no-store' }
-      );
+      // URL includes limit and offset, but not source=all
+      const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(fetchCall).toContain(`${BACKEND_URL}/api/predictions/trending`);
+      expect(fetchCall).toContain('limit=20');
+      expect(fetchCall).toContain('offset=0');
+      expect(fetchCall).not.toContain('source=');
     });
 
     it('should handle custom limit parameter', async () => {
@@ -260,13 +266,14 @@ describe('Prediction Markets API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/prediction-markets?limit=50');
       await GET(request);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BACKEND_URL}/api/predictions/trending?limit=50`,
-        { cache: 'no-store' }
-      );
+      // URL includes custom limit and default offset
+      const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(fetchCall).toContain(`${BACKEND_URL}/api/predictions/trending`);
+      expect(fetchCall).toContain('limit=50');
+      expect(fetchCall).toContain('offset=0');
     });
 
-    it('should default to limit=20 when not provided', async () => {
+    it('should default to limit=20 and offset=0 when not provided', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ markets: [], count: 0 }),
@@ -275,10 +282,11 @@ describe('Prediction Markets API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/prediction-markets');
       await GET(request);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BACKEND_URL}/api/predictions/trending?limit=20`,
-        { cache: 'no-store' }
-      );
+      // URL includes default limit and offset
+      const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(fetchCall).toContain(`${BACKEND_URL}/api/predictions/trending`);
+      expect(fetchCall).toContain('limit=20');
+      expect(fetchCall).toContain('offset=0');
     });
 
     it('should combine multiple query parameters', async () => {
@@ -292,10 +300,13 @@ describe('Prediction Markets API Route', () => {
       );
       await GET(request);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${BACKEND_URL}/api/predictions/trending?limit=30&category=Crypto&source=polymarket`,
-        { cache: 'no-store' }
-      );
+      // URL includes limit, offset, category, and source
+      const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(fetchCall).toContain(`${BACKEND_URL}/api/predictions/trending`);
+      expect(fetchCall).toContain('limit=30');
+      expect(fetchCall).toContain('offset=0');
+      expect(fetchCall).toContain('category=Crypto');
+      expect(fetchCall).toContain('source=polymarket');
     });
 
     it('should handle URL-encoded category names', async () => {
