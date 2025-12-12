@@ -413,29 +413,33 @@ function GridCell({
           <X className="h-3 w-3 text-white/40 hover:text-white/80" />
         </div>
 
-        {/* Content - Left justified */}
+        {/* Content - Name on top, Price | % below */}
         <div className="relative z-10 flex flex-col items-start justify-center h-full pl-3 pr-2">
-          {/* Name - Medium */}
+          {/* Asset Name - Top */}
           <span className="text-[9px] font-medium text-white/60 leading-tight truncate max-w-full">
             {data.name.length > 12 ? data.name.split(' ')[0] : data.name}
           </span>
-          {/* Price - Largest */}
-          {data.price !== undefined && (
-            <span className="text-[15px] font-bold text-white leading-none mt-0.5 tabular-nums">
-              {data.price >= 1000 ? data.price.toLocaleString('en-US', { maximumFractionDigits: 0 })
-                : data.price >= 100 ? data.price.toFixed(1)
-                : data.price.toFixed(2)}
-            </span>
-          )}
-          {/* Percent Change - Smallest */}
-          {data.percentChange !== undefined && (
-            <span
-              className="text-[8px] font-semibold mt-0.5"
-              style={{ color: isPositive ? '#4ade80' : '#f87171' }}
-            >
-              {isPositive ? '▲' : '▼'}{Math.abs(data.percentChange).toFixed(1)}%
-            </span>
-          )}
+          {/* Price | % Change - Bottom row */}
+          <div className="flex items-baseline gap-1 mt-0.5">
+            {data.price !== undefined && (
+              <span className="text-[13px] font-bold text-white leading-none tabular-nums">
+                {data.price >= 1000 ? data.price.toLocaleString('en-US', { maximumFractionDigits: 0 })
+                  : data.price >= 100 ? data.price.toFixed(1)
+                  : data.price.toFixed(2)}
+              </span>
+            )}
+            {data.price !== undefined && data.percentChange !== undefined && (
+              <span className="text-[11px] text-white/30 font-light">|</span>
+            )}
+            {data.percentChange !== undefined && (
+              <span
+                className="text-[13px] font-bold leading-none tabular-nums"
+                style={{ color: isPositive ? '#4ade80' : '#f87171' }}
+              >
+                {isPositive ? '▲' : '▼'}{Math.abs(data.percentChange).toFixed(1)}%
+              </span>
+            )}
+          </div>
         </div>
       </button>
     );
