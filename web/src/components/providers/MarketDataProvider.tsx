@@ -4,9 +4,14 @@ import { createContext, useContext, useEffect, useMemo, useRef, useCallback, typ
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useMarketDataStore, type OHLCVBar, type QuoteData } from "@/lib/stores/market-data-store";
 import { useTradingStore } from "@/lib/stores/trading-store";
+import { usePrefetchBars } from "@/hooks/useBarData";
 
 // Default ticker symbols for the LED ticker
 const TICKER_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIX', 'NVDA', 'AAPL', 'TSLA', 'AMD', 'MSFT'];
+
+// Default symbols to prefetch for Market Watch (warms up React Query cache)
+const DEFAULT_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIXY', 'VTI'];
+const DEFAULT_CRYPTO = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'DOGE/USD', 'XRP/USD'];
 
 // Types for API responses
 type ApiBarData = {
@@ -166,13 +171,27 @@ export function MarketDataProvider({
     }
   }, [updateQuotes]);
 
-  // Fetch initial ticker quotes on mount
+  // Prefetch bar data for React Query cache
+  const { prefetch } = usePrefetchBars();
+  const prefetchDone = useRef(false);
+
+  // Fetch initial ticker quotes and prefetch bar data on mount
   useEffect(() => {
     if (!initialFetchDone.current) {
       initialFetchDone.current = true;
       fetchQuotes(TICKER_SYMBOLS);
     }
-  }, [fetchQuotes]);
+
+    // Prefetch historical bars for faster Market Watch loading
+    if (!prefetchDone.current) {
+      prefetchDone.current = true;
+      // Prefetch in background - don't block UI
+      Promise.all([
+        prefetch(DEFAULT_INDICES, '1d'),
+        prefetch(DEFAULT_CRYPTO, '1d'),
+      ]).catch(console.error);
+    }
+  }, [fetchQuotes, prefetch]);
 
   // Subscribe to active symbol when it changes
   useEffect(() => {

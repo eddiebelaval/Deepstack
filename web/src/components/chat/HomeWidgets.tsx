@@ -13,6 +13,7 @@ import { useUIStore } from '@/lib/stores/ui-store';
 import { usePositionsStore } from '@/lib/stores/positions-store';
 import { LazyMultiSeriesChart } from '@/components/lazy';
 import { type SeriesData } from '@/components/charts/MultiSeriesChart';
+import { useMultipleBarData, usePrefetchBars } from '@/hooks/useBarData';
 import { Loader2, ChevronRight, Plus, X, Pencil, RotateCcw, Settings, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BetsCarousel } from '@/components/prediction-markets';
@@ -287,81 +288,41 @@ export function HomeWidgets() {
         setVisibleSymbols(new Set(symbols));
     }, [symbols]);
 
-    // Fetch data
-    useEffect(() => {
-        const fetchData = async () => {
-            if (symbols.length === 0) {
-                setSeriesData([]);
-                return;
-            }
-
-            setIsLoading(true);
-            try {
-                const promises = symbols.map(async (symbol, index) => {
-                    // Map UI timeframe to API timeframe
-                    const timeframeMap: Record<string, string> = {
-                        '1H': '1h',
-                        '4H': '4h',
-                        '1D': '1d',
-                        '1W': '1w',
-                        '1MO': '1mo'
-                    };
-                    const apiTimeframe = timeframeMap[timeframe] || '1d';
-
-                    const response = await fetch(`/api/market/bars?symbol=${encodeURIComponent(symbol)}&timeframe=${apiTimeframe}&limit=100`);
-                    if (!response.ok) return null;
-
-                    const json = await response.json();
-                    // Handle standardized API response format: { success, data: { bars }, meta }
-                    const responseData = json.data || json;
-                    const bars = responseData.bars || [];
-
-                    if (bars.length === 0) {
-                        console.warn(`No bars data for ${symbol}`);
-                        return null;
-                    }
-
-                    return {
-                        series: {
-                            symbol,
-                            data: bars.map((d: any) => {
-                                // Handle both formats:
-                                // - ISO string (d.t like "2024-01-15T00:00:00Z")
-                                // - Unix timestamp in seconds (d.time like 1607403600)
-                                let timestamp: number;
-                                if (d.t && typeof d.t === 'string') {
-                                    timestamp = Math.floor(new Date(d.t).getTime() / 1000);
-                                } else {
-                                    // time is already Unix timestamp in seconds
-                                    timestamp = d.time;
-                                }
-                                return {
-                                    time: timestamp,
-                                    value: d.c ?? d.close ?? 0
-                                };
-                            }),
-                            color: SERIES_COLORS[index % SERIES_COLORS.length],
-                            visible: true
-                        },
-                        isMock: json.meta?.isMock || false
-                    };
-                });
-
-                const results = await Promise.all(promises);
-                const validResults = results.filter(Boolean);
-
-                setIsMockData(validResults.some(r => r?.isMock));
-                setSeriesData(validResults.map(r => r!.series));
-                setLastUpdated(new Date());
-            } catch (error) {
-                console.error("Failed to fetch chart data", error);
-            } finally {
-                setIsLoading(false);
-            }
+    // Map UI timeframe to API timeframe
+    const apiTimeframe = useMemo(() => {
+        const timeframeMap: Record<string, string> = {
+            '1H': '1h',
+            '4H': '4h',
+            '1D': '1d',
+            '1W': '1w',
+            '1MO': '1mo'
         };
+        return timeframeMap[timeframe] || '1d';
+    }, [timeframe]);
 
-        fetchData();
-    }, [symbols, timeframe]);
+    // Fetch data with React Query caching (5 min stale time, 30 min cache)
+    const {
+        seriesData: cachedSeriesData,
+        isLoading: isCacheLoading,
+        isMockData: isCacheMockData,
+    } = useMultipleBarData(symbols, apiTimeframe, SERIES_COLORS);
+
+    // Sync cached data to local state for visibility toggling
+    useEffect(() => {
+        if (cachedSeriesData.length > 0) {
+            setSeriesData(cachedSeriesData);
+            setLastUpdated(new Date());
+        }
+    }, [cachedSeriesData]);
+
+    // Sync loading and mock state
+    useEffect(() => {
+        setIsLoading(isCacheLoading);
+    }, [isCacheLoading]);
+
+    useEffect(() => {
+        setIsMockData(isCacheMockData);
+    }, [isCacheMockData]);
 
     // Calculate metrics for each series
     const seriesMetrics = useMemo(() => {
