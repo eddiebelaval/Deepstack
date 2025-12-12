@@ -158,9 +158,69 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
   e2e-tests:
-    name: E2E Tests
+    name: E2E Tests (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: [build]
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run E2E tests (Shard ${{ matrix.shard }}/4)
+        run: npx playwright test --shard=${{ matrix.shard }}/4 --reporter=blob
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          CI: true
+
+      - name: Upload blob report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 7
+
+      - name: Upload trace files on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces-shard-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 7
+
+  merge-e2e-reports:
+    name: Merge E2E Reports
+    runs-on: ubuntu-latest
+    needs: [e2e-tests]
+    if: always()
 
     steps:
       - name: Checkout repository
@@ -176,19 +236,109 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Download blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
 
-      - name: Run E2E tests
-        run: npx playwright test
+      - name: Merge reports
+        run: npx playwright merge-reports --reporter=html,github ./all-blob-reports
+
+      - name: Upload merged HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Test Summary
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          E2E_RESULT: ${{ needs.e2e-tests.result }}
+        with:
+          script: |
+            const e2eResult = process.env.E2E_RESULT;
+            let summary = '## E2E Test Results\n\n';
+
+            if (e2eResult === 'success') {
+              summary += '### Status: All shards passed\n\n';
+            } else {
+              summary += '### Status: Some shards failed\n\n';
+            }
+
+            summary += '| Shard | Status |\n';
+            summary += '|-------|--------|\n';
+            summary += `| 1/4 | ${e2eResult} |\n`;
+            summary += `| 2/4 | ${e2eResult} |\n`;
+            summary += `| 3/4 | ${e2eResult} |\n`;
+            summary += `| 4/4 | ${e2eResult} |\n`;
+
+            summary += '\n**Artifacts:**\n';
+            summary += '- Download the playwright-report artifact for detailed HTML report\n';
+
+            await core.summary
+              .addRaw(summary)
+              .write();
+
+  cross-browser-tests:
+    name: Cross-Browser Tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-${{ matrix.browser }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser (${{ matrix.browser }})
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run E2E tests on ${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.browser }} --retries=2
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          CI: true
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
+          name: cross-browser-report-${{ matrix.browser }}
           path: playwright-report/
+          retention-days: 7
+
+      - name: Upload trace files on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cross-browser-traces-${{ matrix.browser }}
+          path: test-results/
           retention-days: 7
