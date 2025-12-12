@@ -37,11 +37,11 @@ export function setup() {
 export default function () {
   // Test each critical endpoint once
   const criticalEndpoints = [
-    { name: 'quotes', ...endpoints.market.quotes },
-    { name: 'bars', ...endpoints.market.bars },
-    { name: 'journal', ...endpoints.trading.journalGet },
-    { name: 'predictions', ...endpoints.predictions.list },
-    { name: 'news', ...endpoints.utility.news },
+    Object.assign({ name: 'quotes' }, endpoints.market.quotes),
+    Object.assign({ name: 'bars' }, endpoints.market.bars),
+    Object.assign({ name: 'journal' }, endpoints.trading.journalGet),
+    Object.assign({ name: 'predictions' }, endpoints.predictions.list),
+    Object.assign({ name: 'news' }, endpoints.utility.news),
   ];
 
   for (const endpoint of criticalEndpoints) {

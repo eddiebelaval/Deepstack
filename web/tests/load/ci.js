@@ -71,7 +71,7 @@ function testQuotes() {
       try {
         const body = JSON.parse(r.body);
         return body && (Array.isArray(body) || typeof body === 'object');
-      } catch {
+      } catch (e) {
         return false;
       }
     },
@@ -97,7 +97,7 @@ function testBars() {
       try {
         const body = JSON.parse(r.body);
         return body && (Array.isArray(body.bars) || Array.isArray(body));
-      } catch {
+      } catch (e) {
         return false;
       }
     },
@@ -132,7 +132,7 @@ function testPredictions() {
       try {
         const body = JSON.parse(r.body);
         return body && (Array.isArray(body.markets) || Array.isArray(body));
-      } catch {
+      } catch (e) {
         return false;
       }
     },

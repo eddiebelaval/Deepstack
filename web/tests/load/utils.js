@@ -19,12 +19,14 @@ export const requestsPerEndpoint = new Counter('requests_per_endpoint');
  */
 export function makeRequest(endpoint, options = {}) {
   const url = buildUrl(endpoint.url, endpoint.params);
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    ...(config.authToken && { 'Authorization': `Bearer ${config.authToken}` }),
-    ...options.headers,
-  };
+  const headers = Object.assign(
+    {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    config.authToken ? { 'Authorization': 'Bearer ' + config.authToken } : {},
+    options.headers || {}
+  );
 
   const params = {
     headers,
@@ -75,13 +77,20 @@ export function makeRequest(endpoint, options = {}) {
  * Build URL with query parameters
  */
 export function buildUrl(path, params = {}) {
-  const url = new URL(path, config.baseUrl);
+  let url = config.baseUrl + path;
 
-  for (const [key, value] of Object.entries(params)) {
-    url.searchParams.append(key, value);
+  const queryParts = [];
+  for (const key in params) {
+    if (params.hasOwnProperty(key)) {
+      queryParts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
+    }
   }
 
-  return url.toString();
+  if (queryParts.length > 0) {
+    url += '?' + queryParts.join('&');
+  }
+
+  return url;
 }
 
 /**
@@ -112,7 +121,7 @@ export function checkResponse(response, endpoint = {}) {
       try {
         const body = JSON.parse(r.body);
         return endpoint.validateBody(body);
-      } catch {
+      } catch (e) {
         return false;
       }
     };

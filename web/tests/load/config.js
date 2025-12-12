@@ -179,7 +179,7 @@ export function getWeightedEndpoint() {
   for (const category of Object.values(endpoints)) {
     for (const [name, endpoint] of Object.entries(category)) {
       for (let i = 0; i < endpoint.weight; i++) {
-        allEndpoints.push({ name, ...endpoint });
+        allEndpoints.push(Object.assign({ name: name }, endpoint));
       }
     }
   }
