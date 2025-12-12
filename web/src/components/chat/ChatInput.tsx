@@ -109,8 +109,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [isMobile]);
 
   return (
-    <div ref={containerRef} className={cn("glass-input relative", isMobile ? "p-3" : "p-4 pt-5")}>
-      {/* Manila Folder Tab for Persona Selection */}
+    <div ref={containerRef} className={cn(
+      "glass-input relative",
+      isMobile ? "p-3" : "p-4",
+      // When tab is shown, add special class for seamless border integration
+      !isMobile && "pt-8 glass-input-with-tab"
+    )}>
+      {/* Glass Tab for Persona Selection - seamlessly integrated */}
       {!isMobile && <PersonaFolderTab disabled={isStreaming} />}
 
       <div className={cn("flex items-end", isMobile ? "gap-2" : "gap-3")}>

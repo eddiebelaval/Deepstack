@@ -199,192 +199,65 @@ body:has(.landing-page) > div > div > div {
 }
 
 /* ========================================
-   Manila Folder System
-   Authentic paper folder aesthetic
+   Integrated Glass Tab System
+   Tab seamlessly merges with glass-input
    ======================================== */
 
-/* Manila color palette - authentic folder colors */
-:root {
-  --manila-cream: oklch(0.95 0.04 75);
-  --manila-light: oklch(0.88 0.08 70);
-  --manila-base: oklch(0.82 0.10 68);
-  --manila-shadow: oklch(0.65 0.12 60 / 0.15);
-  --manila-edge: oklch(0.75 0.10 65);
+/* Glass tab - matches glass-input material exactly */
+.glass-tab {
+  background: oklch(0.22 0.01 55 / 85%);
+  backdrop-filter: blur(12px);
+  /* Only top and side borders - no bottom for seamless merge */
+  border: 1px solid oklch(0.35 0.01 55 / 50%);
+  border-bottom: none;
+  border-radius: 0.75rem 0.75rem 0 0;
 }
 
-.dark {
-  /* Warm amber manila for dark mode - still visible! */
-  --manila-cream: oklch(0.58 0.12 65);
-  --manila-light: oklch(0.50 0.14 62);
-  --manila-base: oklch(0.44 0.12 60);
-  --manila-shadow: oklch(0.25 0.06 55 / 0.5);
-  --manila-edge: oklch(0.48 0.10 62);
+/* Glass tab hover state */
+.glass-tab:hover:not(:disabled) {
+  background: oklch(0.25 0.01 55 / 90%);
+  border-color: oklch(0.40 0.02 55 / 60%);
 }
 
-/* Manila folder tab gradient background */
-.manila-tab-gradient {
-  background: linear-gradient(
-    to bottom,
-    var(--manila-cream),
-    var(--manila-light),
-    var(--manila-base)
-  );
+/* Glass tab when panel is open */
+.glass-tab[data-state="open"] {
+  background: oklch(0.24 0.012 55 / 90%);
+  border-color: oklch(0.70 0.18 55 / 40%);
 }
 
-/* Manila panel dropdown background */
-.manila-panel-bg {
-  background: linear-gradient(
-    to top,
-    oklch(0.95 0.04 75 / 0.98),
-    oklch(1 0 0 / 0.98),
-    oklch(1 0 0 / 0.98)
-  );
+/* Glass panel dropdown - for persona selector */
+.glass-panel {
+  background: oklch(0.18 0.01 55 / 95%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid oklch(0.35 0.01 55 / 50%);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 8px 32px oklch(0 0 0 / 25%),
+    0 2px 8px oklch(0 0 0 / 15%),
+    inset 0 1px 0 oklch(1 0 0 / 5%);
 }
 
-.dark .manila-panel-bg {
-  background: linear-gradient(
-    to top,
-    oklch(0.35 0.08 60 / 0.98),
-    oklch(0.18 0.01 55 / 0.98),
-    oklch(0.18 0.01 55 / 0.98)
-  );
+/* Glass panel header */
+.glass-panel-header {
+  border-bottom: 1px solid oklch(0.30 0.01 55 / 40%);
 }
 
-/* Manila panel header */
-.manila-panel-header {
-  background: linear-gradient(
-    to bottom,
-    oklch(0.95 0.04 75 / 0.3),
-    transparent
-  );
-  border-bottom: 1px solid oklch(0.75 0.10 65 / 0.2);
-}
-
-.dark .manila-panel-header {
-  background: linear-gradient(
-    to bottom,
-    oklch(0.58 0.12 65 / 0.15),
-    transparent
-  );
-  border-bottom: 1px solid oklch(0.48 0.10 62 / 0.15);
-}
-
-/* Paper texture overlay */
-.manila-paper-texture {
-  background-image:
-    /* Paper grain horizontal */
-    repeating-linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.015) 0px,
-      transparent 1px,
-      transparent 2px
-    ),
-    /* Paper grain vertical */
-    repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.015) 0px,
-      transparent 1px,
-      transparent 2px
-    );
-}
-
-.dark .manila-paper-texture {
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.02) 0px,
-      transparent 1px,
-      transparent 2px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.02) 0px,
-      transparent 1px,
-      transparent 2px
-    );
-}
-
-/* Multi-layer folder depth effect */
-.manila-folder-layers {
+/* Container with tab cutout - removes top-left corner where tab sits */
+.glass-input-with-tab {
+  border-top-left-radius: 0 !important;
+  /* Pseudo-element creates seamless border transition */
   position: relative;
 }
 
-.manila-folder-layers::before,
-.manila-folder-layers::after {
+/* Bridge pseudo-element covers the gap between tab and container */
+.glass-input-with-tab::before {
   content: '';
   position: absolute;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-/* Back layer - deepest */
-.manila-folder-layers::before {
-  inset: -3px 3px -8px -3px;
-  background: linear-gradient(to bottom,
-    var(--manila-shadow),
-    oklch(0 0 0 / 0.05)
-  );
-  border-radius: 16px 16px 0 0;
-  z-index: -2;
-  filter: blur(1px);
-}
-
-/* Middle layer */
-.manila-folder-layers::after {
-  inset: -1.5px 1.5px -4px -1.5px;
-  background: linear-gradient(to bottom,
-    var(--manila-light),
-    var(--manila-edge)
-  );
-  border-radius: 15px 15px 0 0;
-  z-index: -1;
-}
-
-/* Folder tab edge shadow */
-.manila-edge-shadow {
-  box-shadow:
-    /* Inner highlight */
-    inset 0 1px 0 oklch(1 0 0 / 0.2),
-    /* Fold shadow */
-    0 -2px 8px oklch(0.60 0.10 60 / 0.12),
-    /* Bottom connection */
-    0 2px 4px oklch(0 0 0 / 0.08),
-    /* Ambient shadow */
-    0 4px 16px oklch(0 0 0 / 0.06);
-}
-
-.dark .manila-edge-shadow {
-  box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.08),
-    0 -2px 10px oklch(0 0 0 / 0.3),
-    0 2px 6px oklch(0 0 0 / 0.2),
-    0 6px 20px oklch(0 0 0 / 0.25);
-}
-
-/* Folder crease line (top of panel) */
-.manila-crease {
-  border-top: 2px solid oklch(0.75 0.08 68 / 0.5);
-}
-
-.dark .manila-crease {
-  border-top: 2px solid oklch(0.35 0.08 62 / 0.4);
-}
-
-/* Bookmark indicator for active items */
-.manila-bookmark::before {
-  content: '';
-  position: absolute;
+  top: -1px;
   left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 60%;
-  background: linear-gradient(to bottom,
-    oklch(0.70 0.18 55),
-    oklch(0.60 0.15 50)
-  );
-  border-radius: 0 4px 4px 0;
-  box-shadow: 2px 0 8px oklch(0.70 0.18 55 / 0.3);
+  width: 1px;
+  height: 8px;
+  background: oklch(0.35 0.01 55 / 50%);
 }
 
 /* Claude-style conversation container */
