@@ -198,6 +198,146 @@ body:has(.landing-page) > div > div > div {
   box-shadow: 0 0 0 3px oklch(0.70 0.18 55 / 12%);
 }
 
+/* ========================================
+   Manila Folder System
+   Authentic paper folder aesthetic
+   ======================================== */
+
+/* Manila color palette - authentic folder colors */
+:root {
+  --manila-cream: oklch(0.95 0.04 75);
+  --manila-light: oklch(0.88 0.08 70);
+  --manila-base: oklch(0.82 0.10 68);
+  --manila-shadow: oklch(0.65 0.12 60 / 0.15);
+  --manila-edge: oklch(0.75 0.10 65);
+}
+
+.dark {
+  --manila-cream: oklch(0.35 0.08 65);
+  --manila-light: oklch(0.28 0.10 62);
+  --manila-base: oklch(0.22 0.08 60);
+  --manila-shadow: oklch(0.08 0.02 55 / 0.4);
+  --manila-edge: oklch(0.30 0.08 62);
+}
+
+/* Paper texture overlay */
+.manila-paper-texture {
+  background-image:
+    /* Paper grain horizontal */
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.015) 0px,
+      transparent 1px,
+      transparent 2px
+    ),
+    /* Paper grain vertical */
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.015) 0px,
+      transparent 1px,
+      transparent 2px
+    );
+}
+
+.dark .manila-paper-texture {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      transparent 1px,
+      transparent 2px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      transparent 1px,
+      transparent 2px
+    );
+}
+
+/* Multi-layer folder depth effect */
+.manila-folder-layers {
+  position: relative;
+}
+
+.manila-folder-layers::before,
+.manila-folder-layers::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Back layer - deepest */
+.manila-folder-layers::before {
+  inset: -3px 3px -8px -3px;
+  background: linear-gradient(to bottom,
+    var(--manila-shadow),
+    oklch(0 0 0 / 0.05)
+  );
+  border-radius: 16px 16px 0 0;
+  z-index: -2;
+  filter: blur(1px);
+}
+
+/* Middle layer */
+.manila-folder-layers::after {
+  inset: -1.5px 1.5px -4px -1.5px;
+  background: linear-gradient(to bottom,
+    var(--manila-light),
+    var(--manila-edge)
+  );
+  border-radius: 15px 15px 0 0;
+  z-index: -1;
+}
+
+/* Folder tab edge shadow */
+.manila-edge-shadow {
+  box-shadow:
+    /* Inner highlight */
+    inset 0 1px 0 oklch(1 0 0 / 0.2),
+    /* Fold shadow */
+    0 -2px 8px oklch(0.60 0.10 60 / 0.12),
+    /* Bottom connection */
+    0 2px 4px oklch(0 0 0 / 0.08),
+    /* Ambient shadow */
+    0 4px 16px oklch(0 0 0 / 0.06);
+}
+
+.dark .manila-edge-shadow {
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.08),
+    0 -2px 10px oklch(0 0 0 / 0.3),
+    0 2px 6px oklch(0 0 0 / 0.2),
+    0 6px 20px oklch(0 0 0 / 0.25);
+}
+
+/* Folder crease line (top of panel) */
+.manila-crease {
+  border-top: 2px solid oklch(0.75 0.08 68 / 0.5);
+}
+
+.dark .manila-crease {
+  border-top: 2px solid oklch(0.35 0.08 62 / 0.4);
+}
+
+/* Bookmark indicator for active items */
+.manila-bookmark::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: linear-gradient(to bottom,
+    oklch(0.70 0.18 55),
+    oklch(0.60 0.15 50)
+  );
+  border-radius: 0 4px 4px 0;
+  box-shadow: 2px 0 8px oklch(0.70 0.18 55 / 0.3);
+}
+
 /* Claude-style conversation container */
 .conversation-container {
   background: oklch(0.15 0.008 55 / 95%);
