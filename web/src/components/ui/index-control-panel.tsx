@@ -5,13 +5,22 @@ import { cn } from '@/lib/utils';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INDEX CONTROL PANEL
+// ASSET CONTROL PANEL (formerly INDEX CONTROL PANEL)
 // A unified, premium trading terminal component combining wheel selector + grid
 // Design: Luxury glass morphism with amber/gold accents
+// Now generic - works with any asset type (indices, crypto, watchlist, custom)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Asset item interface for wheel selector
+export interface AssetItem {
+  symbol: string;
+  name: string;
+  shortName: string;
+  description: string;
+}
+
 // Available market indices
-export const AVAILABLE_INDICES = [
+export const AVAILABLE_INDICES: AssetItem[] = [
   { symbol: 'SPY', name: 'S&P 500', shortName: 'S&P', description: 'US Large Cap' },
   { symbol: 'QQQ', name: 'NASDAQ 100', shortName: 'NDX', description: 'US Tech' },
   { symbol: 'DIA', name: 'Dow Jones', shortName: 'DOW', description: 'US Blue Chip' },
@@ -28,6 +37,24 @@ export const AVAILABLE_INDICES = [
   { symbol: 'XLV', name: 'Healthcare', shortName: 'XLV', description: 'Healthcare' },
 ];
 
+// Available cryptocurrencies
+export const AVAILABLE_CRYPTO: AssetItem[] = [
+  { symbol: 'BTC/USD', name: 'Bitcoin', shortName: 'BTC', description: 'Digital Gold' },
+  { symbol: 'ETH/USD', name: 'Ethereum', shortName: 'ETH', description: 'Smart Contracts' },
+  { symbol: 'SOL/USD', name: 'Solana', shortName: 'SOL', description: 'High Performance' },
+  { symbol: 'DOGE/USD', name: 'Dogecoin', shortName: 'DOGE', description: 'Meme Coin' },
+  { symbol: 'AVAX/USD', name: 'Avalanche', shortName: 'AVAX', description: 'DeFi Platform' },
+  { symbol: 'DOT/USD', name: 'Polkadot', shortName: 'DOT', description: 'Interoperability' },
+  { symbol: 'LINK/USD', name: 'Chainlink', shortName: 'LINK', description: 'Oracle Network' },
+  { symbol: 'MATIC/USD', name: 'Polygon', shortName: 'MATIC', description: 'L2 Scaling' },
+  { symbol: 'UNI/USD', name: 'Uniswap', shortName: 'UNI', description: 'DEX Protocol' },
+  { symbol: 'AAVE/USD', name: 'Aave', shortName: 'AAVE', description: 'DeFi Lending' },
+  { symbol: 'XRP/USD', name: 'Ripple', shortName: 'XRP', description: 'Payments' },
+  { symbol: 'ADA/USD', name: 'Cardano', shortName: 'ADA', description: 'Proof of Stake' },
+  { symbol: 'LTC/USD', name: 'Litecoin', shortName: 'LTC', description: 'Silver to BTC' },
+  { symbol: 'SHIB/USD', name: 'Shiba Inu', shortName: 'SHIB', description: 'Meme Token' },
+];
+
 interface IndexData {
   symbol: string;
   name: string;
@@ -36,11 +63,13 @@ interface IndexData {
   color?: string;
 }
 
-interface IndexControlPanelProps {
-  /** Currently selected index symbols */
+interface AssetControlPanelProps {
+  /** Available assets to show in the wheel selector */
+  availableAssets: AssetItem[];
+  /** Currently selected asset symbols */
   selectedSymbols: string[];
-  /** Active indices with price data */
-  activeIndices: IndexData[];
+  /** Active assets with price data */
+  activeAssets: IndexData[];
   /** Map of symbol to chart line color */
   symbolColors: Record<string, string>;
   /** Called to add a symbol */
@@ -52,57 +81,73 @@ interface IndexControlPanelProps {
   className?: string;
 }
 
+// Backwards compatible alias
+type IndexControlPanelProps = Omit<AssetControlPanelProps, 'availableAssets' | 'activeAssets'> & {
+  availableAssets?: AssetItem[];
+  activeIndices?: IndexData[];
+  activeAssets?: IndexData[];
+};
+
 export function IndexControlPanel({
+  availableAssets = AVAILABLE_INDICES,
   selectedSymbols,
   activeIndices,
+  activeAssets,
   symbolColors,
   onAdd,
   onRemove,
   maxSymbols = 12,
   className
 }: IndexControlPanelProps) {
+  // Use activeAssets if provided, fall back to activeIndices for backwards compatibility
+  const assets = activeAssets || activeIndices || [];
+
   const [currentWheelIndex, setCurrentWheelIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
 
-  // Fire add when navigating to unselected index
+  // Fire add when navigating to unselected asset
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
-    const symbol = AVAILABLE_INDICES[currentWheelIndex].symbol;
+    if (availableAssets.length === 0) return;
+    const symbol = availableAssets[currentWheelIndex].symbol;
     if (!selectedSymbols.includes(symbol) && selectedSymbols.length < maxSymbols) {
       onAdd(symbol);
     }
-  }, [currentWheelIndex, selectedSymbols, maxSymbols, onAdd]);
+  }, [currentWheelIndex, selectedSymbols, maxSymbols, onAdd, availableAssets]);
 
   // Get visible wheel items
   const wheelItems = useMemo(() => {
-    const total = AVAILABLE_INDICES.length;
+    if (availableAssets.length === 0) {
+      return { prev: null, current: null, next: null };
+    }
+    const total = availableAssets.length;
     const prev = (currentWheelIndex - 1 + total) % total;
     const next = (currentWheelIndex + 1) % total;
     return {
-      prev: AVAILABLE_INDICES[prev],
-      current: AVAILABLE_INDICES[currentWheelIndex],
-      next: AVAILABLE_INDICES[next],
+      prev: availableAssets[prev],
+      current: availableAssets[currentWheelIndex],
+      next: availableAssets[next],
     };
-  }, [currentWheelIndex]);
+  }, [currentWheelIndex, availableAssets]);
 
   const scrollUp = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimating || availableAssets.length === 0) return;
     setIsAnimating(true);
-    setCurrentWheelIndex(prev => (prev - 1 + AVAILABLE_INDICES.length) % AVAILABLE_INDICES.length);
+    setCurrentWheelIndex(prev => (prev - 1 + availableAssets.length) % availableAssets.length);
     setTimeout(() => setIsAnimating(false), 180);
-  }, [isAnimating]);
+  }, [isAnimating, availableAssets.length]);
 
   const scrollDown = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimating || availableAssets.length === 0) return;
     setIsAnimating(true);
-    setCurrentWheelIndex(prev => (prev + 1) % AVAILABLE_INDICES.length);
+    setCurrentWheelIndex(prev => (prev + 1) % availableAssets.length);
     setTimeout(() => setIsAnimating(false), 180);
-  }, [isAnimating]);
+  }, [isAnimating, availableAssets.length]);
 
   // Mouse wheel handling
   useEffect(() => {
@@ -116,17 +161,31 @@ export function IndexControlPanel({
     return () => el.removeEventListener('wheel', handler);
   }, [scrollUp, scrollDown]);
 
-  const currentColor = symbolColors[wheelItems.current.symbol] || '#f59e0b';
-  const isCurrentSelected = selectedSymbols.includes(wheelItems.current.symbol);
+  const currentColor = wheelItems.current ? (symbolColors[wheelItems.current.symbol] || '#f59e0b') : '#f59e0b';
+  const isCurrentSelected = wheelItems.current ? selectedSymbols.includes(wheelItems.current.symbol) : false;
 
-  // Build grid slots (12 slots, filled with active indices)
+  // Build grid slots (12 slots, filled with active assets)
   const gridSlots = useMemo(() => {
     const slots: (IndexData | null)[] = [];
     for (let i = 0; i < 12; i++) {
-      slots.push(activeIndices[i] || null);
+      slots.push(assets[i] || null);
     }
     return slots;
-  }, [activeIndices]);
+  }, [assets]);
+
+  // Early return for empty state
+  if (availableAssets.length === 0 || !wheelItems.current) {
+    return (
+      <div className={cn("relative", className)}>
+        <div className="relative flex items-center rounded-xl overflow-hidden">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-xl" />
+          <div className="relative z-10 p-6 text-center text-white/50 text-sm">
+            No assets available
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative", className)}>
@@ -258,7 +317,7 @@ export function IndexControlPanel({
 
             {/* Counter */}
             <div className="relative z-10 text-[8px] text-white/20 font-medium tracking-wider">
-              {currentWheelIndex + 1}/{AVAILABLE_INDICES.length}
+              {currentWheelIndex + 1}/{availableAssets.length}
             </div>
           </div>
         </div>

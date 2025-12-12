@@ -20,7 +20,7 @@ import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagem
 import { SymbolSearchDialog } from '@/components/trading/SymbolSearchDialog';
 import { PositionsPanel } from '@/components/trading/PositionsPanel';
 import { PositionEntryForm } from '@/components/trading/PositionEntryForm';
-import { IndexControlPanel, AVAILABLE_INDICES } from '@/components/ui/index-control-panel';
+import { IndexControlPanel, AVAILABLE_INDICES, AVAILABLE_CRYPTO, type AssetItem } from '@/components/ui/index-control-panel';
 
 // deepstack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
@@ -36,6 +36,16 @@ const SERIES_COLORS = [
 ];
 
 const TIMEFRAMES = ['1H', '4H', '1D', '1W', '1MO'];
+
+// Helper to create AssetItem from symbol for dynamic lists (watchlist, custom)
+function createAssetItem(symbol: string): AssetItem {
+  return {
+    symbol,
+    name: getSymbolDisplayName(symbol),
+    shortName: symbol.split('/')[0].slice(0, 5), // First 5 chars of base symbol
+    description: 'Custom'
+  };
+}
 
 // Glass Asset Card Component - Color-coded edge glow effect
 // Creates optical projection by placing colored element behind frosted glass button
@@ -685,29 +695,72 @@ export function HomeWidgets() {
                     </div>
                 )}
 
-                {/* Glass Asset Cards for other tabs (Crypto, Watchlist, Custom) */}
-                {activeTab !== 'predictions' && activeTab !== 'positions' && activeTab !== 'market' && (
-                    <div className="mt-2 pt-2 border-t border-border/30">
-                        <div className="flex gap-3 items-center pb-3">
-                            {/* Asset cards - centered */}
-                            <div className="flex gap-3 justify-center flex-wrap flex-1">
-                                {seriesMetrics.map((metric) => metric && (
-                                    <GlassAssetCard
-                                        key={metric.symbol}
-                                        symbol={metric.symbol}
-                                        displayName={metric.displayName}
-                                        price={metric.price}
-                                        percentChange={metric.percentChange}
-                                        color={metric.color}
-                                        isVisible={visibleSymbols.has(metric.symbol)}
-                                        onClick={() => toggleSymbol(metric.symbol)}
-                                        onRemove={(isEditMode && canEdit) ? () => handleRemoveSymbol(metric.symbol) : undefined}
-                                        isCrypto={isCrypto}
-                                        showRemoveAlways={isEditMode}
-                                    />
-                                ))}
-                            </div>
-                        </div>
+                {/* Unified Asset Control Panel for Crypto tab */}
+                {activeTab === 'crypto' && (
+                    <div className="mt-2 pt-2 border-t border-border/30 pb-2">
+                        <IndexControlPanel
+                            availableAssets={AVAILABLE_CRYPTO}
+                            selectedSymbols={crypto}
+                            activeAssets={seriesMetrics
+                                .filter((m): m is NonNullable<typeof m> => m !== null)
+                                .map(m => ({
+                                    symbol: m.symbol,
+                                    name: m.displayName,
+                                    price: m.price,
+                                    percentChange: m.percentChange,
+                                    color: m.color
+                                }))}
+                            symbolColors={symbolColors}
+                            onAdd={(symbol) => addSymbol('crypto', symbol)}
+                            onRemove={(symbol) => removeSymbol('crypto', symbol)}
+                            maxSymbols={12}
+                        />
+                    </div>
+                )}
+
+                {/* Unified Asset Control Panel for Watchlist tab */}
+                {activeTab === 'watchlist' && activeWatchlist && (
+                    <div className="mt-2 pt-2 border-t border-border/30 pb-2">
+                        <IndexControlPanel
+                            availableAssets={activeWatchlist.items.map(item => createAssetItem(item.symbol))}
+                            selectedSymbols={activeWatchlist.items.map(i => i.symbol)}
+                            activeAssets={seriesMetrics
+                                .filter((m): m is NonNullable<typeof m> => m !== null)
+                                .map(m => ({
+                                    symbol: m.symbol,
+                                    name: m.displayName,
+                                    price: m.price,
+                                    percentChange: m.percentChange,
+                                    color: m.color
+                                }))}
+                            symbolColors={symbolColors}
+                            onAdd={() => setShowSymbolSearch(true)}
+                            onRemove={(symbol) => removeWatchlistSymbol(activeWatchlistId!, symbol)}
+                            maxSymbols={12}
+                        />
+                    </div>
+                )}
+
+                {/* Unified Asset Control Panel for Custom tab */}
+                {activeTab === 'custom' && (
+                    <div className="mt-2 pt-2 border-t border-border/30 pb-2">
+                        <IndexControlPanel
+                            availableAssets={custom.map(symbol => createAssetItem(symbol))}
+                            selectedSymbols={custom}
+                            activeAssets={seriesMetrics
+                                .filter((m): m is NonNullable<typeof m> => m !== null)
+                                .map(m => ({
+                                    symbol: m.symbol,
+                                    name: m.displayName,
+                                    price: m.price,
+                                    percentChange: m.percentChange,
+                                    color: m.color
+                                }))}
+                            symbolColors={symbolColors}
+                            onAdd={(symbol) => addSymbol('custom', symbol)}
+                            onRemove={(symbol) => removeSymbol('custom', symbol)}
+                            maxSymbols={12}
+                        />
                     </div>
                 )}
 
