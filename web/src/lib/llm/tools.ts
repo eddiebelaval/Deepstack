@@ -580,6 +580,76 @@ export const tradingTools = {
     },
   }),
 
+  search_knowledge: tool({
+    description: 'Search the user\'s personal trading knowledge base including journals, theses, past conversations, and trading patterns for relevant information. Use this to recall past trades, lessons learned, investment hypotheses, or behavioral patterns.',
+    inputSchema: z.object({
+      query: z.string().describe('Search query to find relevant knowledge. Be specific about what you\'re looking for.'),
+      sourceTypes: z.array(z.enum(['journal_entry', 'thesis', 'message', 'pattern_insight']))
+        .optional()
+        .describe('Filter by source types. Options: journal_entry (trade logs), thesis (investment hypotheses), message (past conversations), pattern_insight (trading patterns)'),
+      symbol: z.string().optional().describe('Filter results to a specific trading symbol (e.g., AAPL, TSLA)'),
+      limit: z.number().min(1).max(20).optional().default(5).describe('Maximum number of results to return'),
+    }),
+    execute: async ({ query, sourceTypes, symbol, limit }) => {
+      const baseUrl = getBaseUrl();
+      try {
+        const response = await fetch(`${baseUrl}/api/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query,
+            mode: 'hybrid',
+            sourceTypes,
+            symbol,
+            limit: limit || 5,
+            threshold: 0.6,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.results.length === 0) {
+            return {
+              success: true,
+              action: 'search_results',
+              results: [],
+              message: 'No relevant entries found in your knowledge base for this query.',
+            };
+          }
+
+          // Format results for display
+          const formattedResults = data.results.map((r: any, i: number) => ({
+            rank: i + 1,
+            type: r.sourceType.replace('_', ' '),
+            symbol: r.symbol || 'N/A',
+            content: r.contentText.slice(0, 300) + (r.contentText.length > 300 ? '...' : ''),
+            similarity: Math.round(r.similarity * 100) + '%',
+          }));
+
+          return {
+            success: true,
+            action: 'search_results',
+            results: formattedResults,
+            message: `Found ${data.count} relevant entries in your knowledge base.`,
+          };
+        }
+
+        return {
+          success: false,
+          error: 'Failed to search knowledge base',
+          message: 'Search temporarily unavailable. Please try again.',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: 'Knowledge search unavailable',
+          message: 'Could not connect to knowledge base. The search feature may be offline.',
+        };
+      }
+    },
+  }),
+
   // UI Panel Control Tools
   show_chart: tool({
     description: 'Display the chart panel for a specific stock symbol. Use when user wants to see a chart or you want to show them price action.',

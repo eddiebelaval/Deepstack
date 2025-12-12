@@ -7,6 +7,7 @@ import { useUIStore } from '@/lib/stores/ui-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { useThesisStore } from '@/lib/stores/thesis-store';
 import { useJournalStore } from '@/lib/stores/journal-store';
+import { usePersonaStore } from '@/lib/stores/persona-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useUser } from '@/hooks/useUser';
@@ -57,6 +58,7 @@ export function ConversationView() {
     const { activeSymbol, setActiveSymbol } = useTradingStore();
     const { theses: thesisEntries } = useThesisStore();
     const { entries: journalEntries } = useJournalStore();
+    const { activePersonaId } = usePersonaStore();
     const { isMobile } = useIsMobile();
     const { requireAuth } = useRequireAuth();
     const [messages, setMessages] = useState<SimpleMessage[]>([]);
@@ -243,6 +245,7 @@ export function ConversationView() {
                     provider: activeProvider,
                     context,
                     useExtendedThinking,
+                    personaId: activePersonaId,
                 }),
             });
 
@@ -346,7 +349,7 @@ export function ConversationView() {
             setIsLoading(false);
             setIsStreaming(false);
         }
-    }, [messages, activeProvider, activeSymbol, activeContent, thesisEntries, journalEntries, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult, requireAuth, canChat, tier, detectIntent, useExtendedThinking]);
+    }, [messages, activeProvider, activeSymbol, activeContent, thesisEntries, journalEntries, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult, requireAuth, canChat, tier, detectIntent, useExtendedThinking, activePersonaId]);
 
     const hasMessages = messages.length > 0;
     const hasActiveContent = activeContent !== 'none';

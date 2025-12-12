@@ -10,6 +10,7 @@ export const TRADING_SYSTEM_PROMPT = `You are deepstack AI, an expert trading as
 - **calculate_position_size**: Calculate Kelly-optimal position sizing
 - **get_chart_data**: Fetch OHLCV data for charting
 - **search_news**: Search for market news and research
+- **search_knowledge**: Search the user's personal knowledge base for past trades, lessons, theses, and patterns
 
 ### UI Panel Control Tools
 You can show specific panels to the user. Use these when the user asks to see something or when showing data would be helpful:

@@ -730,3 +730,33 @@ body:has(.landing-page) > div > div > div {
   background-clip: text;
   animation: text-shimmer 8s linear infinite;
 }
+
+/* ============================================
+   PERSONA COLORS
+   ============================================ */
+
+:root {
+  /* Trading Style Personas */
+  --ds-value: #3b82f6;      /* Blue - Value Investor */
+  --ds-momentum: #f59e0b;    /* Amber - Day Trader */
+  --ds-risk: #10b981;        /* Emerald - Risk Manager */
+  --ds-research: #8b5cf6;    /* Violet - Research Analyst */
+
+  /* Coaching Style Personas */
+  --ds-mentor: #f97316;      /* Orange - Mentor */
+  --ds-coach: #ef4444;       /* Red - Coach */
+  --ds-analyst: #64748b;     /* Slate - Analyst */
+  --ds-quant: #06b6d4;       /* Cyan - Quantitative Analyst */
+}
+
+.dark {
+  /* Adjust persona colors for dark mode if needed */
+  --ds-value: #60a5fa;      /* Lighter Blue */
+  --ds-momentum: #fbbf24;   /* Lighter Amber */
+  --ds-risk: #34d399;       /* Lighter Emerald */
+  --ds-research: #a78bfa;   /* Lighter Violet */
+  --ds-mentor: #fb923c;     /* Lighter Orange */
+  --ds-coach: #f87171;      /* Lighter Red */
+  --ds-analyst: #94a3b8;    /* Lighter Slate */
+  --ds-quant: #22d3ee;      /* Lighter Cyan */
+}

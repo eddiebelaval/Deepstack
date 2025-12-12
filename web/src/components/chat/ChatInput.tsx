@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Send, Loader2, Brain, LogIn } from 'lucide-react';
 import { ProviderSelector } from './ProviderSelector';
+import { ActivePersonaIndicator } from './ActivePersonaIndicator';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
@@ -117,6 +118,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             onChange={setActiveProvider}
             disabled={isStreaming}
           />
+        )}
+
+        {/* Show active persona indicator */}
+        {!isMobile && (
+          <ActivePersonaIndicator showLabel />
         )}
 
         {/* Hide extended thinking button on mobile */}

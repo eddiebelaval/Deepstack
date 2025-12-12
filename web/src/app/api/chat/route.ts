@@ -1,12 +1,16 @@
 import { streamText } from 'ai';
 import { getProviderModel, providerConfig } from '@/lib/llm/providers';
-import { TRADING_SYSTEM_PROMPT } from '@/lib/llm/system-prompt';
 import { tradingTools } from '@/lib/llm/tools';
 import type { LLMProvider } from '@/lib/stores/chat-store';
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit-server';
 import type { NextRequest } from 'next/server';
+import { buildRAGContext } from '@/lib/embeddings/context-builder';
+import { buildPersonaPrompt } from '@/lib/personas/build-persona-prompt';
+import { getPersona, DEFAULT_PERSONA_ID } from '@/lib/personas/persona-configs';
+import type { PersonaId } from '@/lib/types/persona';
+import { createClient } from '@/lib/supabase/server';
 
-export const runtime = 'edge';
+// Removed edge runtime to support server-side Supabase auth for RAG
 export const maxDuration = 60;
 
 // Context interface for runtime information
@@ -185,7 +189,13 @@ export async function POST(req: Request) {
       return rateLimitResponse(rateLimit.resetTime);
     }
 
-    const { messages, provider = 'claude', context, useExtendedThinking = false } = await req.json();
+    const {
+      messages,
+      provider = 'claude',
+      context,
+      useExtendedThinking = false,
+      personaId = DEFAULT_PERSONA_ID
+    } = await req.json();
 
     // Validate provider
     if (!providerConfig[provider as LLMProvider]) {
@@ -195,9 +205,47 @@ export async function POST(req: Request) {
     // Get the model for the selected provider
     const model = getProviderModel(provider as LLMProvider);
 
-    // Build system prompt with runtime context
+    // Build persona-enhanced base system prompt
+    const persona = getPersona(personaId as PersonaId);
+    const baseSystemPrompt = buildPersonaPrompt(persona);
+
+    // Build runtime context message
     const contextMessage = buildContextMessage(context as TradingContext);
-    const systemPrompt = TRADING_SYSTEM_PROMPT + contextMessage;
+
+    // Attempt to get authenticated user for RAG context
+    let ragContext = '';
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user && messages.length > 0) {
+        // Get the latest user message for RAG retrieval
+        const latestUserMessage = [...messages].reverse().find(
+          (m: { role: string; content: string }) => m.role === 'user'
+        );
+
+        if (latestUserMessage?.content) {
+          const ragResult = await buildRAGContext(
+            user.id,
+            latestUserMessage.content,
+            {
+              maxTokens: 3000,
+              symbol: (context as TradingContext)?.activeSymbol,
+            }
+          );
+
+          if (ragResult.contextText) {
+            ragContext = ragResult.contextText;
+          }
+        }
+      }
+    } catch (ragError) {
+      // Graceful degradation: RAG context is optional
+      console.warn('RAG context retrieval failed (non-critical):', ragError);
+    }
+
+    // Combine everything: persona prompt + runtime context + RAG context
+    const systemPrompt = baseSystemPrompt + contextMessage + (ragContext ? `\n\n${ragContext}` : '');
 
     // Prepare streamText options
     const streamOptions: any = {

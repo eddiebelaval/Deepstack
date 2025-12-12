@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { Button } from '@/components/ui/button';
-import { X, Monitor, Bell, Globe, Brain, Database, Download, Clock } from 'lucide-react';
+import { X, Monitor, Bell, Globe, Brain, Database, Download, Clock, User } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { PersonaSection } from '@/components/settings/PersonaSection';
 
 export function SettingsPanel() {
     const { settingsOpen, toggleSettings, credits } = useUIStore();
@@ -118,11 +119,24 @@ export function SettingsPanel() {
 
                                 <Separator />
 
+                                {/* AI Persona */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center space-x-2">
+                                        <User className="h-5 w-5 text-primary" />
+                                        <h3 className="text-lg font-semibold">AI Persona</h3>
+                                    </div>
+                                    <div className="pl-7">
+                                        <PersonaSection />
+                                    </div>
+                                </div>
+
+                                <Separator />
+
                                 {/* AI Assistant */}
                                 <div className="space-y-4">
                                     <div className="flex items-center space-x-2">
                                         <Brain className="h-5 w-5 text-primary" />
-                                        <h3 className="text-lg font-semibold">AI Assistant</h3>
+                                        <h3 className="text-lg font-semibold">AI Model</h3>
                                     </div>
                                     <div className="space-y-4 pl-7">
                                         <div className="flex items-center justify-between">
