@@ -323,9 +323,37 @@ class DeepStackAPIServer:
                                 "timestamp": datetime.now(),
                             }
                             source = "alpaca"
-                            logger.debug(f"Quote for {symbol} from Alpaca")
+                            logger.debug(
+                                f"Quote for {symbol} from Alpaca via paper_trader"
+                            )
                     except Exception as e:
-                        logger.warning(f"Alpaca quote failed for {symbol}: {e}")
+                        logger.warning(
+                            f"Alpaca quote via paper_trader failed for {symbol}: {e}"
+                        )
+
+                # Try direct Alpaca client
+                if not quote and self.alpaca_client:
+                    try:
+                        alpaca_quote = await self.alpaca_client.get_quote(symbol)
+                        if alpaca_quote and alpaca_quote.get("last"):
+                            quote = {
+                                "symbol": symbol,
+                                "bid": alpaca_quote.get(
+                                    "bid", alpaca_quote["last"] - 0.02
+                                ),
+                                "ask": alpaca_quote.get(
+                                    "ask", alpaca_quote["last"] + 0.02
+                                ),
+                                "last": alpaca_quote["last"],
+                                "volume": alpaca_quote.get("bid_volume", 0),
+                                "timestamp": datetime.now(),
+                            }
+                            source = "alpaca"
+                            logger.debug(
+                                f"Quote for {symbol} from direct Alpaca client"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Direct Alpaca quote failed for {symbol}: {e}")
 
                 # Fallback to Yahoo Finance
                 if not quote:
@@ -1188,9 +1216,9 @@ class DeepStackAPIServer:
 
         # Initialize paper trader (optional)
         try:
-            if self.config.trading.mode == "paper" and self.ibkr_client:
-                self.paper_trader = PaperTrader(self.config, self.ibkr_client)
-                logger.info("Paper trader initialized")
+            if self.config.trading.mode == "paper" and self.alpaca_client:
+                self.paper_trader = PaperTrader(self.config, self.alpaca_client)
+                logger.info("Paper trader initialized with Alpaca client")
         except Exception as e:
             logger.warning(f"Paper trader init failed (optional): {e}")
 
@@ -1224,8 +1252,8 @@ class DeepStackAPIServer:
                         logger.warning("Failed to connect to IBKR for live trading")
 
             # Initialize paper trader
-            if self.config.trading.mode == "paper":
-                self.paper_trader = PaperTrader(self.config, self.ibkr_client)
+            if self.config.trading.mode == "paper" and self.alpaca_client:
+                self.paper_trader = PaperTrader(self.config, self.alpaca_client)
 
             # Initialize order manager
             from ..risk.portfolio_risk import PortfolioRisk
