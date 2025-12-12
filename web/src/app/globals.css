@@ -208,8 +208,8 @@ body:has(.landing-page) > div > div > div {
   background: oklch(0.22 0.01 55 / 85%);
   backdrop-filter: blur(12px);
   border: 1px solid oklch(0.35 0.01 55 / 50%);
-  /* Left corner flush (square), right corner rounded for smooth tab */
-  border-radius: 0 0.625rem 0 0;
+  /* Both top corners rounded for smooth tab appearance */
+  border-radius: 0.625rem 0.625rem 0 0;
   border-bottom: none;
   border-left: none; /* Flush with container edge */
   /* Subtle lift shadow */
