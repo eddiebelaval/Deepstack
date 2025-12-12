@@ -255,9 +255,9 @@ body:has(.landing-page) > div > div > div {
 .glass-input-with-tab::before {
   content: '';
   position: absolute;
-  /* Position at top-right where tab connects */
+  /* Position at top-left where tab connects */
   top: -1px;
-  right: 1rem;
+  left: 1rem;
   /* Match tab width roughly */
   width: 140px;
   height: 1px;
