@@ -25,14 +25,30 @@ export const AVAILABLE_INDICES = [
 interface IndexScrollWheelProps {
   selectedSymbols: string[];
   onSelect: (symbol: string) => void;
+  /** Called when the wheel navigates to a new index (for auto-adding to chart) */
+  onNavigate?: (symbol: string) => void;
+  /** Map of symbol to its assigned color in the chart */
+  symbolColors?: Record<string, string>;
   className?: string;
 }
 
-export function IndexScrollWheel({ selectedSymbols, onSelect, className }: IndexScrollWheelProps) {
+export function IndexScrollWheel({ selectedSymbols, onSelect, onNavigate, symbolColors = {}, className }: IndexScrollWheelProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const wheelRef = useRef<HTMLDivElement>(null);
+
+  // Fire onNavigate when currentIndex changes (after initial render)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (onNavigate) {
+      onNavigate(AVAILABLE_INDICES[currentIndex].symbol);
+    }
+  }, [currentIndex, onNavigate]);
 
   // Get current and adjacent items for display
   const getVisibleItems = useCallback(() => {
@@ -104,6 +120,9 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, className }: Index
 
   const { prev, current, next } = getVisibleItems();
   const isSelected = selectedSymbols.includes(current.symbol);
+  const currentColor = symbolColors[current.symbol];
+  const prevColor = symbolColors[prev.symbol];
+  const nextColor = symbolColors[next.symbol];
 
   return (
     <div className={cn("relative flex flex-col items-center", className)}>
@@ -115,11 +134,13 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, className }: Index
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Backlit glow effect - the "projector" behind the glass */}
+        {/* Backlit glow effect - uses the current index's color when selected */}
         <div
-          className="absolute inset-0 rounded-xl"
+          className="absolute inset-0 rounded-xl transition-all duration-300"
           style={{
-            background: `radial-gradient(ellipse at center, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.1) 40%, transparent 70%)`,
+            background: currentColor
+              ? `radial-gradient(ellipse at center, ${currentColor}40 0%, ${currentColor}20 40%, transparent 70%)`
+              : `radial-gradient(ellipse at center, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.1) 40%, transparent 70%)`,
             filter: 'blur(12px)',
             transform: 'scale(1.3)',
           }}
@@ -127,9 +148,11 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, className }: Index
 
         {/* Secondary glow ring */}
         <div
-          className="absolute inset-0 rounded-xl"
+          className="absolute inset-0 rounded-xl transition-all duration-300"
           style={{
-            boxShadow: `0 0 30px rgba(245, 158, 11, 0.2), inset 0 0 20px rgba(245, 158, 11, 0.05)`,
+            boxShadow: currentColor
+              ? `0 0 30px ${currentColor}30, inset 0 0 20px ${currentColor}10`
+              : `0 0 30px rgba(245, 158, 11, 0.2), inset 0 0 20px rgba(245, 158, 11, 0.05)`,
           }}
         />
 
@@ -146,11 +169,17 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, className }: Index
             {/* Previous item (dimmed) */}
             <div
               className={cn(
-                "text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
+                "flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
                 isAnimating && "transform -translate-y-1"
               )}
               onClick={scrollUp}
             >
+              {prevColor && (
+                <div
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: prevColor, opacity: 0.6 }}
+                />
+              )}
               {prev.name}
             </div>
 
@@ -163,31 +192,51 @@ export function IndexScrollWheel({ selectedSymbols, onSelect, className }: Index
                 isSelected && "bg-primary/15"
               )}
             >
-              <span className="text-xs font-bold text-foreground leading-tight">
-                {current.name}
-              </span>
+              <div className="flex items-center gap-1.5">
+                {currentColor && (
+                  <div
+                    className="h-2 w-2 rounded-full"
+                    style={{
+                      backgroundColor: currentColor,
+                      boxShadow: `0 0 6px ${currentColor}80`
+                    }}
+                  />
+                )}
+                <span className="text-xs font-bold text-foreground leading-tight">
+                  {current.name}
+                </span>
+              </div>
               <span className="text-[8px] text-muted-foreground leading-tight">
                 {current.description}
               </span>
-              {/* Selection indicator */}
+              {/* Selection indicator - uses the index color when selected */}
               <div
                 className={cn(
                   "h-0.5 w-8 mt-1 rounded-full transition-all duration-200",
                   isSelected
-                    ? "bg-primary opacity-100"
+                    ? "opacity-100"
                     : "bg-muted-foreground/30 opacity-50"
                 )}
+                style={{
+                  backgroundColor: currentColor || (isSelected ? 'hsl(var(--primary))' : undefined)
+                }}
               />
             </button>
 
             {/* Next item (dimmed) */}
             <div
               className={cn(
-                "text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
+                "flex items-center gap-1 text-[9px] text-muted-foreground/40 font-medium transition-all duration-200 cursor-pointer hover:text-muted-foreground/60",
                 isAnimating && "transform translate-y-1"
               )}
               onClick={scrollDown}
             >
+              {nextColor && (
+                <div
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: nextColor, opacity: 0.6 }}
+                />
+              )}
               {next.name}
             </div>
           </div>

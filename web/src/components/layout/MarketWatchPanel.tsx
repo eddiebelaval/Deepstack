@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 // Fixed dimensions - no resizing, solid panel feel
 const COLLAPSED_TAB_HEIGHT = 44; // Height of the tab when collapsed
-const FIXED_PANEL_HEIGHT = 580; // Increased height - more chart real estate
+const FIXED_PANEL_HEIGHT = 680; // Increased height to fit scroll wheel + cards at bottom
 const TICKER_HEIGHT = 36; // Height of StreamingTicker (h-9 = 36px)
 
 // Sidebar dimensions (must match DeepStackLayout)

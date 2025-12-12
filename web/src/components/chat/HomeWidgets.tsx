@@ -20,7 +20,7 @@ import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagem
 import { SymbolSearchDialog } from '@/components/trading/SymbolSearchDialog';
 import { PositionsPanel } from '@/components/trading/PositionsPanel';
 import { PositionEntryForm } from '@/components/trading/PositionEntryForm';
-import { IndexScrollWheel, AVAILABLE_INDICES } from '@/components/ui/index-scroll-wheel';
+import { IndexControlPanel, AVAILABLE_INDICES } from '@/components/ui/index-control-panel';
 
 // deepstack Brand Palette for Series
 // Derived from globals.css variables (--primary, --ds-deepseek, --ds-perplexity, etc.)
@@ -377,6 +377,16 @@ export function HomeWidgets() {
         }).filter(Boolean);
     }, [seriesData]);
 
+    // Create symbol to color mapping for the scroll wheel
+    const symbolColors = useMemo(() => {
+        const colors: Record<string, string> = {};
+        // Map from the current symbols list with their assigned colors
+        symbols.forEach((symbol, index) => {
+            colors[symbol] = SERIES_COLORS[index % SERIES_COLORS.length];
+        });
+        return colors;
+    }, [symbols]);
+
     // Filter series based on visibility and apply % normalization
     const displaySeries = useMemo(() => {
         return seriesData.map(s => {
@@ -653,27 +663,33 @@ export function HomeWidgets() {
                     </div>
                 )}
 
-                {/* Glass Asset Cards - Color-coded edge glow effect */}
-                {activeTab !== 'predictions' && activeTab !== 'positions' && (
-                    <div className="mt-2 pt-2 border-t border-border/30">
-                        <div className="flex gap-3 items-center pb-1">
-                            {/* Index Scroll Wheel - only show on Indices tab */}
-                            {activeTab === 'market' && (
-                                <IndexScrollWheel
-                                    selectedSymbols={indices}
-                                    onSelect={(symbol) => {
-                                        // Toggle: if already in list, remove; otherwise add (if room)
-                                        if (indices.includes(symbol)) {
-                                            removeSymbol('indices', symbol);
-                                        } else if (indices.length < 8) {
-                                            addSymbol('indices', symbol);
-                                        }
-                                    }}
-                                    className="shrink-0"
-                                />
-                            )}
+                {/* Index Control Panel - Unified wheel + grid for Indices tab */}
+                {activeTab === 'market' && (
+                    <div className="mt-2 pt-2 border-t border-border/30 pb-2">
+                        <IndexControlPanel
+                            selectedSymbols={indices}
+                            activeIndices={seriesMetrics
+                                .filter((m): m is NonNullable<typeof m> => m !== null)
+                                .map(m => ({
+                                    symbol: m.symbol,
+                                    name: m.displayName,
+                                    price: m.price,
+                                    percentChange: m.percentChange,
+                                    color: m.color
+                                }))}
+                            symbolColors={symbolColors}
+                            onAdd={(symbol) => addSymbol('indices', symbol)}
+                            onRemove={(symbol) => removeSymbol('indices', symbol)}
+                            maxSymbols={12}
+                        />
+                    </div>
+                )}
 
-                            {/* Asset cards - centered in remaining space */}
+                {/* Glass Asset Cards for other tabs (Crypto, Watchlist, Custom) */}
+                {activeTab !== 'predictions' && activeTab !== 'positions' && activeTab !== 'market' && (
+                    <div className="mt-2 pt-2 border-t border-border/30">
+                        <div className="flex gap-3 items-center pb-3">
+                            {/* Asset cards - centered */}
                             <div className="flex gap-3 justify-center flex-wrap flex-1">
                                 {seriesMetrics.map((metric) => metric && (
                                     <GlassAssetCard
