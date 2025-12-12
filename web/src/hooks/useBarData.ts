@@ -34,14 +34,34 @@ type ApiBar = {
   close?: number;
 };
 
+// Get appropriate limit based on timeframe for sufficient historical data
+function getDefaultLimit(timeframe: string): number {
+  switch (timeframe.toLowerCase()) {
+    case "1h":
+    case "2h":
+      return 168; // ~1 week of hourly bars
+    case "4h":
+      return 250; // ~6 weeks of 4h bars
+    case "1d":
+      return 365; // ~1 year of daily bars
+    case "1w":
+      return 260; // ~5 years of weekly bars
+    case "1mo":
+      return 120; // ~10 years of monthly bars
+    default:
+      return 200;
+  }
+}
+
 // Fetch function for a single symbol
 async function fetchBars(
   symbol: string,
   timeframe: string,
-  limit: number = 100
+  limit?: number
 ): Promise<{ bars: BarData[]; isMock: boolean }> {
+  const effectiveLimit = limit ?? getDefaultLimit(timeframe);
   const response = await fetch(
-    `/api/market/bars?symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}&limit=${limit}`
+    `/api/market/bars?symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}&limit=${effectiveLimit}`
   );
 
   if (!response.ok) {

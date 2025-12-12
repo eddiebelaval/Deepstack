@@ -34,11 +34,33 @@ const SYMBOL_PRICES: Record<string, number> = {
   NVDA: 142, AAPL: 238, TSLA: 355, AMD: 140, MSFT: 432, GOOGL: 175, META: 580, AMZN: 210,
 };
 
+// Get bar interval in seconds based on timeframe
+function getBarIntervalSeconds(timeframe: string): number {
+  const hourInSeconds = 3600;
+  const dayInSeconds = 86400;
+  const weekInSeconds = 7 * dayInSeconds;
+  const monthInSeconds = 30 * dayInSeconds;
+
+  switch (timeframe.toLowerCase()) {
+    case '1m': return 60;
+    case '5m': return 5 * 60;
+    case '15m': return 15 * 60;
+    case '30m': return 30 * 60;
+    case '1h': return hourInSeconds;
+    case '2h': return 2 * hourInSeconds;
+    case '4h': return 4 * hourInSeconds;
+    case '1d': return dayInSeconds;
+    case '1w': return weekInSeconds;
+    case '1mo': return monthInSeconds;
+    default: return dayInSeconds;
+  }
+}
+
 // Generate mock bars data when backend is unavailable
-function generateMockBars(symbol: string, limit: number) {
+function generateMockBars(symbol: string, limit: number, timeframe: string = '1d') {
   const bars = [];
   const now = Math.floor(Date.now() / 1000);
-  const dayInSeconds = 86400;
+  const intervalSeconds = getBarIntervalSeconds(timeframe);
 
   // Use realistic price for known symbols, otherwise random
   let price = SYMBOL_PRICES[symbol.toUpperCase()] || (150 + Math.random() * 100);
@@ -51,7 +73,7 @@ function generateMockBars(symbol: string, limit: number) {
     const low = Math.min(open, close) * (1 - Math.random() * 0.01);
 
     bars.push({
-      t: new Date((now - i * dayInSeconds) * 1000).toISOString(),
+      t: new Date((now - i * intervalSeconds) * 1000).toISOString(),
       o: Math.round(open * 100) / 100,
       h: Math.round(high * 100) / 100,
       l: Math.round(low * 100) / 100,
@@ -113,7 +135,7 @@ export async function GET(request: NextRequest) {
     // If backend returns empty bars, use mock data for better UX
     if (!bars || (Array.isArray(bars) && bars.length === 0)) {
       console.warn('Backend returned empty bars, using mock data');
-      const mockBars = generateMockBars(symbol, limit);
+      const mockBars = generateMockBars(symbol, limit, timeframe);
       return apiSuccess(
         { bars: mockBars },
         { isMock: true, warning: MOCK_DATA_WARNING }
@@ -126,8 +148,8 @@ export async function GET(request: NextRequest) {
     // Backend unavailable - return mock data so UI still works
     console.warn('Backend unavailable for bars, returning mock data:', error);
 
-    // Generate mock bars data
-    const mockBars = generateMockBars(symbol, limit);
+    // Generate mock bars data with correct timeframe intervals
+    const mockBars = generateMockBars(symbol, limit, timeframe);
 
     return apiSuccess(
       { bars: mockBars },
