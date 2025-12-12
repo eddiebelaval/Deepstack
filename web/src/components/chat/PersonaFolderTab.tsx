@@ -94,10 +94,10 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
             "relative flex items-center gap-1.5 px-4 py-2",
             // Authentic manila folder shape - rounded top with curves
             "rounded-t-[14px]",
-            // Manila gradient using CSS variables
-            "bg-gradient-to-b from-[var(--manila-cream)] via-[var(--manila-light)] to-[var(--manila-base)]",
+            // Manila gradient (CSS class - Tailwind vars don't work here)
+            "manila-tab-gradient",
             // Border without bottom (connects to input)
-            "border border-b-0 border-[var(--manila-edge)]/40",
+            "border border-b-0 border-amber-600/40 dark:border-amber-500/40",
             // Multi-layer shadow for depth
             "manila-edge-shadow",
             // Paper texture overlay
@@ -135,7 +135,7 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
           </div>
 
           {/* Persona name */}
-          <span className="max-w-[72px] truncate">{activePersona.name}</span>
+          <span className="max-w-[120px] truncate">{activePersona.name}</span>
 
           {/* Chevron indicator */}
           <motion.div
@@ -177,18 +177,17 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
             }}
             className={cn(
               "absolute bottom-full left-0 mb-0 w-72",
-              // Folder interior colors
-              "bg-gradient-to-t from-[var(--manila-cream)]/98 via-white/98 to-white/98",
-              "dark:from-[var(--manila-base)]/98 dark:via-zinc-900/98 dark:to-zinc-900/98",
+              // Folder interior colors (CSS class - Tailwind vars don't work)
+              "manila-panel-bg",
               "backdrop-blur-xl",
               // Folder crease at top
               "manila-crease",
               // Borders (no bottom-left to connect with tab)
-              "border border-[var(--manila-edge)]/30",
+              "border border-amber-600/30 dark:border-amber-500/30",
               "rounded-xl rounded-bl-none",
               // Elevated shadow
-              "shadow-[0_-8px_32px_rgba(0,0,0,0.12),0_-2px_12px_var(--manila-shadow)]",
-              "dark:shadow-[0_-8px_40px_rgba(0,0,0,0.4),0_-2px_16px_var(--manila-shadow)]",
+              "shadow-[0_-8px_32px_rgba(0,0,0,0.12),0_-2px_12px_rgba(120,80,40,0.15)]",
+              "dark:shadow-[0_-8px_40px_rgba(0,0,0,0.4),0_-2px_16px_rgba(80,50,20,0.3)]",
               // Paper texture
               "manila-paper-texture",
               "overflow-hidden"
@@ -197,7 +196,7 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
             aria-label="Available personas"
           >
             {/* Panel Header */}
-            <div className="px-4 py-3 border-b border-[var(--manila-edge)]/20 bg-gradient-to-b from-[var(--manila-cream)]/30 to-transparent">
+            <div className="px-4 py-3 manila-panel-header">
               <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
                 Select Persona
               </h3>
