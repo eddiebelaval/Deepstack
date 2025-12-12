@@ -81,8 +81,8 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
   };
 
   return (
-    <div ref={containerRef} className="absolute -top-px left-4 z-[60]">
-      {/* Integrated Glass Tab - seamless with glass-input */}
+    <div ref={containerRef} className="absolute -top-6 right-4 z-[60]">
+      {/* Lifted Folder Tab - sticks out above container */}
       <motion.button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -90,17 +90,17 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
         data-state={isOpen ? "open" : "closed"}
         aria-label={`Persona selector. Currently selected: ${activePersona.name}`}
         className={cn(
-          // Use unified glass-tab styling from CSS
+          // Lifted glass-tab styling from CSS
           "glass-tab",
-          // Layout
-          "flex items-center gap-2 px-3 py-2",
+          // Layout - slightly taller for better tab feel
+          "flex items-center gap-2 px-3.5 py-2",
           // Typography
           "text-xs font-medium text-foreground/80",
           // Interaction
           "transition-colors duration-150",
           disabled && "opacity-50 cursor-not-allowed"
         )}
-        whileHover={!disabled ? { scale: 1.02 } : undefined}
+        whileHover={!disabled ? { y: -1, scale: 1.02 } : undefined}
         whileTap={!disabled ? { scale: 0.98 } : undefined}
       >
         {/* Persona icon with amber accent */}
@@ -113,23 +113,24 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
 
         {/* Chevron indicator */}
         <motion.div
-          animate={{ rotate: isOpen ? 0 : 180 }}
+          animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
         >
           <ChevronUp className="h-3 w-3 opacity-50" />
         </motion.div>
       </motion.button>
 
-      {/* Slide-up Panel - Glass Panel */}
+      {/* Dropdown Panel - Glass Panel */}
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
-              "absolute bottom-full left-0 mb-1 w-72",
+              // Position below the tab (drops down), aligned to right edge
+              "absolute top-full right-0 mt-1 w-72",
               // Unified glass-panel styling
               "glass-panel",
               "overflow-hidden"

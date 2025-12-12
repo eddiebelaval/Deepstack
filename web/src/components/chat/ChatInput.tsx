@@ -112,10 +112,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     <div ref={containerRef} className={cn(
       "glass-input relative",
       isMobile ? "p-3" : "p-4",
-      // When tab is shown, add special class for seamless border integration
-      !isMobile && "pt-8 glass-input-with-tab"
+      // Tab sticks out above - add class for bridge pseudo-element
+      !isMobile && "glass-input-with-tab"
     )}>
-      {/* Glass Tab for Persona Selection - seamlessly integrated */}
+      {/* Lifted Folder Tab - sticks out above the pill container */}
       {!isMobile && <PersonaFolderTab disabled={isStreaming} />}
 
       <div className={cn("flex items-end", isMobile ? "gap-2" : "gap-3")}>
