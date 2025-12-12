@@ -40,12 +40,16 @@ Object.defineProperty(window, 'ResizeObserver', { value: ResizeObserverMock });
 
 // Mock requestAnimationFrame for store tests
 Object.defineProperty(window, 'requestAnimationFrame', {
+  writable: true,
+  configurable: true,
   value: (callback: FrameRequestCallback) => {
     return setTimeout(() => callback(Date.now()), 0);
   },
 });
 
 Object.defineProperty(window, 'cancelAnimationFrame', {
+  writable: true,
+  configurable: true,
   value: (id: number) => clearTimeout(id),
 });
 
@@ -60,6 +64,21 @@ class IntersectionObserverMock {
   takeRecords = vi.fn().mockReturnValue([]);
 }
 Object.defineProperty(window, 'IntersectionObserver', { value: IntersectionObserverMock });
+
+// Mock crypto.randomUUID for generating unique IDs
+if (typeof crypto === 'undefined' || !crypto.randomUUID) {
+  let idCounter = 0;
+  Object.defineProperty(globalThis, 'crypto', {
+    value: {
+      randomUUID: () => {
+        idCounter++;
+        return `test-uuid-${idCounter}`;
+      },
+    },
+    writable: true,
+    configurable: true,
+  });
+}
 
 // Mock PointerEvent for Radix UI components
 class PointerEventMock extends Event {

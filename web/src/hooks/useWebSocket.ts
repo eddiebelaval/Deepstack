@@ -175,11 +175,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Connect to WebSocket
   const connect = useCallback(() => {
+    if (process.env.NODE_ENV === 'test') {
+      console.log('[useWebSocket connect()] called, creating WebSocket to:', opts.url);
+    }
+
     // Don't connect if already connected or connecting
     if (
       wsRef.current?.readyState === WebSocket.OPEN ||
       wsRef.current?.readyState === WebSocket.CONNECTING
     ) {
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[useWebSocket connect()] already connected/connecting, returning');
+      }
       return;
     }
 
@@ -187,6 +194,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     try {
       const ws = new WebSocket(opts.url);
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[useWebSocket connect()] WebSocket instance created');
+      }
 
       ws.onopen = () => {
         if (process.env.NODE_ENV === 'development') {

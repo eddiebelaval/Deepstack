@@ -15,6 +15,7 @@ const SelectContext = React.createContext<any>({});
 export const SelectRoot = ({ children, onValueChange, value, defaultValue, onOpenChange, ...props }: any) => {
   const [internalValue, setInternalValue] = React.useState(value || defaultValue || '');
   const [isOpen, setIsOpen] = React.useState(false);
+  const [itemsMap, setItemsMap] = React.useState<Map<string, string>>(new Map());
 
   const currentValue = value !== undefined ? value : internalValue;
 
@@ -31,11 +32,17 @@ export const SelectRoot = ({ children, onValueChange, value, defaultValue, onOpe
     onOpenChange?.(newOpen);
   };
 
+  const registerItem = (itemValue: string, itemText: string) => {
+    setItemsMap(prev => new Map(prev).set(itemValue, itemText));
+  };
+
   const contextValue = {
     value: currentValue,
     onValueChange: handleValueChange,
     open: isOpen,
     onOpenChange: handleOpenChange,
+    registerItem,
+    getItemText: (val: string) => itemsMap.get(val) || val,
   };
 
   return (
@@ -73,9 +80,11 @@ SelectTrigger.displayName = 'SelectTrigger';
 
 export const SelectValue = ({ children, placeholder }: any) => {
   const context = React.useContext(SelectContext);
+  // Display the text for the selected value, or placeholder if no value
+  const displayText = context?.value ? context.getItemText(context.value) : placeholder;
   return (
     <span data-testid="select-value">
-      {context?.value ? children : placeholder}
+      {children || displayText}
     </span>
   );
 };
@@ -95,6 +104,24 @@ export const SelectViewport = ({ children, ...props }: any) => (
 
 export const SelectItem = React.forwardRef(({ children, value, disabled, onSelect, onClick, ...props }: any, ref: any) => {
   const context = React.useContext(SelectContext);
+
+  // Register this item's value and text when it mounts
+  React.useEffect(() => {
+    // Extract text from children (handles SelectItemText or plain text)
+    const text = React.Children.toArray(children)
+      .map((child: any) => {
+        if (typeof child === 'string') return child;
+        if (child?.props?.children) {
+          if (typeof child.props.children === 'string') return child.props.children;
+          if (Array.isArray(child.props.children)) {
+            return child.props.children.filter((c: any) => typeof c === 'string').join('');
+          }
+        }
+        return '';
+      })
+      .join('');
+    context?.registerItem?.(value, text);
+  }, [value, children, context]);
 
   const handleClick = (e: any) => {
     if (!disabled) {

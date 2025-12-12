@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Button } from '../button';
 
 describe('Button', () => {
@@ -9,9 +10,20 @@ describe('Button', () => {
       expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
     });
 
+    it('renders as button by default', () => {
+      render(<Button>Submit</Button>);
+      const button = screen.getByRole('button', { name: 'Submit' });
+      expect(button.tagName).toBe('BUTTON');
+    });
+
     it('renders with data-slot attribute', () => {
       render(<Button>Test</Button>);
       expect(screen.getByRole('button')).toHaveAttribute('data-slot', 'button');
+    });
+
+    it('can set custom type attribute', () => {
+      render(<Button type="submit">Submit</Button>);
+      expect(screen.getByRole('button')).toHaveAttribute('type', 'submit');
     });
   });
 
@@ -20,24 +32,29 @@ describe('Button', () => {
       render(<Button variant="default">Default</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('bg-primary');
+      expect(button).toHaveClass('text-primary-foreground');
     });
 
     it('renders destructive variant', () => {
       render(<Button variant="destructive">Delete</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('bg-destructive');
+      expect(button).toHaveClass('text-white');
     });
 
     it('renders outline variant', () => {
       render(<Button variant="outline">Outline</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('border');
+      expect(button).toHaveClass('bg-background');
+      expect(button).toHaveClass('shadow-xs');
     });
 
     it('renders secondary variant', () => {
       render(<Button variant="secondary">Secondary</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('bg-secondary');
+      expect(button).toHaveClass('text-secondary-foreground');
     });
 
     it('renders ghost variant', () => {
@@ -50,6 +67,7 @@ describe('Button', () => {
       render(<Button variant="link">Link</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('text-primary');
+      expect(button).toHaveClass('underline-offset-4');
       expect(button).toHaveClass('hover:underline');
     });
   });
@@ -59,24 +77,40 @@ describe('Button', () => {
       render(<Button size="default">Default Size</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('h-9');
+      expect(button).toHaveClass('px-4');
+      expect(button).toHaveClass('py-2');
     });
 
     it('renders small size', () => {
       render(<Button size="sm">Small</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('h-8');
+      expect(button).toHaveClass('px-3');
     });
 
     it('renders large size', () => {
       render(<Button size="lg">Large</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('h-10');
+      expect(button).toHaveClass('px-6');
     });
 
     it('renders icon size', () => {
       render(<Button size="icon">X</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass('size-9');
+    });
+
+    it('renders icon-sm size', () => {
+      render(<Button size="icon-sm">X</Button>);
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('size-8');
+    });
+
+    it('renders icon-lg size', () => {
+      render(<Button size="icon-lg">X</Button>);
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('size-10');
     });
   });
 
@@ -88,6 +122,32 @@ describe('Button', () => {
       fireEvent.click(screen.getByRole('button'));
 
       expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles keyboard navigation', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<Button onClick={handleClick}>Press Enter</Button>);
+
+      const button = screen.getByRole('button');
+      button.focus();
+      await user.keyboard('{Enter}');
+
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles Space key', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<Button onClick={handleClick}>Press Space</Button>);
+
+      const button = screen.getByRole('button');
+      button.focus();
+      await user.keyboard(' ');
+
+      expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
     it('does not fire click when disabled', () => {
@@ -109,6 +169,7 @@ describe('Button', () => {
 
       expect(button).toBeDisabled();
       expect(button).toHaveClass('disabled:opacity-50');
+      expect(button).toHaveClass('disabled:pointer-events-none');
     });
   });
 
@@ -133,18 +194,101 @@ describe('Button', () => {
       const link = screen.getByRole('link', { name: 'Link Button' });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute('href', '/test');
+      expect(link).toHaveAttribute('data-slot', 'button');
+    });
+
+    it('applies button styles to child element', () => {
+      render(
+        <Button asChild variant="destructive">
+          <a href="/delete">Delete</a>
+        </Button>
+      );
+
+      const link = screen.getByRole('link');
+      expect(link).toHaveClass('bg-destructive');
+      expect(link).toHaveClass('text-white');
+    });
+  });
+
+  describe('styles', () => {
+    it('has inline-flex layout', () => {
+      render(<Button>Flex</Button>);
+      expect(screen.getByRole('button')).toHaveClass('inline-flex');
+    });
+
+    it('has rounded-md class', () => {
+      render(<Button>Rounded</Button>);
+      expect(screen.getByRole('button')).toHaveClass('rounded-md');
+    });
+
+    it('has text-sm for text size', () => {
+      render(<Button>Small Text</Button>);
+      expect(screen.getByRole('button')).toHaveClass('text-sm');
+    });
+
+    it('has font-medium weight', () => {
+      render(<Button>Medium</Button>);
+      expect(screen.getByRole('button')).toHaveClass('font-medium');
+    });
+
+    it('has transition-all for animations', () => {
+      render(<Button>Animated</Button>);
+      expect(screen.getByRole('button')).toHaveClass('transition-all');
+    });
+
+    it('has focus-visible styles', () => {
+      render(<Button>Focus</Button>);
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('focus-visible:border-ring');
+      expect(button).toHaveClass('focus-visible:ring-ring/50');
     });
   });
 
   describe('accessibility', () => {
+    it('has outline-none class', () => {
+      render(<Button>Accessible</Button>);
+      expect(screen.getByRole('button')).toHaveClass('outline-none');
+    });
+
     it('accepts aria attributes', () => {
       render(<Button aria-label="Submit form">Submit</Button>);
       expect(screen.getByLabelText('Submit form')).toBeInTheDocument();
     });
 
+    it('supports aria-invalid attribute with ring styles', () => {
+      render(<Button aria-invalid="true">Invalid</Button>);
+      const button = screen.getByRole('button');
+      expect(button).toHaveAttribute('aria-invalid', 'true');
+      expect(button).toHaveClass('aria-invalid:ring-destructive/20');
+      expect(button).toHaveClass('aria-invalid:border-destructive');
+    });
+
     it('accepts type attribute', () => {
       render(<Button type="submit">Submit</Button>);
       expect(screen.getByRole('button')).toHaveAttribute('type', 'submit');
+    });
+  });
+
+  describe('HTML attributes', () => {
+    it('passes through HTML attributes', () => {
+      render(
+        <Button data-testid="test-button" id="my-button">
+          Test
+        </Button>
+      );
+
+      const button = screen.getByTestId('test-button');
+      expect(button).toHaveAttribute('id', 'my-button');
+    });
+
+    it('supports name attribute', () => {
+      render(<Button name="action">Action</Button>);
+      expect(screen.getByRole('button')).toHaveAttribute('name', 'action');
+    });
+
+    it('supports value attribute', () => {
+      render(<Button value="confirm">Confirm</Button>);
+      expect(screen.getByRole('button')).toHaveAttribute('value', 'confirm');
     });
   });
 });
