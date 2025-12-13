@@ -127,7 +127,7 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
   };
 
   return (
-    <div ref={containerRef} className="absolute -top-6 left-0 z-[60]">
+    <div ref={containerRef} className="absolute -top-[22px] left-0 z-[60]">
       {/* Lifted Folder Tab - sticks out above container */}
       <motion.button
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -157,7 +157,7 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
         </div>
 
         {/* Persona name */}
-        <span className="max-w-[120px] truncate">{activePersona.name}</span>
+        <span className="whitespace-nowrap">{activePersona.name}</span>
 
         {/* Chevron indicator - points UP when panel is open (opens upward) */}
         <motion.div
