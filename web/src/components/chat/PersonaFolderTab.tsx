@@ -40,12 +40,16 @@ type PersonaFolderTabProps = {
 
 export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const activePersona = useActivePersona();
   const setActivePersona = usePersonaStore((state) => state.setActivePersona);
 
   const tradingPersonas = getPersonasByCategory('trading');
   const coachingPersonas = getPersonasByCategory('coaching');
+
+  // Flatten all personas for keyboard navigation
+  const allPersonas = [...tradingPersonas, ...coachingPersonas];
 
   // Close panel when clicking outside
   useEffect(() => {
@@ -75,6 +79,48 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
     }
   }, [isOpen]);
 
+  // Keyboard navigation for listbox
+  useEffect(() => {
+    if (!isOpen) {
+      setFocusedIndex(-1);
+      return;
+    }
+
+    function handleKeyNav(event: KeyboardEvent) {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          setFocusedIndex((prev) =>
+            prev < allPersonas.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setFocusedIndex((prev) =>
+            prev > 0 ? prev - 1 : allPersonas.length - 1
+          );
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < allPersonas.length) {
+            handleSelectPersona(allPersonas[focusedIndex].id);
+          }
+          break;
+        case 'Home':
+          event.preventDefault();
+          setFocusedIndex(0);
+          break;
+        case 'End':
+          event.preventDefault();
+          setFocusedIndex(allPersonas.length - 1);
+          break;
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyNav);
+    return () => document.removeEventListener('keydown', handleKeyNav);
+  }, [isOpen, focusedIndex, allPersonas]);
+
   const handleSelectPersona = (id: PersonaId) => {
     setActivePersona(id);
     setIsOpen(false);
@@ -92,12 +138,14 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
         className={cn(
           // Lifted glass-tab styling from CSS
           "glass-tab",
-          // Layout - slightly taller for better tab feel
-          "flex items-center gap-2 px-3.5 py-2",
+          // Layout - taller for better touch target (44px min)
+          "flex items-center gap-2 px-3.5 py-2.5",
           // Typography
           "text-xs font-medium text-foreground/80",
           // Interaction
           "transition-colors duration-150",
+          // Focus-visible for keyboard accessibility
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           disabled && "opacity-50 cursor-not-allowed"
         )}
         whileHover={!disabled ? { y: -1, scale: 1.02 } : undefined}
@@ -111,9 +159,9 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
         {/* Persona name */}
         <span className="max-w-[120px] truncate">{activePersona.name}</span>
 
-        {/* Chevron indicator */}
+        {/* Chevron indicator - points UP when panel is open (opens upward) */}
         <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
+          animate={{ rotate: isOpen ? 0 : 180 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
         >
           <ChevronUp className="h-3 w-3 opacity-50" />
@@ -169,12 +217,16 @@ export function PersonaFolderTab({ disabled }: PersonaFolderTabProps) {
                 personas={tradingPersonas}
                 activeId={activePersona.id}
                 onSelect={handleSelectPersona}
+                focusedIndex={focusedIndex}
+                indexOffset={0}
               />
               <PersonaCategory
                 title="Coaching Style"
                 personas={coachingPersonas}
                 activeId={activePersona.id}
                 onSelect={handleSelectPersona}
+                focusedIndex={focusedIndex}
+                indexOffset={tradingPersonas.length}
               />
             </motion.div>
           </motion.div>
@@ -189,9 +241,11 @@ type PersonaCategoryProps = {
   personas: Persona[];
   activeId: PersonaId;
   onSelect: (id: PersonaId) => void;
+  focusedIndex: number;
+  indexOffset: number;
 };
 
-function PersonaCategory({ title, personas, activeId, onSelect }: PersonaCategoryProps) {
+function PersonaCategory({ title, personas, activeId, onSelect, focusedIndex, indexOffset }: PersonaCategoryProps) {
   return (
     <div className="py-2">
       <div className="px-4 py-1.5">
@@ -205,6 +259,7 @@ function PersonaCategory({ title, personas, activeId, onSelect }: PersonaCategor
             key={persona.id}
             persona={persona}
             isActive={persona.id === activeId}
+            isFocused={focusedIndex === indexOffset + index}
             onSelect={() => onSelect(persona.id)}
             delay={index * 0.03}
           />
@@ -217,16 +272,18 @@ function PersonaCategory({ title, personas, activeId, onSelect }: PersonaCategor
 type PersonaOptionProps = {
   persona: Persona;
   isActive: boolean;
+  isFocused: boolean;
   onSelect: () => void;
   delay?: number;
 };
 
-function PersonaOption({ persona, isActive, onSelect, delay = 0 }: PersonaOptionProps) {
+function PersonaOption({ persona, isActive, isFocused, onSelect, delay = 0 }: PersonaOptionProps) {
   return (
     <motion.button
       onClick={onSelect}
       role="option"
       aria-selected={isActive}
+      data-focused={isFocused}
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{
@@ -246,7 +303,9 @@ function PersonaOption({ persona, isActive, onSelect, delay = 0 }: PersonaOption
           : [
               "hover:bg-primary/8",
               "text-foreground"
-            ]
+            ],
+        // Keyboard focus ring
+        isFocused && "ring-2 ring-primary/50 ring-offset-1 ring-offset-background"
       )}
       whileHover={{ x: 4, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}

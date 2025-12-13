@@ -211,7 +211,6 @@ body:has(.landing-page) > div > div > div {
   /* Both top corners rounded for smooth tab appearance */
   border-radius: 0.625rem 0.625rem 0 0;
   border-bottom: none;
-  border-left: none; /* Flush with container edge */
   /* Subtle lift shadow */
   box-shadow:
     0 -2px 8px oklch(0 0 0 / 15%),
