@@ -209,30 +209,26 @@ body:has(.landing-page) > div > div > div {
   background: oklch(0.22 0.01 55 / 85%);
   backdrop-filter: blur(12px);
   border: 1px solid oklch(0.35 0.01 55 / 50%);
-  /* Rounded top corners, flat bottom to meet container */
-  border-radius: 0.625rem 0.625rem 0 0;
+  /* Fully rounded corners */
+  border-radius: 0.625rem;
   border-bottom: none;
   /* Subtle lift shadow */
   box-shadow:
     0 -2px 8px oklch(0 0 0 / 15%),
     inset 0 1px 0 oklch(1 0 0 / 5%);
-}
-
-/* Fade effect at bottom of tab for smooth seam */
-.glass-tab::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 0;
-  right: 0;
-  height: 8px;
-  background: linear-gradient(
+  /* Mask to fade out bottom edge and corners */
+  -webkit-mask-image: linear-gradient(
     to bottom,
-    oklch(0.22 0.01 55 / 85%) 0%,
-    oklch(0.22 0.01 55 / 40%) 50%,
+    black 0%,
+    black 70%,
     transparent 100%
   );
-  pointer-events: none;
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 70%,
+    transparent 100%
+  );
 }
 
 /* Glass tab hover state */
