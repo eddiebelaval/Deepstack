@@ -9,16 +9,18 @@ export type MarketWatcherState = 'collapsed' | 'mini' | 'full';
 
 /**
  * Default symbols to display in the market watcher
+ * Curated to show essential market indicators without overwhelming the UI
+ * - 3 major indices (S&P, Nasdaq, Volatility)
+ * - 2 macro indicators (Gold, Bonds)
+ * - 1 crypto (Bitcoin)
  */
 export const DEFAULT_MARKET_SYMBOLS = [
-  'SPY',   // S&P 500
-  'QQQ',   // Nasdaq 100
-  'DIA',   // Dow Jones
-  'IWM',   // Russell 2000
-  'VIX',   // Volatility Index
-  'GLD',   // Gold
-  'TLT',   // Treasury Bonds
-  'BTC-USD', // Bitcoin (optional)
+  'SPY',     // S&P 500 - primary market benchmark
+  'QQQ',     // Nasdaq 100 - tech sector proxy
+  'VIX',     // Volatility Index - fear gauge
+  'GLD',     // Gold - safe haven / inflation hedge
+  'TLT',     // Treasury Bonds - rate sensitivity
+  'BTC-USD', // Bitcoin - crypto sentiment
 ] as const;
 
 interface UseMobileMarketWatcherReturn {

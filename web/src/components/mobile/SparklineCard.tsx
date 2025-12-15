@@ -54,10 +54,10 @@ export function SparklineCard({
   const { data: barResponse, isLoading } = useBarData(symbol, '1d', true);
   const barData = barResponse?.bars;
 
-  // Get last 20 price points for sparkline
+  // Get last 50 price points for sparkline (smoother, more meaningful trends)
   const pricePoints = useMemo(() => {
     if (!barData || barData.length === 0) return [];
-    return barData.slice(-20).map((bar) => bar.value);
+    return barData.slice(-50).map((bar) => bar.value);
   }, [barData]);
 
   // Calculate min/max for scaling

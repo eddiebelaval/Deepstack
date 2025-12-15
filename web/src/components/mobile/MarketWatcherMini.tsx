@@ -22,10 +22,11 @@ interface MarketWatcherMiniProps {
 }
 
 /**
- * MarketWatcherMini - Mini mode showing 2x4 grid of sparkline cards
+ * MarketWatcherMini - Mini mode showing 2x3 grid of sparkline cards
  *
  * Features:
- * - 2x4 grid layout of major indices/ETFs
+ * - 2x3 grid layout of essential market indicators
+ * - Larger cards = more readable sparklines with 50 data points
  * - Each card shows symbol, price, sparkline, change %
  * - Pull-up handle to collapse back to ticker
  * - "View Full Details" button to expand
@@ -97,9 +98,9 @@ export function MarketWatcherMini({
         </div>
       </button>
 
-      {/* 2x4 Grid of Sparkline Cards */}
+      {/* 2x3 Grid of Sparkline Cards - larger cards for better readability */}
       <div className="px-3 pb-2">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {DEFAULT_MARKET_SYMBOLS.map((symbol) => (
             <SparklineCard
               key={symbol}

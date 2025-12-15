@@ -28,12 +28,12 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'sectors', label: 'Sectors' },
 ];
 
-// Symbol categories
+// Symbol categories - curated for relevance without overwhelming
 const SYMBOL_CATEGORIES: Record<TabId, readonly string[]> = {
-  indices: ['SPY', 'QQQ', 'DIA', 'IWM', 'VIX'],
-  watchlist: DEFAULT_MARKET_SYMBOLS,
-  crypto: ['BTC-USD', 'ETH-USD'],
-  sectors: ['XLF', 'XLK', 'XLE', 'XLV', 'XLI'],
+  indices: ['SPY', 'QQQ', 'VIX'],        // Core market indicators only
+  watchlist: DEFAULT_MARKET_SYMBOLS,     // User's essential 6
+  crypto: ['BTC-USD', 'ETH-USD'],         // Top 2 crypto
+  sectors: ['XLK', 'XLF', 'XLE'],         // Tech, Financials, Energy (key sectors)
 };
 
 /**
@@ -181,10 +181,10 @@ function SymbolDetail({ symbol }: { symbol: string }) {
   const { data: barResponse, isLoading } = useBarData(symbol, '1d', true);
   const barData = barResponse?.bars;
 
-  // Get last 40 bars for larger chart
+  // Get last 60 bars for smoother, more informative chart
   const pricePoints = useMemo(() => {
     if (!barData || barData.length === 0) return [];
-    return barData.slice(-40).map((bar) => bar.value);
+    return barData.slice(-60).map((bar) => bar.value);
   }, [barData]);
 
   // Calculate chart dimensions
