@@ -107,12 +107,13 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                     <main className="flex-1 flex flex-col h-full overflow-hidden pt-0">
                         <MobileSwipeNavigation
                             initialPage={1}
+                            pageIds={['tools', 'chat', 'news', 'markets']}
                             onPageChange={(index, pageId) => {
                                 // Could track analytics or update state here
                                 console.log(`Navigated to page ${index}: ${pageId}`);
                             }}
                         >
-                            {/* Page 0: Chat History */}
+                            {/* Page 0: Tools (Chat/Tools) - swipe RIGHT from home */}
                             <ChatHistoryPage
                                 onSelectConversation={() => {
                                     // Navigate back to chat after selection
@@ -124,17 +125,17 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                                 }}
                             />
 
-                            {/* Page 1: Chat (HOME) */}
+                            {/* Page 1: Chat (HOME) - Deepstack front page with AI chat & market watcher */}
                             <ChatPage>
                                 <ErrorBoundary variant="fullscreen">
                                     {children}
                                 </ErrorBoundary>
                             </ChatPage>
 
-                            {/* Page 2: Discover/News */}
+                            {/* Page 2: News - swipe LEFT from home */}
                             <DiscoverPage />
 
-                            {/* Page 3: Prediction Markets */}
+                            {/* Page 3: PM (Prediction Markets) - swipe LEFT from news */}
                             <MarketsPage />
                         </MobileSwipeNavigation>
                     </main>
