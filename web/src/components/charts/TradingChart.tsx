@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import {
   createChart,
   CandlestickSeries,
@@ -16,12 +16,14 @@ import {
   type UTCTimestamp,
   ColorType,
   CrosshairMode,
+  LineStyle,
 } from "lightweight-charts";
 import { useTradingStore, type ChartType, type IndicatorConfig } from "@/lib/stores/trading-store";
 import { useMarketDataStore } from "@/lib/stores/market-data-store";
 import { useMarketData } from "@/components/providers/MarketDataProvider";
 import type { OHLCVBar } from "@/lib/stores/market-data-store";
 import { calculateIndicators, type LineIndicatorData } from "@/lib/indicators";
+import { ChartLegend, type ChartLegendData } from "./ChartLegend";
 
 // Overlay colors - distinct from main chart
 const OVERLAY_COLORS = [
@@ -31,16 +33,19 @@ const OVERLAY_COLORS = [
   '#EC4899', // Pink
 ];
 
-// Chart theme colors - using hex/rgba for lightweight-charts compatibility
+// Chart theme colors - TradingView-inspired professional styling
 const CHART_THEME = {
-  background: "#1a1a1a",              // Dark background
-  gridLines: "#2a2a2a",               // Grid lines
-  textColor: "#a0a0a0",               // Muted text
-  crosshair: "#666666",               // Crosshair
-  upColor: "#22c55e",                 // Profit green
-  downColor: "#ef4444",               // Loss red
-  volumeUp: "rgba(34, 197, 94, 0.4)",
-  volumeDown: "rgba(239, 68, 68, 0.4)",
+  background: "#0f172a",                          // Slate-900 dark background
+  gridLines: "rgba(30, 41, 59, 0.5)",             // Subtle grid (slate-800 @ 50%)
+  textColor: "#9CA3AF",                           // Muted gray text
+  crosshairLine: "rgba(148, 163, 184, 0.7)",      // Crosshair vertical line
+  crosshairLineHorz: "rgba(148, 163, 184, 0.35)", // Crosshair horizontal (softer)
+  crosshairLabel: "#334155",                      // Label background (slate-700)
+  scaleBorder: "rgba(148, 163, 184, 0.4)",        // Price/time scale borders
+  upColor: "#22c55e",                             // Profit green
+  downColor: "#ef4444",                           // Loss red
+  volumeUp: "rgba(34, 197, 94, 0.5)",             // Slightly more visible volume
+  volumeDown: "rgba(239, 68, 68, 0.5)",
 };
 
 type TradingChartProps = {
@@ -62,6 +67,9 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
   const indicatorSeriesRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const overlaySeriesRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  // Legend state for OHLCV display
+  const [legendData, setLegendData] = useState<ChartLegendData | null>(null);
 
   const { activeSymbol, chartType, indicators, overlaySymbols } = useTradingStore();
   const { bars } = useMarketDataStore();
@@ -89,6 +97,14 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
     return calculateIndicators(symbolBars, indicators);
   }, [symbolBars, indicators]);
 
+  // Get previous bar's close for change calculation
+  const prevClose = useMemo(() => {
+    if (symbolBars.length >= 2) {
+      return symbolBars[symbolBars.length - 2].close;
+    }
+    return undefined;
+  }, [symbolBars]);
+
   // Initialize chart
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -98,6 +114,7 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
         background: { type: ColorType.Solid, color: CHART_THEME.background },
         textColor: CHART_THEME.textColor,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        fontSize: 11,
       },
       grid: {
         vertLines: { color: CHART_THEME.gridLines },
@@ -106,25 +123,37 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: CHART_THEME.crosshair,
-          labelBackgroundColor: CHART_THEME.crosshair,
+          color: CHART_THEME.crosshairLine,
+          style: LineStyle.Dotted,
+          width: 1,
+          labelBackgroundColor: CHART_THEME.crosshairLabel,
         },
         horzLine: {
-          color: CHART_THEME.crosshair,
-          labelBackgroundColor: CHART_THEME.crosshair,
+          color: CHART_THEME.crosshairLineHorz,
+          style: LineStyle.Dotted,
+          width: 1,
+          labelBackgroundColor: CHART_THEME.crosshairLabel,
         },
       },
       rightPriceScale: {
-        borderColor: CHART_THEME.gridLines,
+        borderColor: CHART_THEME.scaleBorder,
         scaleMargins: {
           top: 0.1,
-          bottom: 0.2, // Leave room for volume
+          bottom: 0.2,
         },
       },
       timeScale: {
-        borderColor: CHART_THEME.gridLines,
+        borderColor: CHART_THEME.scaleBorder,
         timeVisible: true,
         secondsVisible: false,
+      },
+      localization: {
+        priceFormatter: (price: number) => {
+          if (price >= 1000000) return `${(price / 1000000).toFixed(2)}M`;
+          if (price >= 10000) return price.toFixed(0);
+          if (price >= 1) return price.toFixed(2);
+          return price.toFixed(4);
+        },
       },
       handleScroll: {
         mouseWheel: true,
@@ -166,11 +195,12 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
 
     resizeObserverRef.current.observe(chartContainerRef.current);
 
-    // Subscribe to crosshair movement to track price at cursor
+    // Subscribe to crosshair movement to track price at cursor and update legend
     chart.subscribeCrosshairMove((param) => {
       if (!param || !param.point || !mainSeriesRef.current) {
         crosshairPriceRef.current = null;
         onCrosshairPriceChange?.(null);
+        setLegendData(null);
         return;
       }
 
@@ -181,6 +211,32 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
         const price = 'close' in seriesData ? seriesData.close : ('value' in seriesData ? seriesData.value : null);
         crosshairPriceRef.current = price as number | null;
         onCrosshairPriceChange?.(price as number | null);
+
+        // Update legend with full OHLCV data
+        if ('open' in seriesData && 'high' in seriesData && 'low' in seriesData && 'close' in seriesData) {
+          // Find volume from volume series data
+          const volumeData = volumeSeriesRef.current ? param.seriesData.get(volumeSeriesRef.current) : null;
+          const volume = volumeData && 'value' in volumeData ? volumeData.value : undefined;
+
+          setLegendData({
+            time: param.time as number,
+            open: seriesData.open as number,
+            high: seriesData.high as number,
+            low: seriesData.low as number,
+            close: seriesData.close as number,
+            volume: volume as number | undefined,
+          });
+        } else if ('value' in seriesData) {
+          // Line/Area chart - use value for all OHLC
+          const val = seriesData.value as number;
+          setLegendData({
+            time: param.time as number,
+            open: val,
+            high: val,
+            low: val,
+            close: val,
+          });
+        }
       }
     });
 
@@ -357,7 +413,9 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
         const series = chart.addSeries(CandlestickSeries, {
           upColor: CHART_THEME.upColor,
           downColor: CHART_THEME.downColor,
-          borderVisible: false,
+          borderVisible: true,
+          borderUpColor: CHART_THEME.upColor,
+          borderDownColor: CHART_THEME.downColor,
           wickUpColor: CHART_THEME.upColor,
           wickDownColor: CHART_THEME.downColor,
         });
@@ -498,6 +556,14 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
         className={className}
         style={{ width: "100%", height: "100%" }}
       />
+
+      {/* OHLCV Legend - TradingView style */}
+      <ChartLegend
+        symbol={activeSymbol}
+        data={legendData}
+        prevClose={prevClose}
+      />
+
       {/* Ticker Symbol Watermark - on top with pointer-events: none */}
       <div
         className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
@@ -507,7 +573,7 @@ export function TradingChart({ className, onCrosshairPriceChange, crosshairPrice
           className="font-extrabold"
           style={{
             fontSize: 'clamp(1.8rem, 6.6vw, 5.4rem)',
-            color: 'rgba(255, 255, 255, 0.12)',
+            color: 'rgba(255, 255, 255, 0.08)',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             letterSpacing: '0.25em',
             transform: 'translateX(5%)',
