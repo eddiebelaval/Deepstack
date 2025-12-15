@@ -223,6 +223,18 @@ export function HomeWidgets() {
         resetCustom,
     } = useMarketWatchStore();
 
+    // Clamp category indices to valid ranges (handles localStorage with old indices)
+    const safeCategoryIndex = useMemo(() => {
+        const marketCategories = getCategoriesForTab('market');
+        const cryptoCategories = getCategoriesForTab('crypto');
+        const etfsCategories = getCategoriesForTab('etfs');
+        return {
+            market: Math.min(selectedCategoryIndex.market, Math.max(0, marketCategories.length - 1)),
+            crypto: Math.min(selectedCategoryIndex.crypto, Math.max(0, cryptoCategories.length - 1)),
+            etfs: Math.min(selectedCategoryIndex.etfs, Math.max(0, etfsCategories.length - 1)),
+        };
+    }, [selectedCategoryIndex]);
+
     const {
         getActiveWatchlist,
         removeSymbol: removeWatchlistSymbol,
@@ -272,20 +284,20 @@ export function HomeWidgets() {
 
     // Determine symbols based on tab - category-based for market/crypto/etfs, list-based for others
     const symbols = useMemo(() => {
-        // Category-based tabs: get symbols from selected category
+        // Category-based tabs: get symbols from selected category (using safe clamped indices)
         if (activeTab === 'market') {
-            return getSymbolsForCategory('market', selectedCategoryIndex.market);
+            return getSymbolsForCategory('market', safeCategoryIndex.market);
         }
         if (activeTab === 'crypto') {
-            return getSymbolsForCategory('crypto', selectedCategoryIndex.crypto);
+            return getSymbolsForCategory('crypto', safeCategoryIndex.crypto);
         }
         if (activeTab === 'etfs') {
-            return getSymbolsForCategory('etfs', selectedCategoryIndex.etfs);
+            return getSymbolsForCategory('etfs', safeCategoryIndex.etfs);
         }
         // List-based tabs
         if (activeTab === 'custom') return custom;
         return activeWatchlist?.items.map(i => i.symbol).slice(0, 8) || [];
-    }, [activeTab, activeWatchlist, custom, selectedCategoryIndex]);
+    }, [activeTab, activeWatchlist, custom, safeCategoryIndex]);
 
     // Initialize visibility when symbols change
     useEffect(() => {
@@ -652,7 +664,7 @@ export function HomeWidgets() {
                                 description: cat.description,
                                 color: cat.color,
                             }))}
-                            categoryIndex={selectedCategoryIndex[activeTab]}
+                            categoryIndex={safeCategoryIndex[activeTab]}
                             onCategoryChange={(idx) => setSelectedCategory(activeTab as 'market' | 'crypto' | 'etfs', idx)}
                             activeAssets={seriesMetrics
                                 .filter((m): m is NonNullable<typeof m> => m !== null)
