@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { CommandPalette } from './CommandPalette';
 import { cn } from '@/lib/utils';
+import { FirewallStatusDot, useFirewallGlow } from '@/components/emotional-firewall';
 
 type ChatInputProps = {
   onSend: (message: string) => void;
@@ -28,6 +29,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { isMobile } = useIsMobile();
+  const { glowClass } = useFirewallGlow();
 
   const handleCommand = useCallback(async (command: string) => {
     // Populate input for visual feedback
@@ -145,7 +147,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           </Button>
         )}
 
-        <div className="flex-1 relative">
+        <div className={cn("flex-1 relative rounded-xl transition-shadow duration-500", glowClass)}>
           <Textarea
             ref={textareaRef}
             value={input}
@@ -156,7 +158,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             inputMode="text"
             enterKeyHint="send"
             className={cn(
-              "resize-none rounded-xl bg-primary/8 border border-primary/20 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary shadow-[inset_0_0_12px_rgba(178,120,50,0.15),0_0_8px_rgba(178,120,50,0.1)] scrollbar-hide whitespace-pre-wrap break-all",
+              "resize-none rounded-xl bg-primary/8 border border-primary/20 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary scrollbar-hide whitespace-pre-wrap break-all",
               isMobile
                 ? "min-h-[40px] max-h-[120px] px-3 py-2 text-base"
                 : "min-h-[44px] max-h-[200px] px-4 py-3"
@@ -171,6 +173,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             />
           )}
         </div>
+
+        {/* Firewall Status Dot - subtle indicator */}
+        {isMobile && (
+          <FirewallStatusDot size="sm" className="shrink-0" />
+        )}
 
         <Button
           onClick={handleSubmit}

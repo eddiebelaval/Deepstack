@@ -686,6 +686,46 @@ body:has(.landing-page) > div > div > div {
     0 0 12px oklch(0.60 0.20 25 / 20%);
 }
 
+/* ===========================================
+   EMOTIONAL FIREWALL - Subtle Status Glows
+   =========================================== */
+
+/* Safe state - subtle green ambient glow */
+.firewall-glow-safe {
+  box-shadow:
+    inset 0 0 20px oklch(0.55 0.15 145 / 8%),
+    0 0 15px oklch(0.55 0.15 145 / 6%);
+}
+
+/* Warning state - warm amber glow (matches existing ds-glow) */
+.firewall-glow-warning {
+  box-shadow:
+    inset 0 0 25px oklch(0.65 0.18 85 / 12%),
+    0 0 20px oklch(0.65 0.18 85 / 10%);
+}
+
+/* Blocked state - red alert glow */
+.firewall-glow-blocked {
+  box-shadow:
+    inset 0 0 30px oklch(0.55 0.20 25 / 15%),
+    0 0 25px oklch(0.55 0.20 25 / 12%);
+}
+
+/* Animated pulse for warning/blocked states */
+@keyframes firewall-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.firewall-glow-warning,
+.firewall-glow-blocked {
+  animation: firewall-pulse 3s ease-in-out infinite;
+}
+
 /* Dissolving Edge Gradients */
 .led-fade-left {
   background: linear-gradient(90deg,
