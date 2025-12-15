@@ -120,10 +120,13 @@ export function MobileSwipeNavigation({
     [currentPage, pageCount, navigateToPage]
   );
 
-  // Initialize position
+  // Initialize position on mount and sync when currentPage changes externally
   useEffect(() => {
-    controls.set({ x: -currentPage * 100 + '%' });
-  }, []);
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      controls.set({ x: -currentPage * 100 + '%' });
+    });
+  }, [controls, currentPage]);
 
   // Expose navigation method via ref or context
   useEffect(() => {
@@ -143,9 +146,10 @@ export function MobileSwipeNavigation({
     <div
       ref={containerRef}
       className={cn(
-        "relative w-full h-full overflow-hidden",
+        "relative w-full h-full overflow-hidden select-none",
         className
       )}
+      style={{ touchAction: 'pan-y pinch-zoom' }}
     >
       {/* Page Indicator Dots - dynamically based on actual page count */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex gap-1.5">
@@ -166,8 +170,12 @@ export function MobileSwipeNavigation({
 
       {/* Swipeable Pages Container */}
       <motion.div
-        className="flex h-full"
-        style={{ width: `${pageCount * 100}%` }}
+        className="flex h-full touch-pan-y"
+        style={{
+          width: `${pageCount * 100}%`,
+          touchAction: 'pan-y', // Allow vertical scroll inside, but let horizontal swipe through
+        }}
+        initial={{ x: `-${initialPage * 100}%` }}
         animate={controls}
         drag="x"
         dragConstraints={{
@@ -175,6 +183,7 @@ export function MobileSwipeNavigation({
           right: 0,
         }}
         dragElastic={0.1}
+        dragTransition={{ bounceStiffness: 300, bounceDamping: 30 }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
@@ -209,8 +218,11 @@ export function MobileSwipeNavigation({
               />
             )}
 
-            {/* Page Content */}
-            <div className="h-full w-full overflow-hidden">
+            {/* Page Content - touch-action allows vertical scroll but lets horizontal swipe bubble up */}
+            <div
+              className="h-full w-full overflow-hidden"
+              style={{ touchAction: 'pan-y' }}
+            >
               {child}
             </div>
           </div>
