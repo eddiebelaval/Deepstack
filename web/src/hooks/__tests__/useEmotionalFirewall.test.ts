@@ -6,43 +6,45 @@ import { useEmotionalFirewall } from '../useEmotionalFirewall';
 const mockFetch = vi.fn();
 
 describe('useEmotionalFirewall', () => {
-  const mockSafeStatus = {
-    blocked: false,
-    status: 'safe',
+  const mockFocusedStatus = {
+    compromised: false,
+    status: 'focused',
     patterns_detected: [],
     reasons: [],
-    stats: {
-      trades_today: 5,
-      pnl_today: 150,
-      winning_streak: 2,
-      losing_streak: 0,
+    break_recommended_until: null,
+    session: {
+      duration_minutes: 30,
+      started_at: new Date().toISOString(),
+      queries_this_session: 5,
+      sessions_today: 2,
     },
   };
 
-  const mockWarningStatus = {
-    blocked: false,
-    status: 'warning',
-    patterns_detected: ['revenge_trading'],
-    reasons: ['Multiple losses in short period'],
-    stats: {
-      trades_today: 10,
-      pnl_today: -200,
-      winning_streak: 0,
-      losing_streak: 3,
+  const mockCautionStatus = {
+    compromised: false,
+    status: 'caution',
+    patterns_detected: ['session_fatigue'],
+    reasons: ['Long session (125 min) - consider a break to maintain clarity'],
+    break_recommended_until: null,
+    session: {
+      duration_minutes: 125,
+      started_at: new Date().toISOString(),
+      queries_this_session: 20,
+      sessions_today: 3,
     },
   };
 
-  const mockBlockedStatus = {
-    blocked: true,
-    status: 'blocked',
-    patterns_detected: ['tilt', 'overtrading'],
-    reasons: ['Daily loss limit exceeded', 'Too many trades'],
-    cooldown_expires: new Date(Date.now() + 3600000).toISOString(),
-    stats: {
-      trades_today: 20,
-      pnl_today: -500,
-      winning_streak: 0,
-      losing_streak: 5,
+  const mockCompromisedStatus = {
+    compromised: true,
+    status: 'compromised',
+    patterns_detected: ['late_night', 'extended_session'],
+    reasons: ['Late night session', 'Extended session (200 min)'],
+    break_recommended_until: new Date(Date.now() + 3600000).toISOString(),
+    session: {
+      duration_minutes: 200,
+      started_at: new Date().toISOString(),
+      queries_this_session: 50,
+      sessions_today: 5,
     },
   };
 
@@ -52,7 +54,7 @@ describe('useEmotionalFirewall', () => {
     global.fetch = mockFetch;
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockSafeStatus),
+      json: () => Promise.resolve(mockFocusedStatus),
     });
   });
 
@@ -86,65 +88,87 @@ describe('useEmotionalFirewall', () => {
   });
 
   describe('status parsing', () => {
-    it('should parse safe status correctly', async () => {
+    it('should parse focused status correctly', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(mockSafeStatus),
+        json: () => Promise.resolve(mockFocusedStatus),
       });
 
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
-        expect(result.current.isSafe).toBe(true);
-        expect(result.current.isWarning).toBe(false);
-        expect(result.current.isBlocked).toBe(false);
+        expect(result.current.isFocused).toBe(true);
+        expect(result.current.isSafe).toBe(true); // backward compat
+        expect(result.current.isCaution).toBe(false);
+        expect(result.current.isWarning).toBe(false); // backward compat
+        expect(result.current.isCompromised).toBe(false);
+        expect(result.current.isBlocked).toBe(false); // backward compat
       });
     });
 
-    it('should parse warning status correctly', async () => {
+    it('should parse caution status correctly', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(mockWarningStatus),
+        json: () => Promise.resolve(mockCautionStatus),
       });
 
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
-        expect(result.current.isSafe).toBe(false);
-        expect(result.current.isWarning).toBe(true);
-        expect(result.current.isBlocked).toBe(false);
-        expect(result.current.patterns).toContain('revenge_trading');
+        expect(result.current.isFocused).toBe(false);
+        expect(result.current.isCaution).toBe(true);
+        expect(result.current.isWarning).toBe(true); // backward compat
+        expect(result.current.isCompromised).toBe(false);
+        expect(result.current.patterns).toContain('session_fatigue');
       });
     });
 
-    it('should parse blocked status correctly', async () => {
+    it('should parse compromised status correctly', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(mockBlockedStatus),
+        json: () => Promise.resolve(mockCompromisedStatus),
       });
 
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
-        expect(result.current.isSafe).toBe(false);
-        expect(result.current.isWarning).toBe(false);
-        expect(result.current.isBlocked).toBe(true);
-        expect(result.current.patterns).toContain('tilt');
-        expect(result.current.patterns).toContain('overtrading');
+        expect(result.current.isFocused).toBe(false);
+        expect(result.current.isCaution).toBe(false);
+        expect(result.current.isCompromised).toBe(true);
+        expect(result.current.isBlocked).toBe(true); // backward compat
+        expect(result.current.patterns).toContain('late_night');
+        expect(result.current.patterns).toContain('extended_session');
       });
     });
 
-    it('should calculate cooldown remaining', async () => {
+    it('should calculate break remaining', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(mockBlockedStatus),
+        json: () => Promise.resolve(mockCompromisedStatus),
       });
 
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
-        expect(result.current.cooldownRemaining).toBeGreaterThan(0);
-        expect(result.current.cooldownRemaining).toBeLessThanOrEqual(3600000);
+        expect(result.current.breakRemaining).toBeGreaterThan(0);
+        expect(result.current.breakRemaining).toBeLessThanOrEqual(3600000);
+        expect(result.current.cooldownRemaining).toBeGreaterThan(0); // backward compat
+      });
+    });
+
+    it('should return session data', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockFocusedStatus),
+      });
+
+      const { result } = renderHook(() => useEmotionalFirewall());
+
+      await waitFor(() => {
+        expect(result.current.session).not.toBeNull();
+        expect(result.current.session?.duration_minutes).toBe(30);
+        expect(result.current.session?.queries_this_session).toBe(5);
+        expect(result.current.session?.sessions_today).toBe(2);
       });
     });
   });
@@ -159,7 +183,7 @@ describe('useEmotionalFirewall', () => {
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
-        expect(result.current.error).toBe('Failed to fetch firewall status');
+        expect(result.current.error).toBe('Failed to fetch decision fitness status');
         expect(result.current.loading).toBe(false);
       });
     });
@@ -187,8 +211,8 @@ describe('useEmotionalFirewall', () => {
     });
   });
 
-  describe('checkTrade', () => {
-    it('should check if trade would be blocked', async () => {
+  describe('recordQuery', () => {
+    it('should record a query interaction', async () => {
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
@@ -197,26 +221,22 @@ describe('useEmotionalFirewall', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockWarningStatus),
+        json: () => Promise.resolve({ success: true, ...mockFocusedStatus }),
       });
 
       await act(async () => {
-        const checkResult = await result.current.checkTrade('AAPL', 100);
-        expect(checkResult.status).toBe('warning');
+        const recordResult = await result.current.recordQuery();
+        expect(recordResult?.status).toBe('focused');
       });
 
       expect(mockFetch).toHaveBeenCalledWith('/api/emotional-firewall/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'check_trade',
-          symbol: 'AAPL',
-          size: 100,
-        }),
+        body: JSON.stringify({ action: 'record_query' }),
       });
     });
 
-    it('should throw on check trade error', async () => {
+    it('should handle record query error gracefully', async () => {
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
@@ -228,16 +248,17 @@ describe('useEmotionalFirewall', () => {
         status: 500,
       });
 
-      await expect(
-        act(async () => {
-          await result.current.checkTrade('AAPL', 100);
-        })
-      ).rejects.toThrow('Failed to check trade');
+      await act(async () => {
+        const recordResult = await result.current.recordQuery();
+        expect(recordResult).toBeNull();
+      });
+
+      expect(result.current.error).toBe('Failed to record query');
     });
   });
 
-  describe('recordTrade', () => {
-    it('should record a completed trade', async () => {
+  describe('startSession', () => {
+    it('should start a new session', async () => {
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
@@ -246,50 +267,23 @@ describe('useEmotionalFirewall', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({}),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await act(async () => {
-        await result.current.recordTrade('AAPL', 50, 100);
+        await result.current.startSession();
       });
 
       expect(mockFetch).toHaveBeenCalledWith('/api/emotional-firewall/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'record_trade',
-          symbol: 'AAPL',
-          pnl: 50,
-          size: 100,
-        }),
+        body: JSON.stringify({ action: 'start_session' }),
       });
-    });
-
-    it('should refresh status after recording', async () => {
-      const { result } = renderHook(() => useEmotionalFirewall());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      const fetchCountBefore = mockFetch.mock.calls.length;
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
-
-      await act(async () => {
-        await result.current.recordTrade('AAPL', 50);
-      });
-
-      // Should have called fetch twice more: once for record, once for refresh
-      expect(mockFetch.mock.calls.length).toBeGreaterThan(fetchCountBefore);
     });
   });
 
-  describe('clearCooldown', () => {
-    it('should clear active cooldown', async () => {
+  describe('endSession', () => {
+    it('should end current session', async () => {
       const { result } = renderHook(() => useEmotionalFirewall());
 
       await waitFor(() => {
@@ -298,17 +292,67 @@ describe('useEmotionalFirewall', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({}),
+        json: () => Promise.resolve({ success: true }),
       });
 
       await act(async () => {
-        await result.current.clearCooldown();
+        await result.current.endSession();
       });
 
       expect(mockFetch).toHaveBeenCalledWith('/api/emotional-firewall/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clear_cooldown' }),
+        body: JSON.stringify({ action: 'end_session' }),
+      });
+    });
+  });
+
+  describe('takeBreak', () => {
+    it('should acknowledge break', async () => {
+      const { result } = renderHook(() => useEmotionalFirewall());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await act(async () => {
+        await result.current.takeBreak();
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/emotional-firewall/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'take_break' }),
+      });
+    });
+  });
+
+  describe('dismissBreak', () => {
+    it('should dismiss break recommendation', async () => {
+      const { result } = renderHook(() => useEmotionalFirewall());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await act(async () => {
+        await result.current.dismissBreak();
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/emotional-firewall/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss_break' }),
       });
     });
   });
@@ -335,7 +379,7 @@ describe('useEmotionalFirewall', () => {
     it('should return empty arrays for patterns and reasons when null', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ blocked: false, status: 'safe' }),
+        json: () => Promise.resolve({ compromised: false, status: 'focused' }),
       });
 
       const { result } = renderHook(() => useEmotionalFirewall());
@@ -348,10 +392,10 @@ describe('useEmotionalFirewall', () => {
       expect(result.current.reasons).toEqual([]);
     });
 
-    it('should return null stats when not available', async () => {
+    it('should return null session when not available', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ blocked: false, status: 'safe' }),
+        json: () => Promise.resolve({ compromised: false, status: 'focused' }),
       });
 
       const { result } = renderHook(() => useEmotionalFirewall());
@@ -360,7 +404,14 @@ describe('useEmotionalFirewall', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(result.current.stats).toBeNull();
+      expect(result.current.session).toBeNull();
+    });
+  });
+
+  describe('useDecisionFitness alias', () => {
+    it('should export useDecisionFitness as an alias', async () => {
+      const { useDecisionFitness } = await import('../useEmotionalFirewall');
+      expect(useDecisionFitness).toBe(useEmotionalFirewall);
     });
   });
 });

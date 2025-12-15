@@ -1,28 +1,29 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { FirewallCheckResult } from '@/app/api/emotional-firewall/check/route';
+import type { DecisionFitnessResult } from '@/app/api/emotional-firewall/check/route';
 
-interface UseEmotionalFirewallOptions {
+interface UseDecisionFitnessOptions {
   pollInterval?: number; // ms, default 30000 (30 seconds)
   enabled?: boolean;
+  autoRecordQueries?: boolean; // Auto-record queries on status check
 }
 
-export function useEmotionalFirewall(options: UseEmotionalFirewallOptions = {}) {
+export function useEmotionalFirewall(options: UseDecisionFitnessOptions = {}) {
   const { pollInterval = 30000, enabled = true } = options;
 
-  const [status, setStatus] = useState<FirewallCheckResult | null>(null);
+  const [status, setStatus] = useState<DecisionFitnessResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch current firewall status
+  // Fetch current decision fitness status
   const checkStatus = useCallback(async () => {
     if (!enabled) return;
 
     try {
       const response = await fetch('/api/emotional-firewall/check');
       if (!response.ok) {
-        throw new Error('Failed to fetch firewall status');
+        throw new Error('Failed to fetch decision fitness status');
       }
       const data = await response.json();
       setStatus(data);
@@ -34,67 +35,102 @@ export function useEmotionalFirewall(options: UseEmotionalFirewallOptions = {}) 
     }
   }, [enabled]);
 
-  // Check if a specific trade would be blocked
-  const checkTrade = useCallback(
-    async (symbol: string, size?: number): Promise<FirewallCheckResult> => {
+  // Record a query/interaction (tracks engagement patterns)
+  const recordQuery = useCallback(async (): Promise<DecisionFitnessResult | null> => {
+    try {
       const response = await fetch('/api/emotional-firewall/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'check_trade',
-          symbol,
-          size,
-        }),
+        body: JSON.stringify({ action: 'record_query' }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to check trade');
+        throw new Error('Failed to record query');
       }
 
       const result = await response.json();
       setStatus(result);
       return result;
-    },
-    []
-  );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    }
+  }, []);
 
-  // Record a completed trade
-  const recordTrade = useCallback(
-    async (symbol: string, pnl: number, size?: number) => {
+  // Start a new research session
+  const startSession = useCallback(async () => {
+    try {
       const response = await fetch('/api/emotional-firewall/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'record_trade',
-          symbol,
-          pnl,
-          size,
-        }),
+        body: JSON.stringify({ action: 'start_session' }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to record trade');
+        throw new Error('Failed to start session');
       }
 
-      // Refresh status after recording
       await checkStatus();
-    },
-    [checkStatus]
-  );
-
-  // Clear active cooldown (admin action)
-  const clearCooldown = useCallback(async () => {
-    const response = await fetch('/api/emotional-firewall/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'clear_cooldown' }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to clear cooldown');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
+  }, [checkStatus]);
 
-    await checkStatus();
+  // End current session
+  const endSession = useCallback(async () => {
+    try {
+      const response = await fetch('/api/emotional-firewall/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'end_session' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to end session');
+      }
+
+      await checkStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }, [checkStatus]);
+
+  // User takes a recommended break
+  const takeBreak = useCallback(async () => {
+    try {
+      const response = await fetch('/api/emotional-firewall/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'take_break' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start break');
+      }
+
+      await checkStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }, [checkStatus]);
+
+  // User dismisses break recommendation (continues anyway)
+  const dismissBreak = useCallback(async () => {
+    try {
+      const response = await fetch('/api/emotional-firewall/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss_break' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to dismiss break');
+      }
+
+      await checkStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
   }, [checkStatus]);
 
   // Initial fetch and polling
@@ -107,12 +143,16 @@ export function useEmotionalFirewall(options: UseEmotionalFirewallOptions = {}) 
     }
   }, [checkStatus, enabled, pollInterval]);
 
-  // Computed values
-  const isBlocked = status?.blocked ?? false;
-  const isWarning = status?.status === 'warning';
-  const isSafe = status?.status === 'safe';
-  const cooldownRemaining = status?.cooldown_expires
-    ? Math.max(0, new Date(status.cooldown_expires).getTime() - Date.now())
+  // Computed values - maintain backward compatibility with old naming
+  const isBlocked = status?.compromised ?? false;
+  const isCompromised = status?.compromised ?? false;
+  const isWarning = status?.status === 'caution';
+  const isCaution = status?.status === 'caution';
+  const isSafe = status?.status === 'focused';
+  const isFocused = status?.status === 'focused';
+
+  const breakRemaining = status?.break_recommended_until
+    ? Math.max(0, new Date(status.break_recommended_until).getTime() - Date.now())
     : null;
 
   return {
@@ -121,21 +161,37 @@ export function useEmotionalFirewall(options: UseEmotionalFirewallOptions = {}) 
     loading,
     error,
 
-    // Computed
+    // Computed - new naming
+    isCompromised,
+    isCaution,
+    isFocused,
+    breakRemaining,
+
+    // Computed - backward compatible
     isBlocked,
     isWarning,
     isSafe,
-    cooldownRemaining,
+    cooldownRemaining: breakRemaining,
+
+    // Patterns and reasons
     patterns: status?.patterns_detected ?? [],
     reasons: status?.reasons ?? [],
-    stats: status?.stats ?? null,
+    session: status?.session ?? null,
 
     // Actions
     checkStatus,
-    checkTrade,
-    recordTrade,
-    clearCooldown,
+    recordQuery,
+    startSession,
+    endSession,
+    takeBreak,
+    dismissBreak,
   };
 }
 
-export type { FirewallCheckResult };
+// Alias for clearer naming
+export const useDecisionFitness = useEmotionalFirewall;
+
+export type { DecisionFitnessResult };
+
+// Re-export for backward compatibility
+export type FirewallCheckResult = DecisionFitnessResult;

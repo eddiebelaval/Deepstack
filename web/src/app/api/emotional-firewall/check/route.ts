@@ -1,291 +1,275 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Types matching Python emotional_firewall.py
-export interface FirewallCheckResult {
-  blocked: boolean;
+// Decision Fitness Firewall - Protects cognitive state for quality decisions
+// Works for any market: stocks, crypto, prediction markets, etc.
+
+export interface DecisionFitnessResult {
+  compromised: boolean;
   reasons: string[];
   patterns_detected: string[];
-  cooldown_expires: string | null;
-  status: 'safe' | 'warning' | 'blocked';
-  stats: {
-    trades_today: number;
-    trades_this_hour: number;
-    current_streak: number;
-    streak_type: 'win' | 'loss' | null;
-    last_trade_pnl: number | null;
+  break_recommended_until: string | null;
+  status: 'focused' | 'caution' | 'compromised';
+  session: {
+    duration_minutes: number;
+    started_at: string | null;
+    queries_this_session: number;
+    sessions_today: number;
   };
 }
 
-// In-memory state (in production, this would come from Python backend)
-// For MVP, we'll track locally and can connect to Python later
-let tradeHistory: Array<{
-  symbol: string;
-  pnl: number;
-  timestamp: Date;
-  size?: number;
-}> = [];
+// Session state
+let sessionStarted: Date | null = null;
+let sessionQueries: number = 0;
+let sessionsToday: number = 0;
+let lastSessionDate: string | null = null;
+let breakRecommendedUntil: Date | null = null;
+let breakReason: string | null = null;
 
-let cooldownExpires: Date | null = null;
-let cooldownReason: string | null = null;
+// Configurable thresholds
+const FATIGUE_THRESHOLD_MINUTES = 120; // 2 hours continuous
+const EXTENDED_SESSION_MINUTES = 180; // 3 hours - recommend break
+const LATE_NIGHT_START = 23; // 11 PM
+const LATE_NIGHT_END = 5; // 5 AM
+const MAX_SESSIONS_PER_DAY = 6; // Suggesting breaks between sessions
+const RAPID_QUERY_THRESHOLD = 10; // Queries in short window
+const RAPID_QUERY_WINDOW_MINUTES = 5;
 
-// Constants matching Python firewall
-const REVENGE_WINDOW_MINUTES = 30;
-const HOURLY_TRADE_LIMIT = 3;
-const DAILY_TRADE_LIMIT = 10;
-const LATE_NIGHT_HOUR = 20; // 8 PM
-const EARLY_MORNING_HOUR = 6; // 6 AM
-const LOSS_STREAK_LIMIT = 5;
-const WIN_STREAK_LIMIT = 5;
+// Break durations (minutes)
+const FATIGUE_BREAK = 30;
+const LATE_NIGHT_BREAK = 480; // Until morning
+const OVERLOAD_BREAK = 60;
 
-// Cooldown durations (minutes)
-const REVENGE_COOLDOWN = 60;
-const OVERTRADING_COOLDOWN = 240;
-const STREAK_COOLDOWN = 180;
-
-function isWeekend(date: Date): boolean {
-  const day = date.getDay();
-  return day === 0 || day === 6;
-}
+// Query timestamps for rapid-fire detection
+let recentQueries: Date[] = [];
 
 function isLateNight(date: Date): boolean {
   const hour = date.getHours();
-  return hour >= LATE_NIGHT_HOUR || hour < EARLY_MORNING_HOUR;
+  return hour >= LATE_NIGHT_START || hour < LATE_NIGHT_END;
 }
 
-function getRecentTrades(windowMinutes: number): typeof tradeHistory {
+function getSessionDurationMinutes(): number {
+  if (!sessionStarted) return 0;
+  return Math.floor((Date.now() - sessionStarted.getTime()) / (60 * 1000));
+}
+
+function getRecentQueryCount(windowMinutes: number): number {
   const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
-  return tradeHistory.filter((t) => t.timestamp >= cutoff);
+  recentQueries = recentQueries.filter(q => q >= cutoff);
+  return recentQueries.length;
 }
 
-function getTodaysTrades(): typeof tradeHistory {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return tradeHistory.filter((t) => t.timestamp >= today);
-}
-
-function getCurrentStreak(): { type: 'win' | 'loss' | null; count: number } {
-  if (tradeHistory.length === 0) {
-    return { type: null, count: 0 };
+function checkTodayReset() {
+  const today = new Date().toDateString();
+  if (lastSessionDate !== today) {
+    sessionsToday = 0;
+    lastSessionDate = today;
   }
-
-  const sorted = [...tradeHistory].sort(
-    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-  );
-  const firstType = sorted[0].pnl >= 0 ? 'win' : 'loss';
-  let count = 0;
-
-  for (const trade of sorted) {
-    const tradeType = trade.pnl >= 0 ? 'win' : 'loss';
-    if (tradeType === firstType) {
-      count++;
-    } else {
-      break;
-    }
-  }
-
-  return { type: firstType, count };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function checkFirewall(_symbol?: string, _positionSize?: number): FirewallCheckResult {
+function checkDecisionFitness(): DecisionFitnessResult {
   const now = new Date();
   const reasons: string[] = [];
   const patterns: string[] = [];
 
-  // Check if in cooldown
-  if (cooldownExpires && cooldownExpires > now) {
+  // Check if break is still active
+  if (breakRecommendedUntil && breakRecommendedUntil > now) {
     return {
-      blocked: true,
-      reasons: [`Active cooldown: ${cooldownReason}`],
+      compromised: true,
+      reasons: [`Break recommended: ${breakReason}`],
       patterns_detected: [],
-      cooldown_expires: cooldownExpires.toISOString(),
-      status: 'blocked',
-      stats: getStats(),
+      break_recommended_until: breakRecommendedUntil.toISOString(),
+      status: 'compromised',
+      session: getSessionStats(),
     };
   } else {
-    // Clear expired cooldown
-    cooldownExpires = null;
-    cooldownReason = null;
+    breakRecommendedUntil = null;
+    breakReason = null;
   }
 
-  // Check weekend trading
-  if (isWeekend(now)) {
-    patterns.push('weekend_trading');
-    reasons.push('Weekend trading blocked');
-  }
+  checkTodayReset();
 
-  // Check late night trading
+  // Pattern: Late night research
   if (isLateNight(now)) {
-    patterns.push('late_night_trading');
-    reasons.push(`Late night trading blocked (after ${LATE_NIGHT_HOUR}:00)`);
+    patterns.push('late_night');
+    reasons.push('Late night session - decision quality typically declines after 11 PM');
   }
 
-  // Check revenge trading (trade within 30 min of loss)
-  const recentTrades = getRecentTrades(REVENGE_WINDOW_MINUTES);
-  const recentLoss = recentTrades.find((t) => t.pnl < 0);
-  if (recentLoss) {
-    patterns.push('revenge_trading');
-    reasons.push(
-      `Revenge trading detected (trade within ${REVENGE_WINDOW_MINUTES} min of loss)`
-    );
+  // Pattern: Session fatigue
+  const sessionMinutes = getSessionDurationMinutes();
+  if (sessionMinutes >= EXTENDED_SESSION_MINUTES) {
+    patterns.push('extended_session');
+    reasons.push(`Extended session (${sessionMinutes} min) - mental fatigue impacts analysis quality`);
+  } else if (sessionMinutes >= FATIGUE_THRESHOLD_MINUTES) {
+    patterns.push('session_fatigue');
+    reasons.push(`Long session (${sessionMinutes} min) - consider a break to maintain clarity`);
   }
 
-  // Check overtrading
-  const hourlyTrades = getRecentTrades(60);
-  const dailyTrades = getTodaysTrades();
-
-  if (hourlyTrades.length >= HOURLY_TRADE_LIMIT) {
-    patterns.push('overtrading');
-    reasons.push(
-      `Overtrading: ${hourlyTrades.length} trades this hour (limit: ${HOURLY_TRADE_LIMIT})`
-    );
+  // Pattern: Rapid-fire queries (potential FOMO/panic)
+  const rapidQueries = getRecentQueryCount(RAPID_QUERY_WINDOW_MINUTES);
+  if (rapidQueries >= RAPID_QUERY_THRESHOLD) {
+    patterns.push('rapid_queries');
+    reasons.push('Rapid query pattern detected - rushing analysis often leads to missed details');
   }
 
-  if (dailyTrades.length >= DAILY_TRADE_LIMIT) {
-    patterns.push('overtrading');
-    reasons.push(
-      `Daily limit reached: ${dailyTrades.length} trades today (limit: ${DAILY_TRADE_LIMIT})`
-    );
+  // Pattern: Session overload (too many sessions today)
+  if (sessionsToday >= MAX_SESSIONS_PER_DAY) {
+    patterns.push('session_overload');
+    reasons.push(`High session count today (${sessionsToday}) - mental bandwidth may be depleted`);
   }
 
-  // Check streaks
-  const streak = getCurrentStreak();
-  if (streak.type === 'loss' && streak.count >= LOSS_STREAK_LIMIT) {
-    patterns.push('loss_streak');
-    reasons.push(`Loss streak: ${streak.count} consecutive losses`);
-  }
+  // Determine if compromised (multiple patterns or severe single pattern)
+  const severePatterns = ['extended_session', 'late_night'];
+  const hasSeverePattern = patterns.some(p => severePatterns.includes(p));
+  const compromised = patterns.length >= 2 || hasSeverePattern;
 
-  if (streak.type === 'win' && streak.count >= WIN_STREAK_LIMIT) {
-    patterns.push('win_streak');
-    reasons.push(
-      `Win streak warning: ${streak.count} consecutive wins (overconfidence risk)`
-    );
-  }
+  // Set recommended break if compromised
+  if (compromised) {
+    let breakMinutes = FATIGUE_BREAK;
 
-  const blocked = patterns.length > 0;
-
-  // Set cooldown if blocked
-  if (blocked) {
-    let cooldownMinutes = REVENGE_COOLDOWN;
-    if (patterns.includes('overtrading')) {
-      cooldownMinutes = OVERTRADING_COOLDOWN;
-    }
-    if (patterns.includes('loss_streak') || patterns.includes('win_streak')) {
-      cooldownMinutes = STREAK_COOLDOWN;
+    if (patterns.includes('late_night')) {
+      // Calculate minutes until 6 AM
+      const sixAM = new Date(now);
+      sixAM.setHours(LATE_NIGHT_END + 1, 0, 0, 0);
+      if (sixAM <= now) {
+        sixAM.setDate(sixAM.getDate() + 1);
+      }
+      breakMinutes = Math.ceil((sixAM.getTime() - now.getTime()) / (60 * 1000));
+    } else if (patterns.includes('extended_session')) {
+      breakMinutes = OVERLOAD_BREAK;
     }
 
-    cooldownExpires = new Date(now.getTime() + cooldownMinutes * 60 * 1000);
-    cooldownReason = patterns.join(', ');
+    breakRecommendedUntil = new Date(now.getTime() + breakMinutes * 60 * 1000);
+    breakReason = patterns.join(', ');
   }
 
   // Determine status
-  let status: 'safe' | 'warning' | 'blocked' = 'safe';
-  if (blocked) {
-    status = 'blocked';
-  } else if (
-    hourlyTrades.length >= HOURLY_TRADE_LIMIT - 1 ||
-    dailyTrades.length >= DAILY_TRADE_LIMIT - 2 ||
-    (streak.count >= 3 && streak.count < 5)
-  ) {
-    status = 'warning';
+  let status: 'focused' | 'caution' | 'compromised' = 'focused';
+  if (compromised) {
+    status = 'compromised';
+  } else if (patterns.length > 0) {
+    status = 'caution';
   }
 
   return {
-    blocked,
+    compromised,
     reasons,
     patterns_detected: patterns,
-    cooldown_expires: cooldownExpires?.toISOString() || null,
+    break_recommended_until: breakRecommendedUntil?.toISOString() || null,
     status,
-    stats: getStats(),
+    session: getSessionStats(),
   };
 }
 
-function getStats() {
-  const streak = getCurrentStreak();
-  const todaysTrades = getTodaysTrades();
-  const hourlyTrades = getRecentTrades(60);
-  const lastTrade = tradeHistory[tradeHistory.length - 1];
-
+function getSessionStats() {
   return {
-    trades_today: todaysTrades.length,
-    trades_this_hour: hourlyTrades.length,
-    current_streak: streak.count,
-    streak_type: streak.type,
-    last_trade_pnl: lastTrade?.pnl ?? null,
+    duration_minutes: getSessionDurationMinutes(),
+    started_at: sessionStarted?.toISOString() || null,
+    queries_this_session: sessionQueries,
+    sessions_today: sessionsToday,
   };
 }
 
-// GET - Check current firewall status
+// GET - Check current decision fitness status
 export async function GET() {
   try {
-    const result = checkFirewall();
+    const result = checkDecisionFitness();
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Firewall check error:', error);
+    console.error('Decision fitness check error:', error);
     return NextResponse.json(
-      { error: 'Failed to check firewall status' },
+      { error: 'Failed to check decision fitness' },
       { status: 500 }
     );
   }
 }
 
-// POST - Record a trade and check if next trade would be blocked
+// POST - Session management actions
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { symbol, pnl, size, action } = body;
+    const { action } = body;
 
-    if (action === 'record_trade') {
-      // Record the trade
-      tradeHistory.push({
-        symbol,
-        pnl: pnl || 0,
-        timestamp: new Date(),
-        size,
+    if (action === 'start_session') {
+      checkTodayReset();
+      if (!sessionStarted) {
+        sessionStarted = new Date();
+        sessionQueries = 0;
+        sessionsToday++;
+      }
+      return NextResponse.json({
+        success: true,
+        message: 'Session started',
+        session: getSessionStats(),
       });
+    }
 
-      // Keep only last 1000 trades
-      if (tradeHistory.length > 1000) {
-        tradeHistory = tradeHistory.slice(-1000);
+    if (action === 'record_query') {
+      // Record a query/interaction
+      recentQueries.push(new Date());
+      sessionQueries++;
+
+      // Auto-start session if not started
+      if (!sessionStarted) {
+        sessionStarted = new Date();
+        checkTodayReset();
+        sessionsToday++;
       }
 
+      const result = checkDecisionFitness();
       return NextResponse.json({
         success: true,
-        message: 'Trade recorded',
-        stats: getStats(),
+        ...result,
       });
     }
 
-    if (action === 'check_trade') {
-      // Check if proposed trade should be blocked
-      const result = checkFirewall(symbol, size);
-      return NextResponse.json(result);
-    }
-
-    if (action === 'clear_cooldown') {
-      // Admin action to clear cooldown
-      cooldownExpires = null;
-      cooldownReason = null;
+    if (action === 'end_session') {
+      sessionStarted = null;
+      sessionQueries = 0;
+      recentQueries = [];
       return NextResponse.json({
         success: true,
-        message: 'Cooldown cleared',
+        message: 'Session ended',
+      });
+    }
+
+    if (action === 'take_break') {
+      // User acknowledges they need a break
+      sessionStarted = null;
+      sessionQueries = 0;
+      recentQueries = [];
+      return NextResponse.json({
+        success: true,
+        message: 'Break started - come back refreshed',
+      });
+    }
+
+    if (action === 'dismiss_break') {
+      // User chooses to continue despite recommendation
+      breakRecommendedUntil = null;
+      breakReason = null;
+      return NextResponse.json({
+        success: true,
+        message: 'Break dismissed - stay mindful of your state',
       });
     }
 
     if (action === 'reset') {
       // Reset all state (for testing)
-      tradeHistory = [];
-      cooldownExpires = null;
-      cooldownReason = null;
+      sessionStarted = null;
+      sessionQueries = 0;
+      sessionsToday = 0;
+      recentQueries = [];
+      breakRecommendedUntil = null;
+      breakReason = null;
       return NextResponse.json({
         success: true,
-        message: 'Firewall state reset',
+        message: 'Decision fitness state reset',
       });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error('Firewall POST error:', error);
+    console.error('Decision fitness POST error:', error);
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 }
