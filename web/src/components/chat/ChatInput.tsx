@@ -83,11 +83,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   };
 
-  // Auto-resize textarea
+  // Auto-resize textarea (only when there's content to prevent extra height when empty)
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      // Only expand beyond single line when there's actual content
+      if (input) {
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
     }
   }, [input]);
 
@@ -158,9 +161,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             inputMode="text"
             enterKeyHint="send"
             className={cn(
-              "resize-none rounded-xl bg-primary/8 border border-primary/20 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary scrollbar-hide whitespace-pre-wrap break-all",
+              "resize-none rounded-xl bg-primary/8 border border-primary/20 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary scrollbar-hide whitespace-pre-wrap break-all leading-5",
               isMobile
-                ? "min-h-[40px] max-h-[120px] px-3 py-2 text-base"
+                ? "min-h-[36px] max-h-[120px] px-3 py-2 text-base"
                 : "min-h-[44px] max-h-[200px] px-4 py-3"
             )}
             rows={1}
