@@ -711,19 +711,24 @@ body:has(.landing-page) > div > div > div {
     0 0 25px oklch(0.55 0.20 25 / 12%);
 }
 
-/* Animated pulse for warning/blocked states */
+/* Animated subtle pulse for warning/blocked states - gentle breathing effect */
 @keyframes firewall-pulse {
   0%, 100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.6;
   }
 }
 
 .firewall-glow-warning,
 .firewall-glow-blocked {
-  animation: firewall-pulse 3s ease-in-out infinite;
+  animation: firewall-pulse 4s ease-in-out infinite;
+}
+
+/* Tailwind utility class for programmatic use */
+.animate-firewall-pulse {
+  animation: firewall-pulse 4s ease-in-out infinite;
 }
 
 /* Dissolving Edge Gradients */

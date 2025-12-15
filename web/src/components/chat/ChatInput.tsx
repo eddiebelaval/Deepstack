@@ -2,18 +2,17 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Send, Loader2, Brain, LogIn } from 'lucide-react';
-import { ProviderSelector } from './ProviderSelector';
-import { PersonaFolderTab } from './PersonaFolderTab';
+import { PersonaSelector } from './PersonaSelector';
+import { ModelSelector } from './ModelSelector';
+import { OverflowMenu } from './OverflowMenu';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { CommandPalette } from './CommandPalette';
 import { cn } from '@/lib/utils';
-import { FirewallStatusDot, useFirewallGlow } from '@/components/emotional-firewall';
+import { useFirewallGlow } from '@/components/emotional-firewall';
 
 type ChatInputProps = {
   onSend: (message: string) => void;
@@ -25,11 +24,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { isStreaming, activeProvider, setActiveProvider, useExtendedThinking, setUseExtendedThinking } = useChatStore();
+  const { isStreaming, useExtendedThinking, setUseExtendedThinking } = useChatStore();
   const { user, loading } = useAuth();
   const router = useRouter();
   const { isMobile } = useIsMobile();
-  const { glowClass } = useFirewallGlow();
+  const { glowClass, status } = useFirewallGlow();
 
   const handleCommand = useCallback(async (command: string) => {
     // Populate input for visual feedback
@@ -76,10 +75,15 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
+    }
+    // Shift+Tab opens command palette
+    if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault();
+      setShowCommandPalette(true);
     }
   };
 
@@ -114,44 +118,58 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   }, [isMobile]);
 
   return (
-    <div ref={containerRef} className={cn(
-      "glass-input relative",
-      isMobile ? "p-3" : "p-4",
-      // Tab sticks out above - add class for bridge pseudo-element
-      !isMobile && "glass-input-with-tab"
-    )}>
-      {/* Lifted Folder Tab - sticks out above the pill container */}
-      {!isMobile && <PersonaFolderTab disabled={isStreaming} />}
-
-      <div className={cn("flex items-end", isMobile ? "gap-2" : "gap-3")}>
-        {/* Hide provider selector on mobile to save space */}
-        {!isMobile && (
-          <ProviderSelector
-            value={activeProvider}
-            onChange={setActiveProvider}
+    <div ref={containerRef} className={cn("relative", isMobile ? "p-3" : "p-4")}>
+      {/* Single unified pill container with firewall glow */}
+      <div
+        className={cn(
+          // Base pill styling
+          "flex items-end gap-1 rounded-2xl",
+          "bg-background/80 backdrop-blur-sm",
+          "border border-border/50",
+          "transition-all duration-500",
+          // Firewall glow effect
+          glowClass,
+          // Subtle pulse animation for caution/compromised states
+          (status === 'caution' || status === 'compromised') && "animate-firewall-pulse",
+          // Padding
+          isMobile ? "p-2" : "p-2.5"
+        )}
+      >
+        {/* LEFT SECTION: Tool icons */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Overflow menu (+) */}
+          <OverflowMenu
+            onOpenCommandPalette={() => setShowCommandPalette(true)}
             disabled={isStreaming}
           />
-        )}
 
-        {/* Hide extended thinking button on mobile */}
-        {!isMobile && (
-          <Button
-            onClick={() => setUseExtendedThinking(!useExtendedThinking)}
-            variant={useExtendedThinking ? 'default' : 'outline'}
-            size="icon"
-            className="h-10 w-10 rounded-xl relative"
-            title={useExtendedThinking ? 'Extended thinking enabled' : 'Extended thinking disabled'}
-            disabled={isStreaming}
-          >
-            <Brain className="h-4 w-4" />
-            {useExtendedThinking && (
-              <div className="absolute -top-1 -right-1 h-2 w-2 bg-purple-500 rounded-full animate-pulse" />
-            )}
-          </Button>
-        )}
+          {/* Persona selector */}
+          <PersonaSelector disabled={isStreaming} />
 
-        <div className={cn("flex-1 relative rounded-xl transition-shadow duration-500", glowClass)}>
-          <Textarea
+          {/* Extended thinking toggle - desktop only */}
+          {!isMobile && (
+            <Button
+              onClick={() => setUseExtendedThinking(!useExtendedThinking)}
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-11 w-11 rounded-xl relative shrink-0",
+                useExtendedThinking && "bg-purple-500/10 text-purple-500"
+              )}
+              title={useExtendedThinking ? 'Extended thinking enabled' : 'Extended thinking disabled'}
+              disabled={isStreaming}
+            >
+              <Brain className="h-4 w-4" />
+              {useExtendedThinking && (
+                <div className="absolute top-1 right-1 h-2 w-2 bg-purple-500 rounded-full animate-pulse" />
+              )}
+            </Button>
+          )}
+        </div>
+
+        {/* CENTER SECTION: Expanding textarea */}
+        <div className="flex-1 min-w-0">
+          <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -160,49 +178,44 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             disabled={disabled || isStreaming}
             inputMode="text"
             enterKeyHint="send"
-            className={cn(
-              "resize-none rounded-xl bg-primary/8 border border-primary/20 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground/50 caret-primary scrollbar-hide whitespace-pre-wrap break-all leading-5",
-              isMobile
-                ? "min-h-[36px] max-h-[120px] px-3 py-2 text-base"
-                : "min-h-[44px] max-h-[200px] px-4 py-3"
-            )}
             rows={1}
+            className={cn(
+              "w-full resize-none bg-transparent",
+              "border-0 outline-none focus:ring-0",
+              "text-foreground placeholder:text-muted-foreground/50",
+              "scrollbar-hide whitespace-pre-wrap break-words leading-6",
+              isMobile
+                ? "min-h-[36px] max-h-[120px] py-2 text-base"
+                : "min-h-[44px] max-h-[200px] py-2.5 text-sm"
+            )}
           />
-          {!isMobile && (
-            <DotScrollIndicator
-              scrollRef={textareaRef}
-              maxDots={5}
-              className="absolute right-2 top-1/2 -translate-y-1/2"
-            />
-          )}
         </div>
 
-        {/* Firewall Status Dot - subtle indicator */}
-        {isMobile && (
-          <FirewallStatusDot size="sm" className="shrink-0" />
-        )}
+        {/* RIGHT SECTION: Model selector + Send button */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Model selector */}
+          <ModelSelector disabled={isStreaming} />
 
-        <Button
-          onClick={handleSubmit}
-          disabled={!input.trim() || disabled || isStreaming}
-          size="icon"
-          className={cn(
-            "rounded-xl shrink-0",
-            isMobile ? "h-10 w-10" : "h-10 w-10"
-          )}
-        >
-          {isStreaming ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
+          {/* Send button */}
+          <Button
+            onClick={handleSubmit}
+            disabled={!input.trim() || disabled || isStreaming}
+            size="icon"
+            className="h-11 w-11 rounded-xl shrink-0"
+          >
+            {isStreaming ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Simplified footer on mobile */}
+      {/* Footer hint - desktop only */}
       {!isMobile && (
-        <div className="text-xs text-muted-foreground/60 text-center mt-3">
-          Press Enter to send, Shift+Enter for new line • Shift+Tab for Tools
+        <div className="text-[10px] text-muted-foreground/40 text-center mt-2">
+          Enter to send • Shift+Enter for new line
         </div>
       )}
 
