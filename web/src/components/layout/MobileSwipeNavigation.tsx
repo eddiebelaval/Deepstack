@@ -5,16 +5,18 @@ import { motion, AnimatePresence, useAnimation, PanInfo } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useHaptics } from '@/hooks/useHaptics';
 
-export type MobilePageId = 'history' | 'chat' | 'discover' | 'markets';
+export type MobilePageId = 'tools' | 'chat' | 'news' | 'markets';
 
 interface MobileSwipeNavigationProps {
   children: React.ReactNode[];
+  pageIds?: MobilePageId[];
   initialPage?: number;
   onPageChange?: (pageIndex: number, pageId: MobilePageId) => void;
   className?: string;
 }
 
-const PAGE_IDS: MobilePageId[] = ['history', 'chat', 'discover', 'markets'];
+// Default page IDs - can be overridden via props
+const DEFAULT_PAGE_IDS: MobilePageId[] = ['tools', 'chat', 'news', 'markets'];
 
 // Swipe physics config
 const SWIPE_THRESHOLD = 50; // Min distance to trigger page change
@@ -25,12 +27,17 @@ const EDGE_PEEK_WIDTH = 12; // How much of adjacent page to show
  * Mobile Swipe Navigation Container
  *
  * Provides horizontal swipe navigation between pages:
- * [History] ← [Chat (Home)] → [Discover] → [Markets]
- *    0            1              2            3
+ * [Tools] ← [Chat (Home)] → [News] → [PM]
+ *    0           1            2        3
+ *
+ * - Start on Chat (Home) - the Deepstack front page with AI chat & market watcher
+ * - Swipe RIGHT → Tools page (chat history, tools)
+ * - Swipe LEFT → News page, then PM (prediction markets)
  */
 export function MobileSwipeNavigation({
   children,
-  initialPage = 1, // Start on Chat
+  pageIds = DEFAULT_PAGE_IDS,
+  initialPage = 1, // Start on Chat (Home)
   onPageChange,
   className,
 }: MobileSwipeNavigationProps) {
@@ -41,6 +48,8 @@ export function MobileSwipeNavigation({
   const { selection, light } = useHaptics();
 
   const pageCount = children.length;
+  // Use provided pageIds or generate defaults based on child count
+  const effectivePageIds = pageIds.length === pageCount ? pageIds : DEFAULT_PAGE_IDS.slice(0, pageCount);
 
   // Navigate to a specific page
   const navigateToPage = useCallback((pageIndex: number, animated = true) => {
@@ -49,7 +58,7 @@ export function MobileSwipeNavigation({
     if (clampedIndex !== currentPage) {
       selection(); // Haptic feedback on page change
       setCurrentPage(clampedIndex);
-      onPageChange?.(clampedIndex, PAGE_IDS[clampedIndex]);
+      onPageChange?.(clampedIndex, effectivePageIds[clampedIndex]);
     }
 
     if (animated) {
@@ -64,7 +73,7 @@ export function MobileSwipeNavigation({
     } else {
       controls.set({ x: -clampedIndex * 100 + '%' });
     }
-  }, [currentPage, pageCount, controls, selection, onPageChange]);
+  }, [currentPage, pageCount, controls, selection, onPageChange, effectivePageIds]);
 
   // Handle drag/swipe gestures
   const handleDragStart = useCallback(() => {
@@ -122,12 +131,13 @@ export function MobileSwipeNavigation({
     (window as any).__mobileSwipeNav = {
       navigateTo: navigateToPage,
       getCurrentPage: () => currentPage,
-      getPageId: () => PAGE_IDS[currentPage],
+      getPageId: () => effectivePageIds[currentPage],
+      getPageIds: () => effectivePageIds,
     };
     return () => {
       delete (window as any).__mobileSwipeNav;
     };
-  }, [navigateToPage, currentPage]);
+  }, [navigateToPage, currentPage, effectivePageIds]);
 
   return (
     <div
@@ -137,9 +147,9 @@ export function MobileSwipeNavigation({
         className
       )}
     >
-      {/* Page Indicator Dots */}
+      {/* Page Indicator Dots - dynamically based on actual page count */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex gap-1.5">
-        {PAGE_IDS.map((_, index) => (
+        {Array.from({ length: pageCount }).map((_, index) => (
           <button
             key={index}
             onClick={() => navigateToPage(index)}
@@ -149,7 +159,7 @@ export function MobileSwipeNavigation({
                 ? "w-4 bg-primary"
                 : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
             )}
-            aria-label={`Go to ${PAGE_IDS[index]}`}
+            aria-label={`Go to ${effectivePageIds[index] || `page ${index}`}`}
           />
         ))}
       </div>
@@ -239,7 +249,8 @@ export function useMobileSwipeNav() {
   }, []);
 
   const navigateToPage = useCallback((pageId: MobilePageId) => {
-    const index = PAGE_IDS.indexOf(pageId);
+    const pageIds = (window as any).__mobileSwipeNav?.getPageIds() ?? DEFAULT_PAGE_IDS;
+    const index = pageIds.indexOf(pageId);
     if (index !== -1) {
       navigateTo(index);
     }
@@ -253,11 +264,16 @@ export function useMobileSwipeNav() {
     return (window as any).__mobileSwipeNav?.getPageId() ?? 'chat';
   }, []);
 
+  const getPageIds = useCallback((): MobilePageId[] => {
+    return (window as any).__mobileSwipeNav?.getPageIds() ?? DEFAULT_PAGE_IDS;
+  }, []);
+
   return {
     navigateTo,
     navigateToPage,
     getCurrentPage,
     getPageId,
-    PAGE_IDS,
+    getPageIds,
+    PAGE_IDS: DEFAULT_PAGE_IDS, // For backwards compatibility
   };
 }
