@@ -66,10 +66,7 @@ export function ModelSelector({ disabled }: ModelSelectorProps) {
         >
           {/* Letter badge */}
           <div
-            className={cn(
-              "flex items-center justify-center w-7 h-7 rounded-lg",
-              "bg-primary/10 text-primary font-semibold text-sm"
-            )}
+            className="flex items-center justify-center w-7 h-7 rounded-lg bg-muted text-foreground font-semibold text-sm"
           >
             {letter}
           </div>
@@ -161,8 +158,8 @@ function ModelOption({ provider, isActive, onSelect }: ModelOptionProps) {
         className={cn(
           "flex items-center justify-center w-8 h-8 rounded-lg shrink-0",
           isActive
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground"
+            ? "bg-foreground text-background"
+            : "bg-muted text-foreground"
         )}
       >
         <span className="font-semibold text-sm">{letter}</span>

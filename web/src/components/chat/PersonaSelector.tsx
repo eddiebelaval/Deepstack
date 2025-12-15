@@ -105,14 +105,9 @@ export function PersonaSelector({ disabled }: PersonaSelectorProps) {
           onKeyDown={handleKeyDown}
         >
           <div
-            className={cn(
-              "flex items-center justify-center w-7 h-7 rounded-lg",
-              "bg-gradient-to-br",
-              activePersona.visual.gradient || "from-amber-400 to-amber-600",
-              "text-white shadow-sm"
-            )}
+            className="flex items-center justify-center w-7 h-7 rounded-lg bg-muted"
           >
-            <PersonaIcon iconName={activePersona.visual.icon} className="h-3.5 w-3.5" />
+            <PersonaIcon iconName={activePersona.visual.icon} className="h-4 w-4 text-foreground" />
           </div>
         </Button>
       </PopoverTrigger>
@@ -228,9 +223,7 @@ function PersonaOption({ persona, isActive, isFocused, onSelect }: PersonaOption
       <div
         className={cn(
           "flex items-center justify-center w-8 h-8 rounded-lg shrink-0",
-          "bg-gradient-to-br",
-          persona.visual.gradient || "from-amber-400 to-amber-600",
-          "text-white shadow-sm"
+          isActive ? "bg-foreground text-background" : "bg-muted text-foreground"
         )}
       >
         <PersonaIcon iconName={persona.visual.icon} className="h-4 w-4" />
