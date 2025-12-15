@@ -7,8 +7,9 @@ import { WidgetPanel } from './WidgetPanel';
 import { StreamingTicker } from './StreamingTicker';
 import { ProfilePanel } from './ProfilePanel';
 import { SettingsPanel } from './SettingsPanel';
-import { MobileHeader } from './MobileHeader';
-import { MobileBottomNav } from './MobileBottomNav';
+import { MobileSwipeNavigation } from './MobileSwipeNavigation';
+import { FloatingToolbar } from './FloatingToolbar';
+import { ChatHistoryPage, ChatPage, DiscoverPage, MarketsPage } from './MobilePages';
 import { MarketWatchPanel } from './MarketWatchPanel';
 import { SymbolSearchDialog } from '@/components/search/SymbolSearchDialog';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -28,7 +29,7 @@ const MARKET_WATCH_TAB_HEIGHT = 44; // Collapsed tab height
 const MARKET_WATCH_FIXED_HEIGHT = 580; // Fixed expanded height
 
 export function DeepStackLayout({ children }: DeepStackLayoutProps) {
-    const { leftSidebarOpen, rightSidebarOpen, setLeftSidebarOpen, marketWatchPanel } = useUIStore();
+    const { leftSidebarOpen, rightSidebarOpen, marketWatchPanel } = useUIStore();
     const { isMobile, isTablet, isDesktop } = useIsMobile();
 
     // Calculate top padding based on fixed header elements (desktop only)
@@ -55,13 +56,6 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
     // Initialize global keyboard shortcuts
     useKeyboardShortcuts();
 
-    // Close sidebar when tapping backdrop on mobile
-    const handleBackdropClick = () => {
-        if (isMobile || isTablet) {
-            setLeftSidebarOpen(false);
-        }
-    };
-
     return (
         <div className="h-screen bg-background flex flex-col overflow-hidden">
             {/* Symbol Search Dialog (Cmd+K) */}
@@ -74,22 +68,12 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                 </ErrorBoundary>
             )}
 
-            {/* Mobile Header - only show on mobile/tablet */}
-            {(isMobile || isTablet) && <MobileHeader />}
-
-            {/* Mobile Backdrop - show when sidebar open on mobile */}
-            {(isMobile || isTablet) && leftSidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 transition-opacity"
-                    onClick={handleBackdropClick}
-                    aria-hidden="true"
-                />
+            {/* Left Sidebar - Chat History (Desktop only - mobile uses swipe nav) */}
+            {isDesktop && (
+                <ErrorBoundary variant="panel">
+                    <LeftSidebar />
+                </ErrorBoundary>
             )}
-
-            {/* Left Sidebar - Chat History */}
-            <ErrorBoundary variant="panel">
-                <LeftSidebar />
-            </ErrorBoundary>
 
             {/* Slide-out Panels */}
             <ErrorBoundary variant="panel">
@@ -117,40 +101,74 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
             {/* Streaming Ticker - Fixed at very top (desktop only) */}
             {isDesktop && <StreamingTicker />}
 
-            <main
-                className={cn(
-                    "flex-1 flex flex-col h-full overflow-hidden",
-                    // Sync transition with MarketWatchPanel (300ms ease-out)
-                    "transition-all duration-300 ease-out",
-                    // Reduced motion support
-                    "motion-reduce:transition-none",
-                    // Mobile/Tablet: Full width, no margins
-                    (isMobile || isTablet) && "ml-0 mr-0",
-                    // Desktop: Original sidebar margins
-                    isDesktop && (leftSidebarOpen ? "ml-64" : "ml-14"),
-                    isDesktop && (rightSidebarOpen ? "mr-[21rem]" : "mr-12"),
-                    // Account for mobile header
-                    (isMobile || isTablet) && "pt-14"
-                )}
-                style={{
-                    // Dynamic top padding for fixed headers (Ticker + Market Watch Panel) - desktop only
-                    // Uses CSS transition to animate smoothly with the panel
-                    paddingTop: isDesktop && topPadding > 0 ? `${topPadding}px` : undefined,
-                }}
-            >
-                {/* Workspace Content - fills remaining height, with bottom padding for mobile nav */}
-                <div className={cn(
-                    "flex-1 flex flex-col min-h-0",
-                    (isMobile || isTablet) && "pb-16" // Space for bottom nav
-                )}>
-                    <ErrorBoundary variant="fullscreen">
-                        {children}
-                    </ErrorBoundary>
-                </div>
-            </main>
+            {/* Mobile: Swipe Navigation */}
+            {(isMobile || isTablet) ? (
+                <>
+                    <main className="flex-1 flex flex-col h-full overflow-hidden pt-0">
+                        <MobileSwipeNavigation
+                            initialPage={1}
+                            onPageChange={(index, pageId) => {
+                                // Could track analytics or update state here
+                                console.log(`Navigated to page ${index}: ${pageId}`);
+                            }}
+                        >
+                            {/* Page 0: Chat History */}
+                            <ChatHistoryPage
+                                onSelectConversation={() => {
+                                    // Navigate back to chat after selection
+                                    (window as any).__mobileSwipeNav?.navigateTo(1);
+                                }}
+                                onNewChat={() => {
+                                    // Navigate back to chat after new chat
+                                    (window as any).__mobileSwipeNav?.navigateTo(1);
+                                }}
+                            />
 
-            {/* Mobile Bottom Navigation */}
-            <MobileBottomNav />
+                            {/* Page 1: Chat (HOME) */}
+                            <ChatPage>
+                                <ErrorBoundary variant="fullscreen">
+                                    {children}
+                                </ErrorBoundary>
+                            </ChatPage>
+
+                            {/* Page 2: Discover/News */}
+                            <DiscoverPage />
+
+                            {/* Page 3: Prediction Markets */}
+                            <MarketsPage />
+                        </MobileSwipeNavigation>
+                    </main>
+
+                    {/* Floating Toolbar */}
+                    <FloatingToolbar />
+                </>
+            ) : (
+                /* Desktop: Traditional layout */
+                <main
+                    className={cn(
+                        "flex-1 flex flex-col h-full overflow-hidden",
+                        // Sync transition with MarketWatchPanel (300ms ease-out)
+                        "transition-all duration-300 ease-out",
+                        // Reduced motion support
+                        "motion-reduce:transition-none",
+                        // Desktop: Original sidebar margins
+                        leftSidebarOpen ? "ml-64" : "ml-14",
+                        rightSidebarOpen ? "mr-[21rem]" : "mr-12"
+                    )}
+                    style={{
+                        // Dynamic top padding for fixed headers (Ticker + Market Watch Panel) - desktop only
+                        // Uses CSS transition to animate smoothly with the panel
+                        paddingTop: topPadding > 0 ? `${topPadding}px` : undefined,
+                    }}
+                >
+                    {/* Workspace Content - fills remaining height */}
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <ErrorBoundary variant="fullscreen">
+                            {children}
+                        </ErrorBoundary>
+                    </div>
+                </main>
+            )}
         </div>
     );
 }
