@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useAnimation, PanInfo } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useHaptics } from '@/hooks/useHaptics';
 
-export type MobilePageId = 'tools' | 'chat' | 'news' | 'markets';
+export type MobilePageId = 'tools' | 'chat' | 'news' | 'predictions';
 
 interface MobileSwipeNavigationProps {
   children: React.ReactNode[];
@@ -16,7 +16,7 @@ interface MobileSwipeNavigationProps {
 }
 
 // Default page IDs - can be overridden via props
-const DEFAULT_PAGE_IDS: MobilePageId[] = ['tools', 'chat', 'news', 'markets'];
+const DEFAULT_PAGE_IDS: MobilePageId[] = ['tools', 'chat', 'news', 'predictions'];
 
 // Swipe physics config
 const SWIPE_THRESHOLD = 50; // Min distance to trigger page change
@@ -52,6 +52,11 @@ export function MobileSwipeNavigation({
   const effectivePageIds = pageIds.length === pageCount ? pageIds : DEFAULT_PAGE_IDS.slice(0, pageCount);
 
   // Navigate to a specific page
+  // Calculate percentage offset - each page is (100/pageCount)% of the container
+  const getPageOffset = useCallback((pageIndex: number) => {
+    return -pageIndex * (100 / pageCount) + '%';
+  }, [pageCount]);
+
   const navigateToPage = useCallback((pageIndex: number, animated = true) => {
     const clampedIndex = Math.max(0, Math.min(pageIndex, pageCount - 1));
 
@@ -63,7 +68,7 @@ export function MobileSwipeNavigation({
 
     if (animated) {
       controls.start({
-        x: -clampedIndex * 100 + '%',
+        x: getPageOffset(clampedIndex),
         transition: {
           type: 'spring',
           stiffness: 300,
@@ -71,9 +76,9 @@ export function MobileSwipeNavigation({
         },
       });
     } else {
-      controls.set({ x: -clampedIndex * 100 + '%' });
+      controls.set({ x: getPageOffset(clampedIndex) });
     }
-  }, [currentPage, pageCount, controls, selection, onPageChange, effectivePageIds]);
+  }, [currentPage, pageCount, controls, selection, onPageChange, effectivePageIds, getPageOffset]);
 
   // Handle drag/swipe gestures
   const handleDragStart = useCallback(() => {
@@ -124,9 +129,9 @@ export function MobileSwipeNavigation({
   useEffect(() => {
     // Use requestAnimationFrame to ensure DOM is ready
     requestAnimationFrame(() => {
-      controls.set({ x: -currentPage * 100 + '%' });
+      controls.set({ x: getPageOffset(currentPage) });
     });
-  }, [controls, currentPage]);
+  }, [controls, currentPage, getPageOffset]);
 
   // Expose navigation method via ref or context
   useEffect(() => {
@@ -175,7 +180,7 @@ export function MobileSwipeNavigation({
           width: `${pageCount * 100}%`,
           touchAction: 'pan-y', // Allow vertical scroll inside, but let horizontal swipe through
         }}
-        initial={{ x: `-${initialPage * 100}%` }}
+        initial={{ x: `-${initialPage * (100 / pageCount)}%` }}
         animate={controls}
         drag="x"
         dragConstraints={{

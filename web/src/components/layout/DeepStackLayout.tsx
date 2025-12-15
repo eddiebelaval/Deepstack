@@ -8,8 +8,8 @@ import { StreamingTicker } from './StreamingTicker';
 import { ProfilePanel } from './ProfilePanel';
 import { SettingsPanel } from './SettingsPanel';
 import { MobileSwipeNavigation } from './MobileSwipeNavigation';
-import { FloatingToolbar } from './FloatingToolbar';
-import { ChatHistoryPage, ChatPage, DiscoverPage, MarketsPage } from './MobilePages';
+import { ChatHistoryPage, ChatPage, DiscoverPage, PredictionMarketsPage } from './MobilePages';
+import { ToolsHubPage } from './ToolsHubPage';
 import { MarketWatchPanel } from './MarketWatchPanel';
 import { SymbolSearchDialog } from '@/components/search/SymbolSearchDialog';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -107,14 +107,14 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                     <main className="flex-1 flex flex-col h-full overflow-hidden pt-0">
                         <MobileSwipeNavigation
                             initialPage={1}
-                            pageIds={['tools', 'chat', 'news', 'markets']}
+                            pageIds={['tools', 'chat', 'news', 'predictions']}
                             onPageChange={(index, pageId) => {
                                 // Could track analytics or update state here
                                 console.log(`Navigated to page ${index}: ${pageId}`);
                             }}
                         >
-                            {/* Page 0: Tools (Chat/Tools) - swipe RIGHT from home */}
-                            <ChatHistoryPage
+                            {/* Page 0: Tools Hub - swipe RIGHT from home */}
+                            <ToolsHubPage
                                 onSelectConversation={() => {
                                     // Navigate back to chat after selection
                                     (window as any).__mobileSwipeNav?.navigateTo(1);
@@ -135,13 +135,10 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
                             {/* Page 2: News - swipe LEFT from home */}
                             <DiscoverPage />
 
-                            {/* Page 3: PM (Prediction Markets) - swipe LEFT from news */}
-                            <MarketsPage />
+                            {/* Page 3: Prediction Markets - swipe LEFT from news */}
+                            <PredictionMarketsPage />
                         </MobileSwipeNavigation>
                     </main>
-
-                    {/* Floating Toolbar */}
-                    <FloatingToolbar />
                 </>
             ) : (
                 /* Desktop: Traditional layout */

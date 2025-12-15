@@ -779,6 +779,20 @@ body:has(.landing-page) > div > div > div {
   animation-play-state: paused;
 }
 
+/* Market Watcher Ticker - Horizontal scroll animation */
+@keyframes scroll-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-x {
+  animation: scroll-x 30s linear infinite;
+}
+
 /* Landing Page Animations */
 @keyframes pulse-soft {
 

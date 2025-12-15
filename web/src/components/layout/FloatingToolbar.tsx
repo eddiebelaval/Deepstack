@@ -108,10 +108,9 @@ export function FloatingToolbar({ className }: FloatingToolbarProps) {
       {/* Floating Toolbar */}
       <motion.div
         className={cn(
-          "fixed bottom-6 left-1/2 z-50 safe-area-bottom",
+          "absolute bottom-6 left-1/2 -translate-x-1/2 z-50 safe-area-bottom",
           className
         )}
-        style={{ x: '-50%' }}
         layout
       >
         <AnimatePresence mode="wait">
