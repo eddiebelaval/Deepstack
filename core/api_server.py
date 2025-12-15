@@ -292,46 +292,27 @@ class DeepStackAPIServer:
                     content={"error": "Failed to fetch news", "details": str(e)},
                 )
 
+        # Simple quote cache at endpoint level for faster responses
+        _quote_cache: Dict[str, tuple] = {}
+        _quote_cache_ttl = 10  # 10 seconds
+
         @self.app.get("/quote/{symbol}", response_model=QuoteResponse)
         async def get_quote(symbol: str):
-            """Get current quote for symbol with Yahoo Finance fallback."""
+            """Get current quote for symbol with optimized source selection."""
+            import asyncio
+
+            # Check endpoint-level cache first
+            if symbol in _quote_cache:
+                cached_quote, cached_time = _quote_cache[symbol]
+                if datetime.now() - cached_time < timedelta(seconds=_quote_cache_ttl):
+                    logger.debug(f"Quote for {symbol} from endpoint cache")
+                    return QuoteResponse(**cached_quote)
+
             quote = None
             source = None
 
             try:
-                # Try IBKR first
-                if self.ibkr_client and self.ibkr_client.connected:
-                    try:
-                        quote = await self.ibkr_client.get_quote(symbol)
-                        if quote:
-                            source = "ibkr"
-                            logger.debug(f"Quote for {symbol} from IBKR")
-                    except Exception as e:
-                        logger.warning(f"IBKR quote failed for {symbol}: {e}")
-
-                # Try Alpaca via paper trader
-                if not quote and self.paper_trader:
-                    try:
-                        price = await self.paper_trader._get_market_price(symbol)
-                        if price is not None:
-                            quote = {
-                                "symbol": symbol,
-                                "bid": price - 0.02,
-                                "ask": price + 0.02,
-                                "last": price,
-                                "volume": 0,
-                                "timestamp": datetime.now(),
-                            }
-                            source = "alpaca"
-                            logger.debug(
-                                f"Quote for {symbol} from Alpaca via paper_trader"
-                            )
-                    except Exception as e:
-                        logger.warning(
-                            f"Alpaca quote via paper_trader failed for {symbol}: {e}"
-                        )
-
-                # Try direct Alpaca client
+                # Priority 1: Alpaca (fastest and most reliable for stocks)
                 if not quote and self.alpaca_client:
                     try:
                         alpaca_quote = await self.alpaca_client.get_quote(symbol)
@@ -349,21 +330,37 @@ class DeepStackAPIServer:
                                 "timestamp": datetime.now(),
                             }
                             source = "alpaca"
-                            logger.debug(
-                                f"Quote for {symbol} from direct Alpaca client"
-                            )
+                            logger.debug(f"Quote for {symbol} from Alpaca")
                     except Exception as e:
-                        logger.warning(f"Direct Alpaca quote failed for {symbol}: {e}")
+                        logger.warning(f"Alpaca quote failed for {symbol}: {e}")
 
-                # Fallback to Yahoo Finance
+                # Priority 2: IBKR (if connected)
+                if not quote and self.ibkr_client and self.ibkr_client.connected:
+                    try:
+                        quote = await self.ibkr_client.get_quote(symbol)
+                        if quote:
+                            source = "ibkr"
+                            logger.debug(f"Quote for {symbol} from IBKR")
+                    except Exception as e:
+                        logger.warning(f"IBKR quote failed for {symbol}: {e}")
+
+                # Priority 3: Yahoo Finance (slow, use with timeout)
                 if not quote:
                     try:
                         logger.info(f"Falling back to Yahoo Finance for {symbol}")
-                        ticker = yf.Ticker(symbol)
-                        info = ticker.info
+
+                        # Run yfinance in executor with timeout
+                        def get_yf_quote():
+                            ticker = yf.Ticker(symbol)
+                            return ticker.info
+
+                        loop = asyncio.get_event_loop()
+                        info = await asyncio.wait_for(
+                            loop.run_in_executor(None, get_yf_quote),
+                            timeout=5.0,  # 5 second timeout for Yahoo
+                        )
 
                         if info:
-                            # Get current price - try multiple fields
                             current_price = (
                                 info.get("currentPrice")
                                 or info.get("regularMarketPrice")
@@ -384,12 +381,16 @@ class DeepStackAPIServer:
                                 logger.info(
                                     f"Yahoo quote {symbol}: ${current_price:.2f}"
                                 )
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Yahoo Finance timeout for {symbol}")
                     except Exception as e:
                         logger.error(f"Yahoo Finance quote failed for {symbol}: {e}")
 
                 # Return quote if we got one
                 if quote:
                     quote["source"] = source
+                    # Cache the successful quote
+                    _quote_cache[symbol] = (quote, datetime.now())
                     return QuoteResponse(**quote)
                 else:
                     raise QuoteUnavailableError(
@@ -460,15 +461,16 @@ class DeepStackAPIServer:
                 else:  # MONTH_1
                     start_date = now - timedelta(days=365 * 10)  # 10 years
 
-                # Don't pass limit to Alpaca - we'll slice the result
+                # Fetch only what we need - add a small buffer for safety
                 # Alpaca returns bars in ascending order (oldest first)
+                fetch_limit = min(limit + 10, 1000)  # Don't over-fetch, cap at 1000
                 if is_crypto:
                     bars = await self.alpaca_client.get_crypto_bars(
                         symbol=symbol,
                         timeframe=tf_enum,
                         start_date=start_date,
                         end_date=now,
-                        limit=10000,  # Fetch more, then slice
+                        limit=fetch_limit,
                     )
                 else:
                     bars = await self.alpaca_client.get_bars(
@@ -476,7 +478,7 @@ class DeepStackAPIServer:
                         timeframe=tf_enum,
                         start_date=start_date,
                         end_date=now,
-                        limit=10000,  # Fetch more, then slice
+                        limit=fetch_limit,
                     )
 
                 if not bars:

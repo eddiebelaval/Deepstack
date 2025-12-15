@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -22,11 +23,33 @@ const FALLBACK_SYMBOLS = [
     { symbol: 'XRP/USD', name: 'Ripple', class: 'crypto', exchange: 'CRYPTO' },
 ];
 
+interface Asset {
+    symbol: string;
+    name: string;
+    class: string;
+    exchange: string;
+}
+
+interface AssetsResponse {
+    assets: Asset[];
+    fallback?: boolean;
+    warning?: string;
+    cached?: boolean;
+}
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search') || '';
     const limit = parseInt(searchParams.get('limit') || '20');
     const assetClass = searchParams.get('class'); // 'us_equity', 'crypto', or undefined for all
+
+    // Check cache first
+    const cacheKey = marketCacheKey('assets', { search, limit, class: assetClass || undefined });
+    const cached = serverCache.get<AssetsResponse>(cacheKey);
+
+    if (cached) {
+        return NextResponse.json({ ...cached, cached: true });
+    }
 
     try {
         // Try to fetch from backend which calls Alpaca
@@ -34,7 +57,8 @@ export async function GET(request: NextRequest) {
             `${API_BASE_URL}/api/market/assets?search=${encodeURIComponent(search)}&limit=${limit}${assetClass ? `&class=${assetClass}` : ''}`,
             {
                 headers: { 'Content-Type': 'application/json' },
-                cache: 'no-store',
+                // Use next.js revalidation for edge caching
+                next: { revalidate: CACHE_TTL.ASSETS },
             }
         );
 
@@ -43,6 +67,10 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
+
+        // Cache the result
+        serverCache.set(cacheKey, data, CACHE_TTL.ASSETS);
+
         return NextResponse.json(data);
     } catch (error) {
         // Fallback to local search when backend unavailable
@@ -57,10 +85,15 @@ export async function GET(request: NextRequest) {
             return matchesSearch && matchesClass;
         }).slice(0, limit);
 
-        return NextResponse.json({
+        const fallbackResponse: AssetsResponse = {
             assets: filtered,
             fallback: true,
             warning: 'Using local symbol list - backend unavailable'
-        });
+        };
+
+        // Don't cache fallback responses for long
+        serverCache.set(cacheKey, fallbackResponse, 60);
+
+        return NextResponse.json(fallbackResponse);
     }
 }

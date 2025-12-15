@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, MOCK_DATA_WARNING } from '@/lib/api-response';
+import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
 import { z } from 'zod';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -56,9 +57,39 @@ function getBarIntervalSeconds(timeframe: string): number {
   }
 }
 
+// Get cache TTL based on timeframe - shorter timeframes need fresher data
+function getCacheTTL(timeframe: string): number {
+  switch (timeframe.toLowerCase()) {
+    case '1m':
+    case '5m':
+      return 30; // 30 seconds for minute data
+    case '15m':
+    case '30m':
+      return 60; // 1 minute for 15/30m data
+    case '1h':
+    case '2h':
+    case '4h':
+      return 120; // 2 minutes for hourly data
+    case '1d':
+    case '1w':
+    case '1mo':
+    default:
+      return CACHE_TTL.BARS; // 5 minutes for daily/weekly/monthly
+  }
+}
+
+interface BarData {
+  t: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+}
+
 // Generate mock bars data when backend is unavailable
-function generateMockBars(symbol: string, limit: number, timeframe: string = '1d') {
-  const bars = [];
+function generateMockBars(symbol: string, limit: number, timeframe: string = '1d'): BarData[] {
+  const bars: BarData[] = [];
   const now = Math.floor(Date.now() / 1000);
   const intervalSeconds = getBarIntervalSeconds(timeframe);
 
@@ -112,6 +143,14 @@ export async function GET(request: NextRequest) {
 
   const { symbol, timeframe, limit } = validation.data;
 
+  // Check cache first
+  const cacheKey = marketCacheKey('bars', { symbol, timeframe, limit });
+  const cached = serverCache.get<BarData[]>(cacheKey);
+
+  if (cached) {
+    return apiSuccess({ bars: cached }, { isMock: false });
+  }
+
   try {
     // Call the Python backend to get historical bars
     const response = await fetch(
@@ -120,8 +159,8 @@ export async function GET(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
         },
-        // Don't cache market data
-        cache: 'no-store',
+        // Use next.js revalidation for edge caching
+        next: { revalidate: getCacheTTL(timeframe) },
       }
     );
 
@@ -141,6 +180,9 @@ export async function GET(request: NextRequest) {
         { isMock: true, warning: MOCK_DATA_WARNING }
       );
     }
+
+    // Cache the result with appropriate TTL
+    serverCache.set(cacheKey, bars, getCacheTTL(timeframe));
 
     // Wrap backend response in standard format
     return apiSuccess({ bars }, { isMock: data.mock || false });

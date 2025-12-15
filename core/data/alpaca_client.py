@@ -98,9 +98,15 @@ class AlpacaClient:
         self.rate_limit_window = rate_limit_window
         self.request_timestamps: List[float] = []
 
-        # Cache settings
+        # Cache settings - increased TTLs for better performance
         self.quote_cache: Dict[str, tuple] = {}  # (data, timestamp)
-        self.cache_ttl = 60  # 1 minute for quotes
+        self.cache_ttl = (
+            15  # 15 seconds for quotes (balance between freshness and performance)
+        )
+        self.bars_cache: Dict[str, tuple] = {}  # (data, timestamp)
+        self.bars_cache_ttl = (
+            300  # 5 minutes for historical bars (they don't change often)
+        )
 
         # WebSocket streaming
         self.is_connected = False
@@ -343,13 +349,21 @@ class AlpacaClient:
             List of bar data dicts with OHLCV; None if error
         """
         try:
-            await self._check_rate_limit()
-
             # Set default dates
             if end_date is None:
                 end_date = datetime.now()
             if start_date is None:
                 start_date = end_date - timedelta(days=30)
+
+            # Check bars cache first
+            cache_key = f"bars:{symbol}:{timeframe.value}:{limit}"
+            if cache_key in self.bars_cache:
+                data, timestamp = self.bars_cache[cache_key]
+                if datetime.now() - timestamp < timedelta(seconds=self.bars_cache_ttl):
+                    logger.debug(f"Using cached bars for {symbol}")
+                    return data
+
+            await self._check_rate_limit()
 
             # Map timeframe string to TimeFrame object
             timeframe_map = {
@@ -402,6 +416,10 @@ class AlpacaClient:
             logger.debug(
                 f"Retrieved {len(result)} bars for {symbol} with timeframe {timeframe}"
             )
+
+            # Cache the result
+            self.bars_cache[cache_key] = (result, datetime.now())
+
             return result
 
         except Exception as e:
@@ -430,13 +448,21 @@ class AlpacaClient:
             List of bar data dicts with OHLCV; None if error
         """
         try:
-            await self._check_rate_limit()
-
             # Set default dates
             if end_date is None:
                 end_date = datetime.now()
             if start_date is None:
                 start_date = end_date - timedelta(days=30)
+
+            # Check bars cache first
+            cache_key = f"crypto_bars:{symbol}:{timeframe.value}:{limit}"
+            if cache_key in self.bars_cache:
+                data, timestamp = self.bars_cache[cache_key]
+                if datetime.now() - timestamp < timedelta(seconds=self.bars_cache_ttl):
+                    logger.debug(f"Using cached crypto bars for {symbol}")
+                    return data
+
+            await self._check_rate_limit()
 
             # Map timeframe string to TimeFrame object
             timeframe_map = {
@@ -490,6 +516,10 @@ class AlpacaClient:
                 f"Retrieved {len(result)} crypto bars for {symbol} "
                 f"with timeframe {timeframe}"
             )
+
+            # Cache the result
+            self.bars_cache[cache_key] = (result, datetime.now())
+
             return result
 
         except Exception as e:

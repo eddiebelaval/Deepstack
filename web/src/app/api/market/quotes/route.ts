@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -51,6 +52,21 @@ function generateMockQuotes(symbols: string[]): Record<string, object> {
   return quotes;
 }
 
+interface QuoteData {
+  symbol: string;
+  last?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  volume?: number;
+  change?: number;
+  changePercent?: number;
+  bid?: number;
+  ask?: number;
+  timestamp: string;
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const queryParams = {
@@ -73,10 +89,32 @@ export async function GET(request: NextRequest) {
 
   const symbolList = validation.data.symbols.split(',');
 
+  // Check cache for each symbol first
+  const cachedQuotes: Record<string, QuoteData> = {};
+  const uncachedSymbols: string[] = [];
+
+  for (const symbol of symbolList) {
+    const cacheKey = marketCacheKey('quote', { symbol });
+    const cached = serverCache.get<QuoteData>(cacheKey);
+    if (cached) {
+      cachedQuotes[symbol] = cached;
+    } else {
+      uncachedSymbols.push(symbol);
+    }
+  }
+
+  // If all symbols were cached, return immediately
+  if (uncachedSymbols.length === 0) {
+    return NextResponse.json({
+      quotes: cachedQuotes,
+      mock: false,
+      cached: true,
+    });
+  }
+
   try {
-    // Backend uses /quote/{symbol} endpoint for individual quotes
-    // Fetch all symbols in parallel
-    const quotePromises = symbolList.map(async (symbol) => {
+    // Fetch uncached symbols in parallel from backend
+    const quotePromises = uncachedSymbols.map(async (symbol) => {
       try {
         const response = await fetch(
           `${API_BASE_URL}/quote/${encodeURIComponent(symbol)}`,
@@ -84,7 +122,8 @@ export async function GET(request: NextRequest) {
             headers: {
               'Content-Type': 'application/json',
             },
-            cache: 'no-store',
+            // Use next.js revalidation for edge caching
+            next: { revalidate: CACHE_TTL.QUOTES },
           }
         );
 
@@ -101,14 +140,14 @@ export async function GET(request: NextRequest) {
 
     const results = await Promise.all(quotePromises);
 
-    // Build quotes object from results
-    const quotes: Record<string, object> = {};
-    let hasRealData = false;
+    // Build quotes object from results and cache them
+    const quotes: Record<string, QuoteData> = { ...cachedQuotes };
+    let hasRealData = Object.keys(cachedQuotes).length > 0;
 
     for (const result of results) {
       if (!result.error && result.data) {
         hasRealData = true;
-        quotes[result.symbol] = {
+        const quoteData: QuoteData = {
           symbol: result.symbol,
           last: result.data.price ?? result.data.last ?? result.data.close,
           open: result.data.open,
@@ -122,6 +161,11 @@ export async function GET(request: NextRequest) {
           ask: result.data.ask,
           timestamp: result.data.timestamp || new Date().toISOString(),
         };
+        quotes[result.symbol] = quoteData;
+
+        // Cache individual quote
+        const cacheKey = marketCacheKey('quote', { symbol: result.symbol });
+        serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
       }
     }
 
