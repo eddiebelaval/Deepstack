@@ -28,12 +28,19 @@
     "load:stress": "k6 run tests/load/stress.js",
     "load:spike": "k6 run tests/load/spike.js",
     "load:soak": "k6 run tests/load/soak.js",
-    "load:ci": "k6 run tests/load/ci.js"
+    "load:ci": "k6 run tests/load/ci.js",
+    "build:ios": "next build && npx cap sync ios",
+    "sync:ios": "npx cap sync ios",
+    "open:ios": "npx cap open ios",
+    "run:ios": "npx cap run ios"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.53",
     "@ai-sdk/openai": "^2.0.75",
     "@ai-sdk/openai-compatible": "^1.0.28",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
