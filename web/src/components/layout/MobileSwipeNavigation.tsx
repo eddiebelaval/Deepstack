@@ -1,0 +1,263 @@
+'use client';
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence, useAnimation, PanInfo } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { useHaptics } from '@/hooks/useHaptics';
+
+export type MobilePageId = 'history' | 'chat' | 'discover' | 'markets';
+
+interface MobileSwipeNavigationProps {
+  children: React.ReactNode[];
+  initialPage?: number;
+  onPageChange?: (pageIndex: number, pageId: MobilePageId) => void;
+  className?: string;
+}
+
+const PAGE_IDS: MobilePageId[] = ['history', 'chat', 'discover', 'markets'];
+
+// Swipe physics config
+const SWIPE_THRESHOLD = 50; // Min distance to trigger page change
+const SWIPE_VELOCITY_THRESHOLD = 500; // Min velocity to trigger page change
+const EDGE_PEEK_WIDTH = 12; // How much of adjacent page to show
+
+/**
+ * Mobile Swipe Navigation Container
+ *
+ * Provides horizontal swipe navigation between pages:
+ * [History] ← [Chat (Home)] → [Discover] → [Markets]
+ *    0            1              2            3
+ */
+export function MobileSwipeNavigation({
+  children,
+  initialPage = 1, // Start on Chat
+  onPageChange,
+  className,
+}: MobileSwipeNavigationProps) {
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const controls = useAnimation();
+  const { selection, light } = useHaptics();
+
+  const pageCount = children.length;
+
+  // Navigate to a specific page
+  const navigateToPage = useCallback((pageIndex: number, animated = true) => {
+    const clampedIndex = Math.max(0, Math.min(pageIndex, pageCount - 1));
+
+    if (clampedIndex !== currentPage) {
+      selection(); // Haptic feedback on page change
+      setCurrentPage(clampedIndex);
+      onPageChange?.(clampedIndex, PAGE_IDS[clampedIndex]);
+    }
+
+    if (animated) {
+      controls.start({
+        x: -clampedIndex * 100 + '%',
+        transition: {
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+        },
+      });
+    } else {
+      controls.set({ x: -clampedIndex * 100 + '%' });
+    }
+  }, [currentPage, pageCount, controls, selection, onPageChange]);
+
+  // Handle drag/swipe gestures
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true);
+    light(); // Light haptic on drag start
+  }, [light]);
+
+  const handleDragEnd = useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      setIsDragging(false);
+
+      const { offset, velocity } = info;
+      const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+
+      // Calculate which page to land on
+      let targetPage = currentPage;
+
+      // Check if swipe was strong enough (velocity or distance)
+      const swipeDistance = Math.abs(offset.x);
+      const swipeVelocity = Math.abs(velocity.x);
+
+      if (swipeDistance > SWIPE_THRESHOLD || swipeVelocity > SWIPE_VELOCITY_THRESHOLD) {
+        if (offset.x > 0 && currentPage > 0) {
+          // Swiped right, go to previous page
+          targetPage = currentPage - 1;
+        } else if (offset.x < 0 && currentPage < pageCount - 1) {
+          // Swiped left, go to next page
+          targetPage = currentPage + 1;
+        }
+      }
+
+      // Also check if dragged more than half the screen
+      const dragRatio = offset.x / containerWidth;
+      if (Math.abs(dragRatio) > 0.3) {
+        if (dragRatio > 0 && currentPage > 0) {
+          targetPage = currentPage - 1;
+        } else if (dragRatio < 0 && currentPage < pageCount - 1) {
+          targetPage = currentPage + 1;
+        }
+      }
+
+      navigateToPage(targetPage);
+    },
+    [currentPage, pageCount, navigateToPage]
+  );
+
+  // Initialize position
+  useEffect(() => {
+    controls.set({ x: -currentPage * 100 + '%' });
+  }, []);
+
+  // Expose navigation method via ref or context
+  useEffect(() => {
+    // Store navigation function globally for external access
+    (window as any).__mobileSwipeNav = {
+      navigateTo: navigateToPage,
+      getCurrentPage: () => currentPage,
+      getPageId: () => PAGE_IDS[currentPage],
+    };
+    return () => {
+      delete (window as any).__mobileSwipeNav;
+    };
+  }, [navigateToPage, currentPage]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative w-full h-full overflow-hidden",
+        className
+      )}
+    >
+      {/* Page Indicator Dots */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex gap-1.5">
+        {PAGE_IDS.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => navigateToPage(index)}
+            className={cn(
+              "w-1.5 h-1.5 rounded-full transition-all duration-300",
+              index === currentPage
+                ? "w-4 bg-primary"
+                : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+            )}
+            aria-label={`Go to ${PAGE_IDS[index]}`}
+          />
+        ))}
+      </div>
+
+      {/* Swipeable Pages Container */}
+      <motion.div
+        className="flex h-full"
+        style={{ width: `${pageCount * 100}%` }}
+        animate={controls}
+        drag="x"
+        dragConstraints={{
+          left: -(pageCount - 1) * (containerRef.current?.offsetWidth || window.innerWidth),
+          right: 0,
+        }}
+        dragElastic={0.1}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {React.Children.map(children, (child, index) => (
+          <div
+            className={cn(
+              "h-full flex-shrink-0 relative",
+              // Subtle edge peek effect
+              isDragging && "will-change-transform"
+            )}
+            style={{ width: `${100 / pageCount}%` }}
+          >
+            {/* Edge peek shadows */}
+            {index > 0 && (
+              <div
+                className={cn(
+                  "absolute left-0 top-0 bottom-0 w-3 pointer-events-none z-10",
+                  "bg-gradient-to-r from-black/10 to-transparent",
+                  "opacity-0 transition-opacity",
+                  currentPage === index && "opacity-100"
+                )}
+              />
+            )}
+            {index < pageCount - 1 && (
+              <div
+                className={cn(
+                  "absolute right-0 top-0 bottom-0 w-3 pointer-events-none z-10",
+                  "bg-gradient-to-l from-black/10 to-transparent",
+                  "opacity-0 transition-opacity",
+                  currentPage === index && "opacity-100"
+                )}
+              />
+            )}
+
+            {/* Page Content */}
+            <div className="h-full w-full overflow-hidden">
+              {child}
+            </div>
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Edge Hints - subtle indicators that more content exists */}
+      <AnimatePresence>
+        {currentPage > 0 && !isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-16 rounded-r-full bg-muted-foreground/20 z-20"
+          />
+        )}
+        {currentPage < pageCount - 1 && !isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-16 rounded-l-full bg-muted-foreground/20 z-20"
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/**
+ * Hook to access mobile swipe navigation from anywhere
+ */
+export function useMobileSwipeNav() {
+  const navigateTo = useCallback((pageIndex: number) => {
+    (window as any).__mobileSwipeNav?.navigateTo(pageIndex);
+  }, []);
+
+  const navigateToPage = useCallback((pageId: MobilePageId) => {
+    const index = PAGE_IDS.indexOf(pageId);
+    if (index !== -1) {
+      navigateTo(index);
+    }
+  }, [navigateTo]);
+
+  const getCurrentPage = useCallback((): number => {
+    return (window as any).__mobileSwipeNav?.getCurrentPage() ?? 1;
+  }, []);
+
+  const getPageId = useCallback((): MobilePageId => {
+    return (window as any).__mobileSwipeNav?.getPageId() ?? 'chat';
+  }, []);
+
+  return {
+    navigateTo,
+    navigateToPage,
+    getCurrentPage,
+    getPageId,
+    PAGE_IDS,
+  };
+}
