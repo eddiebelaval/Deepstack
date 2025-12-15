@@ -15,14 +15,14 @@ const RIGHT_TOOLBAR_WIDTH = 48;     // w-12 = 3rem = 48px
 const RIGHT_SIDEBAR_EXPANDED = 336; // 21rem = 336px
 const RIGHT_SIDEBAR_COLLAPSED = 0;  // Hidden when collapsed
 
-// Default indices to always show
-const DEFAULT_INDICES = ["SPY", "QQQ", "DIA", "IWM", "VIX"];
+// Core indices - curated essentials (reduced from 5)
+const DEFAULT_INDICES = ["SPY", "QQQ", "VIX"];
 
-// Top movers (would come from API in production)
-const TOP_MOVERS = ["NVDA", "AAPL", "TSLA", "AMD", "MSFT"];
+// Top movers - key tech names (reduced from 5)
+const TOP_MOVERS = ["NVDA", "TSLA"];
 
-// Crypto pairs (Alpaca format)
-const CRYPTO_SYMBOLS = ["BTC/USD", "ETH/USD", "SOL/USD", "DOGE/USD", "XRP/USD"];
+// Crypto pairs - top 3 only (reduced from 5)
+const CRYPTO_SYMBOLS = ["BTC/USD", "ETH/USD", "SOL/USD"];
 
 type QuoteData = {
   symbol: string;
