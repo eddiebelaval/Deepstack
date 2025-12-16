@@ -114,6 +114,50 @@ DEMO_CREDITS: Dict[str, int] = {}
 DEMO_DEFAULT_CREDITS = 100
 
 
+# === MODEL-BASED CREDIT MULTIPLIERS ===
+# Different AI models have different costs based on their API pricing
+# Users can choose efficiency (Haiku) vs capability (Opus)
+MODEL_MULTIPLIERS: Dict[str, float] = {
+    "claude_haiku": 0.3,  # Fastest, cheapest
+    "claude": 1.0,  # Sonnet - baseline
+    "claude_opus": 3.0,  # Most capable, premium
+    "grok": 0.8,  # Fast alternative
+    "sonar_reasoning": 0.5,  # DeepSeek R1 via Perplexity
+    "perplexity": 0.4,  # Real-time search
+}
+
+# Extended thinking adds 50% to the cost
+EXTENDED_THINKING_MULTIPLIER = 1.5
+
+
+def calculate_model_cost(
+    base_cost: int,
+    model: Optional[str] = None,
+    extended_thinking: bool = False,
+) -> int:
+    """Calculate credit cost based on model and options.
+
+    Args:
+        base_cost: Base cost from ActionCost enum
+        model: Model identifier (e.g., 'claude_opus', 'claude_haiku')
+        extended_thinking: Whether extended thinking is enabled
+
+    Returns:
+        Final credit cost (minimum 1)
+    """
+    if base_cost == 0:
+        return 0
+
+    multiplier = MODEL_MULTIPLIERS.get(model, 1.0) if model else 1.0
+
+    cost = base_cost * multiplier
+
+    if extended_thinking:
+        cost *= EXTENDED_THINKING_MULTIPLIER
+
+    return max(1, int(cost))
+
+
 def get_supabase_client():
     """Get Supabase client with service role key."""
     try:

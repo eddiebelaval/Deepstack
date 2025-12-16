@@ -31,6 +31,26 @@ const providerLetters: Record<LLMProvider, string> = {
   perplexity: 'P',
 };
 
+// Model credit multipliers (must match backend MODEL_MULTIPLIERS)
+export const MODEL_MULTIPLIERS: Record<LLMProvider, number> = {
+  claude_haiku: 0.3,  // Fastest, cheapest
+  claude: 1.0,        // Sonnet - baseline
+  claude_opus: 3.0,   // Most capable, premium
+  grok: 0.8,          // Fast alternative
+  sonar_reasoning: 0.5, // DeepSeek R1 via Perplexity
+  perplexity: 0.4,    // Real-time search
+};
+
+// Base cost for chat actions
+const BASE_CHAT_COST = 15;
+
+// Calculate credit cost for a model
+export function getModelCost(provider: LLMProvider, extendedThinking = false): number {
+  const multiplier = MODEL_MULTIPLIERS[provider] || 1.0;
+  const thinkingMultiplier = extendedThinking ? 1.5 : 1.0;
+  return Math.max(1, Math.floor(BASE_CHAT_COST * multiplier * thinkingMultiplier));
+}
+
 // Group providers for the UI
 const providerGroups = {
   claude: ['claude', 'claude_opus', 'claude_haiku'] as LLMProvider[],
@@ -141,6 +161,7 @@ function ModelOption({ provider, isActive, onSelect }: ModelOptionProps) {
   const config = providerConfig[provider];
   const Icon = iconMap[config.icon];
   const letter = providerLetters[provider];
+  const cost = getModelCost(provider);
 
   return (
     <button
@@ -170,6 +191,15 @@ function ModelOption({ provider, isActive, onSelect }: ModelOptionProps) {
         <div className="flex items-center gap-2">
           <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-sm font-medium">{config.name}</span>
+          {/* Credit cost badge */}
+          <span className={cn(
+            "text-[10px] font-medium px-1.5 py-0.5 rounded",
+            cost <= 6 ? "bg-emerald-500/10 text-emerald-500" :
+            cost >= 45 ? "bg-amber-500/10 text-amber-500" :
+            "bg-muted text-muted-foreground"
+          )}>
+            {cost}c
+          </span>
           {isActive && (
             <motion.div
               initial={{ scale: 0 }}
