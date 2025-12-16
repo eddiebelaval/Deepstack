@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Newspaper,
   Loader2,
@@ -17,9 +20,20 @@ import {
   Search,
   Bell,
   ChevronUp,
+  MessageSquare,
+  Rss,
+  Globe,
+  Heart,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useNewsStore, NewsArticle, useNewsAutoRefresh } from '@/lib/stores/news-store';
+import {
+  useNewsStore,
+  NewsArticle,
+  useNewsAutoRefresh,
+  NewsSourceFilter,
+  getSourceProviderDisplay,
+} from '@/lib/stores/news-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { RelatedPredictionMarkets } from '@/components/news/RelatedPredictionMarkets';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,20 +44,44 @@ const SENTIMENT_CONFIG = {
     color: 'text-green-500',
     bgColor: 'bg-green-500/10',
     borderColor: 'border-green-500/30',
+    label: 'Positive',
   },
   negative: {
     icon: TrendingDown,
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
     borderColor: 'border-red-500/30',
+    label: 'Negative',
   },
   neutral: {
     icon: Minus,
     color: 'text-muted-foreground',
     bgColor: 'bg-muted/50',
     borderColor: 'border-border',
+    label: 'Neutral',
+  },
+  bullish: {
+    icon: TrendingUp,
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/10',
+    borderColor: 'border-green-500/30',
+    label: 'Bullish',
+  },
+  bearish: {
+    icon: TrendingDown,
+    color: 'text-red-500',
+    bgColor: 'bg-red-500/10',
+    borderColor: 'border-red-500/30',
+    label: 'Bearish',
   },
 };
+
+const SOURCE_FILTER_OPTIONS: { value: NewsSourceFilter; label: string; icon: React.ElementType }[] = [
+  { value: 'all', label: 'All', icon: Globe },
+  { value: 'api', label: 'News', icon: Newspaper },
+  { value: 'rss', label: 'RSS', icon: Rss },
+  { value: 'social', label: 'Social', icon: MessageSquare },
+];
 
 export function NewsPanel() {
   const {
@@ -52,6 +90,11 @@ export function NewsPanel() {
     isLoadingMore,
     error,
     filterSymbol,
+    sourceFilter,
+    includeSocial,
+    sourceCounts,
+    totalFetched,
+    totalReturned,
     hasMore,
     newArticleCount,
     autoRefreshEnabled,
@@ -59,6 +102,8 @@ export function NewsPanel() {
     loadMore,
     setFilterSymbol,
     clearFilter,
+    setSourceFilter,
+    setIncludeSocial,
     markAsViewed,
     setAutoRefresh,
     checkForNewArticles,
@@ -155,8 +200,11 @@ export function NewsPanel() {
     return `${diffDays}d ago`;
   };
 
+  // Calculate source counts for display
+  const totalSources = Object.values(sourceCounts).reduce((a, b) => a + b, 0);
+
   return (
-    <div className="h-full flex flex-col p-4 gap-4">
+    <div className="h-full flex flex-col p-4 gap-3">
       {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -200,6 +248,40 @@ export function NewsPanel() {
           </Button>
         </div>
       </div>
+
+      {/* Source Filter Tabs */}
+      <div className="flex-shrink-0">
+        <Tabs value={sourceFilter} onValueChange={(v) => setSourceFilter(v as NewsSourceFilter)}>
+          <TabsList className="h-8 w-full grid grid-cols-4">
+            {SOURCE_FILTER_OPTIONS.map((option) => (
+              <TabsTrigger key={option.value} value={option.value} className="text-xs gap-1 h-7">
+                <option.icon className="h-3 w-3" />
+                {option.label}
+                {sourceCounts[option.value === 'api' ? 'finnhub' : option.value] !== undefined && (
+                  <span className="text-[10px] text-muted-foreground">
+                    ({option.value === 'all' ? totalSources : (sourceCounts[option.value] || 0)})
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Social toggle (when not on social tab) */}
+      {sourceFilter !== 'social' && (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Switch
+            id="include-social"
+            checked={includeSocial}
+            onCheckedChange={setIncludeSocial}
+            className="h-4 w-7"
+          />
+          <Label htmlFor="include-social" className="text-xs text-muted-foreground cursor-pointer">
+            Include StockTwits
+          </Label>
+        </div>
+      )}
 
       {/* New articles notification banner */}
       <AnimatePresence>
@@ -263,6 +345,13 @@ export function NewsPanel() {
         </div>
       )}
 
+      {/* Source stats */}
+      {totalFetched > 0 && (
+        <div className="text-[10px] text-muted-foreground flex-shrink-0">
+          Showing {totalReturned} of {totalFetched} articles (duplicates removed)
+        </div>
+      )}
+
       {/* News List */}
       <div className="flex-1 min-h-0">
         {error ? (
@@ -304,7 +393,7 @@ export function NewsPanel() {
                   </div>
                 )}
                 {!hasMore && articles.length > 0 && (
-                  <span className="text-xs text-muted-foreground">No more articles</span>
+                  <span className="text-xs text-muted-foreground">End of feed</span>
                 )}
               </div>
             </div>
@@ -325,22 +414,27 @@ function ArticleCard({
   formatTimeAgo: (dateStr: string) => string;
 }) {
   const sentiment = article.sentiment || 'neutral';
-  const SentimentIcon = SENTIMENT_CONFIG[sentiment].icon;
+  const sentimentConfig = SENTIMENT_CONFIG[sentiment] || SENTIMENT_CONFIG.neutral;
+  const SentimentIcon = sentimentConfig.icon;
+  const isStockTwits = article.source_provider === 'stocktwits';
 
   return (
-    <div className="p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
+    <div
+      className={cn(
+        'p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors',
+        isStockTwits && 'border-l-4 border-l-blue-500/50'
+      )}
+    >
       <div className="flex items-start gap-3">
         {/* Sentiment indicator */}
         <div
           className={cn(
             'p-1.5 rounded-md border flex-shrink-0',
-            SENTIMENT_CONFIG[sentiment].bgColor,
-            SENTIMENT_CONFIG[sentiment].borderColor
+            sentimentConfig.bgColor,
+            sentimentConfig.borderColor
           )}
         >
-          <SentimentIcon
-            className={cn('h-4 w-4', SENTIMENT_CONFIG[sentiment].color)}
-          />
+          <SentimentIcon className={cn('h-4 w-4', sentimentConfig.color)} />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -364,13 +458,69 @@ function ArticleCard({
 
           {/* Meta */}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className="text-xs text-muted-foreground">
-              {article.source}
-            </span>
+            {/* Source with provider badge */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">{article.source}</span>
+              {article.source_provider && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[9px] px-1 py-0 h-4',
+                    article.source_provider === 'stocktwits' && 'bg-blue-500/10 border-blue-500/30 text-blue-500',
+                    article.source_provider === 'rss' && 'bg-orange-500/10 border-orange-500/30 text-orange-500',
+                    ['finnhub', 'newsapi', 'alphavantage', 'alpaca'].includes(article.source_provider) &&
+                      'bg-purple-500/10 border-purple-500/30 text-purple-500'
+                  )}
+                >
+                  {getSourceProviderDisplay(article.source_provider)}
+                </Badge>
+              )}
+            </div>
             <span className="text-xs text-muted-foreground">•</span>
             <span className="text-xs text-muted-foreground">
               {formatTimeAgo(article.publishedAt)}
             </span>
+
+            {/* Sentiment score for StockTwits */}
+            {isStockTwits && article.sentiment_score !== undefined && (
+              <>
+                <span className="text-xs text-muted-foreground">•</span>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[9px] px-1 py-0 h-4',
+                    article.sentiment_score > 0 && 'bg-green-500/10 border-green-500/30 text-green-500',
+                    article.sentiment_score < 0 && 'bg-red-500/10 border-red-500/30 text-red-500',
+                    article.sentiment_score === 0 && 'bg-muted border-border text-muted-foreground'
+                  )}
+                >
+                  {sentimentConfig.label}
+                </Badge>
+              </>
+            )}
+
+            {/* Engagement metrics for StockTwits */}
+            {isStockTwits && article.engagement && (
+              <>
+                <span className="text-xs text-muted-foreground">•</span>
+                <div className="flex items-center gap-2">
+                  {article.engagement.likes !== undefined && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <Heart className="h-3 w-3" />
+                      {article.engagement.likes}
+                    </span>
+                  )}
+                  {article.engagement.comments !== undefined && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <MessageCircle className="h-3 w-3" />
+                      {article.engagement.comments}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Symbols */}
             {article.symbols && article.symbols.length > 0 && (
               <>
                 <span className="text-xs text-muted-foreground">•</span>
@@ -395,12 +545,14 @@ function ArticleCard({
             )}
           </div>
 
-          {/* Related Prediction Markets */}
-          <RelatedPredictionMarkets
-            headline={article.headline}
-            summary={article.summary}
-            symbols={article.symbols}
-          />
+          {/* Related Prediction Markets (only for news, not social) */}
+          {!isStockTwits && (
+            <RelatedPredictionMarkets
+              headline={article.headline}
+              summary={article.summary}
+              symbols={article.symbols}
+            />
+          )}
         </div>
       </div>
     </div>

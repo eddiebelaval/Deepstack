@@ -18,6 +18,7 @@ pyjwt>=2.8.0
 stripe>=7.0.0
 httpx>=0.25.0
 cachetools>=5.3.0
+feedparser>=6.0.0
 
 # Data analysis
 ta-lib>=0.4.28

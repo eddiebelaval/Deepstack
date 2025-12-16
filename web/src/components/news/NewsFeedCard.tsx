@@ -9,7 +9,7 @@ import {
     SquareCardFooter,
     SquareCardActionButton,
 } from '@/components/ui/square-card';
-import type { NewsArticle } from '@/lib/stores/news-store';
+import type { NewsArticle, NewsSentiment } from '@/lib/stores/news-store';
 import {
     TrendingUp,
     TrendingDown,
@@ -40,7 +40,12 @@ interface NewsFeedCardProps {
     className?: string;
 }
 
-const SENTIMENT_STYLES = {
+// Type-safe sentiment styles including StockTwits bullish/bearish
+const SENTIMENT_STYLES: Record<NewsSentiment, {
+    icon: typeof TrendingUp;
+    color: string;
+    bgGradient: string;
+}> = {
     positive: {
         icon: TrendingUp,
         color: 'text-green-500',
@@ -55,6 +60,18 @@ const SENTIMENT_STYLES = {
         icon: Minus,
         color: 'text-muted-foreground',
         bgGradient: 'from-muted/20 to-transparent',
+    },
+    // StockTwits sentiment - bullish maps to positive styling
+    bullish: {
+        icon: TrendingUp,
+        color: 'text-emerald-500',
+        bgGradient: 'from-emerald-500/10 to-transparent',
+    },
+    // StockTwits sentiment - bearish maps to negative styling
+    bearish: {
+        icon: TrendingDown,
+        color: 'text-orange-500',
+        bgGradient: 'from-orange-500/10 to-transparent',
     },
 };
 

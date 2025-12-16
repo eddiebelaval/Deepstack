@@ -35,7 +35,11 @@ from .broker.paper_trader import PaperTrader
 from .config import get_config
 from .data.alpaca_client import AlpacaClient, TimeFrameEnum
 from .data.alphavantage_client import AlphaVantageClient
+from .data.finnhub_client import FinnhubClient
 from .data.market_data import MarketDataManager
+from .data.newsapi_client import NewsAPIClient
+from .data.rss_aggregator import RSSAggregator
+from .data.stocktwits_client import StockTwitsClient
 from .exceptions import (
     AuthenticationError,
     CircuitBreakerTrippedError,
@@ -51,6 +55,7 @@ from .exceptions import (
     ValidationError,
     create_error_response,
 )
+from .services.news_aggregator import NewsAggregator
 from .strategies.deep_value import DeepValueStrategy
 from .strategies.hedged_position import HedgedPositionConfig, HedgedPositionManager
 
@@ -187,6 +192,13 @@ class DeepStackAPIServer:
         self.hedged_position_manager: Optional[HedgedPositionManager] = None
         self.market_data_manager: Optional[MarketDataManager] = None
 
+        # News aggregation clients
+        self.finnhub_client: Optional[FinnhubClient] = None
+        self.newsapi_client: Optional[NewsAPIClient] = None
+        self.stocktwits_client: Optional[StockTwitsClient] = None
+        self.rss_aggregator: Optional[RSSAggregator] = None
+        self.news_aggregator: Optional[NewsAggregator] = None
+
         # WebSocket connections
         self.websocket_connections: List[WebSocket] = []
 
@@ -268,7 +280,7 @@ class DeepStackAPIServer:
             limit: int = 10,
             page_token: Optional[str] = None,
         ):
-            """Get market news with pagination support."""
+            """Get market news with pagination support (legacy endpoint)."""
             try:
                 if not self.alpaca_client:
                     # Debug: log config values to understand why client is None
@@ -292,6 +304,80 @@ class DeepStackAPIServer:
                 return JSONResponse(
                     status_code=500,
                     content={"error": "Failed to fetch news", "details": str(e)},
+                )
+
+        @self.app.get("/api/news/aggregated")
+        async def get_aggregated_news(
+            symbol: Optional[str] = None,
+            source: Optional[str] = None,
+            limit: int = 50,
+            include_social: bool = True,
+        ):
+            """
+            Get aggregated news from all configured sources.
+
+            Args:
+                symbol: Optional ticker symbol to filter by (e.g., 'AAPL')
+                source: Optional source filter ('api', 'rss', 'social', or None for all)
+                limit: Maximum number of articles to return (default: 50)
+                include_social: Include StockTwits social posts (default: True)
+
+            Returns:
+                Aggregated, deduplicated news from all sources with source metadata
+            """
+            try:
+                if not self.news_aggregator:
+                    logger.warning("News aggregator not initialized")
+                    return {
+                        "articles": [],
+                        "sources": {},
+                        "total_fetched": 0,
+                        "total_returned": 0,
+                    }
+
+                result = await self.news_aggregator.get_aggregated_news(
+                    symbol=symbol,
+                    source_filter=source,
+                    limit=limit,
+                    include_social=include_social,
+                )
+
+                return result
+
+            except Exception as e:
+                logger.error(f"Aggregated news error: {e}", exc_info=True)
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "error": "Failed to fetch aggregated news",
+                        "details": str(e),
+                    },
+                )
+
+        @self.app.get("/api/news/sources/health")
+        async def get_news_sources_health():
+            """
+            Get health status of all news sources.
+
+            Returns:
+                Health status for each configured news source
+            """
+            try:
+                if not self.news_aggregator:
+                    return {
+                        "sources": {},
+                        "overall_healthy": False,
+                        "total_sources": 0,
+                        "healthy_sources": 0,
+                    }
+
+                return await self.news_aggregator.get_source_health()
+
+            except Exception as e:
+                logger.error(f"News health check error: {e}")
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Failed to check news source health"},
                 )
 
         @self.app.get("/api/calendar")
@@ -1301,6 +1387,58 @@ class DeepStackAPIServer:
             if websocket in self.websocket_connections:
                 self.websocket_connections.remove(websocket)
 
+    def _initialize_news_clients(self):
+        """Initialize news aggregation clients."""
+        # Initialize Finnhub client (optional - needs API key)
+        try:
+            finnhub_key = self.config.finnhub_api_key
+            if finnhub_key:
+                self.finnhub_client = FinnhubClient(api_key=finnhub_key)
+                logger.info("Finnhub client initialized")
+            else:
+                logger.info("Finnhub API key not configured - skipping")
+        except Exception as e:
+            logger.warning(f"Finnhub client init failed: {e}")
+
+        # Initialize NewsAPI client (optional - needs API key)
+        try:
+            newsapi_key = self.config.newsapi_api_key
+            if newsapi_key:
+                self.newsapi_client = NewsAPIClient(api_key=newsapi_key)
+                logger.info("NewsAPI client initialized")
+            else:
+                logger.info("NewsAPI key not configured - skipping")
+        except Exception as e:
+            logger.warning(f"NewsAPI client init failed: {e}")
+
+        # Initialize StockTwits client (no API key needed)
+        try:
+            self.stocktwits_client = StockTwitsClient()
+            logger.info("StockTwits client initialized")
+        except Exception as e:
+            logger.warning(f"StockTwits client init failed: {e}")
+
+        # Initialize RSS aggregator
+        try:
+            self.rss_aggregator = RSSAggregator()
+            logger.info("RSS aggregator initialized")
+        except Exception as e:
+            logger.warning(f"RSS aggregator init failed: {e}")
+
+        # Initialize the central news aggregator with all clients
+        try:
+            self.news_aggregator = NewsAggregator(
+                finnhub_client=self.finnhub_client,
+                newsapi_client=self.newsapi_client,
+                alphavantage_client=self.av_client,
+                alpaca_client=self.alpaca_client,
+                rss_aggregator=self.rss_aggregator,
+                stocktwits_client=self.stocktwits_client,
+            )
+            logger.info("News aggregator initialized with all available sources")
+        except Exception as e:
+            logger.warning(f"News aggregator init failed: {e}")
+
     def _initialize_components(self):
         """Initialize trading components synchronously."""
         # Initialize IBKR client (optional - may fail if IBKR not available)
@@ -1336,6 +1474,9 @@ class DeepStackAPIServer:
         except Exception as e:
             print(f"Alpaca client init failed: {e}")
             logger.error(f"Alpaca client init failed: {e}")
+
+        # Initialize news aggregation clients
+        self._initialize_news_clients()
 
         # Initialize paper trader (optional)
         try:
