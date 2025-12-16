@@ -41,3 +41,9 @@ export * from './api-mocks';
 
 // Re-export assertions
 export * from './assertions';
+
+// Re-export performance utilities
+export * from './performance';
+
+// Re-export reliability utilities
+export * from './reliability';
