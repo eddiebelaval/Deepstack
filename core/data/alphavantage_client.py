@@ -149,8 +149,12 @@ class AlphaVantageClient:
             Cache key string
         """
         # Create stable hash of parameters
+        # usedforsecurity=False: MD5 is safe here as it's only for cache key generation,
+        # not for cryptographic verification. This silences security scanner warnings.
         params_str = json.dumps(params, sort_keys=True)
-        params_hash = hashlib.md5(params_str.encode()).hexdigest()[:8]
+        params_hash = hashlib.md5(
+            params_str.encode(), usedforsecurity=False
+        ).hexdigest()[:8]
         return f"{endpoint}:{params_hash}"
 
     def _get_from_cache(self, cache_key: str, ttl_type: str) -> Optional[Dict]:
