@@ -61,7 +61,7 @@ const mockTrade: TradeEntry = {
   action: 'BUY',
   quantity: 1,
   price: 48000,
-  timestamp: '2024-01-01T00:00:00Z',
+  executedAt: '2024-01-01T00:00:00Z',
   orderType: 'MKT',
   notes: 'Test trade',
   tags: [],
@@ -124,7 +124,7 @@ describe('usePortfolio', () => {
       isOnline: true,
       error: null,
       getTradeById: vi.fn(),
-    });
+    } as any);
 
     // Default market data store mock
     vi.mocked(useMarketDataStore).mockImplementation((selector: any) => {
@@ -181,7 +181,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       const { result } = renderHook(() => usePortfolio());
 
@@ -198,7 +198,7 @@ describe('usePortfolio', () => {
         isOnline: false,
         error: 'Failed to load',
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       const { result } = renderHook(() => usePortfolio());
 
@@ -218,7 +218,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       mockCalculatePositions.mockReturnValue([mockPosition]);
       mockUpdatePositionsWithPrices.mockReturnValue([mockPosition]);
@@ -248,11 +248,11 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       // Update the mock state directly
       mockMarketDataState.quotes = {
-        BTC: { symbol: 'BTC', last: 50000, timestamp: '2024-01-01T00:00:00Z' },
+        BTC: { symbol: 'BTC', last: 50000, executedAt: '2024-01-01T00:00:00Z' },
       };
 
       vi.mocked(useMarketDataStore).mockImplementation((selector: any) => {
@@ -283,7 +283,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       mockCalculatePositions.mockReturnValue([mockPosition]);
       mockUpdatePositionsWithPrices.mockReturnValue([mockPosition]);
@@ -319,7 +319,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       mockCalculatePositions.mockReturnValue([mockPosition]);
       mockQuote.mockResolvedValue({ symbol: 'BTC', last: 50000 });
@@ -341,7 +341,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       mockCalculatePositions.mockReturnValue([mockPosition]);
       mockQuote.mockResolvedValue({ symbol: 'BTC', last: 50000, bid: 49900, ask: 50100 });
@@ -373,7 +373,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       mockCalculatePositions.mockReturnValue([mockPosition]);
       mockQuote.mockResolvedValue({ symbol: 'BTC', last: 50000 });
@@ -418,7 +418,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       mockCalculatePositions.mockReturnValue([mockPosition]);
       // Mock individual quote failures - they're caught internally and return null
@@ -448,7 +448,7 @@ describe('usePortfolio', () => {
         isOnline: true,
         error: null,
         getTradeById: vi.fn(),
-      });
+      } as any);
 
       mockCalculatePositions.mockReturnValue([mockPosition]);
       mockQuote.mockResolvedValue({ symbol: 'BTC', last: 51000 });
@@ -485,7 +485,7 @@ describe('usePortfolio', () => {
       mockAddTrade.mockResolvedValue({
         ...newTrade,
         id: 'trade-2',
-        timestamp: '2024-01-02T00:00:00Z',
+        executedAt: '2024-01-02T00:00:00Z',
         userId: 'user-1',
         syncStatus: 'synced',
         createdAt: '2024-01-02T00:00:00Z',
@@ -572,7 +572,7 @@ describe('usePlacePaperTrade', () => {
       isOnline: true,
       error: null,
       getTradeById: vi.fn(),
-    });
+    } as any);
   });
 
   it('executes trade with provided price', async () => {
@@ -589,7 +589,7 @@ describe('usePlacePaperTrade', () => {
     mockAddTrade.mockResolvedValue({
       ...tradeParams,
       id: 'trade-1',
-      timestamp: '2024-01-01T00:00:00Z',
+      executedAt: '2024-01-01T00:00:00Z',
       userId: 'user-1',
       syncStatus: 'synced',
       createdAt: '2024-01-01T00:00:00Z',
@@ -617,7 +617,7 @@ describe('usePlacePaperTrade', () => {
       quantity: 1,
       price: 49500,
       orderType: 'MKT',
-      timestamp: '2024-01-01T00:00:00Z',
+      executedAt: '2024-01-01T00:00:00Z',
       userId: 'user-1',
       syncStatus: 'synced',
       createdAt: '2024-01-01T00:00:00Z',
@@ -741,7 +741,7 @@ describe('usePlacePaperTrade', () => {
         quantity: 1,
         price: 48000,
         orderType: 'MKT',
-        timestamp: '2024-01-01T00:00:00Z',
+        executedAt: '2024-01-01T00:00:00Z',
         userId: 'user-1',
         syncStatus: 'synced',
         createdAt: '2024-01-01T00:00:00Z',

@@ -67,7 +67,7 @@ describe('/api/emotional-firewall/check', () => {
       method: 'POST',
       body: { action: 'reset' },
     });
-    await POST(request);
+    await (POST as any)(request);
   }
 
   /**
@@ -78,7 +78,7 @@ describe('/api/emotional-firewall/check', () => {
       method: 'POST',
       body: { action: 'record_query' },
     });
-    return await POST(request);
+    return await (POST as any)(request);
   }
 
   /**
@@ -89,7 +89,7 @@ describe('/api/emotional-firewall/check', () => {
       method: 'POST',
       body: { action: 'start_session' },
     });
-    return await POST(request);
+    return await (POST as any)(request);
   }
 
   /**
@@ -100,7 +100,7 @@ describe('/api/emotional-firewall/check', () => {
       method: 'POST',
       body: { action: 'end_session' },
     });
-    return await POST(request);
+    return await (POST as any)(request);
   }
 
   /**
@@ -111,7 +111,7 @@ describe('/api/emotional-firewall/check', () => {
       method: 'POST',
       body: { action: 'take_break' },
     });
-    return await POST(request);
+    return await (POST as any)(request);
   }
 
   /**
@@ -122,7 +122,7 @@ describe('/api/emotional-firewall/check', () => {
       method: 'POST',
       body: { action: 'dismiss_break' },
     });
-    return await POST(request);
+    return await (POST as any)(request);
   }
 
   /**
@@ -136,7 +136,7 @@ describe('/api/emotional-firewall/check', () => {
   describe('GET - Check current status', () => {
     it('returns focused status with no session', async () => {
       const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(response.status).toBe(200);
@@ -155,7 +155,7 @@ describe('/api/emotional-firewall/check', () => {
 
     it('returns 500 on internal error', async () => {
       const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
 
       // Verify success case (error handling exists in code)
       expect(response.status).toBe(200);
@@ -224,7 +224,7 @@ describe('/api/emotional-firewall/check', () => {
         await endSession();
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.session.duration_minutes).toBe(0);
@@ -265,7 +265,7 @@ describe('/api/emotional-firewall/check', () => {
         vi.setSystemTime(mockNow);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.compromised).toBe(true);
@@ -280,7 +280,7 @@ describe('/api/emotional-firewall/check', () => {
         vi.setSystemTime(mockNow);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.compromised).toBe(true);
@@ -293,7 +293,7 @@ describe('/api/emotional-firewall/check', () => {
         vi.setSystemTime(mockNow);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.compromised).toBe(false);
@@ -309,7 +309,7 @@ describe('/api/emotional-firewall/check', () => {
         advanceTimeByMinutes(121);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.patterns_detected).toContain('session_fatigue');
@@ -323,7 +323,7 @@ describe('/api/emotional-firewall/check', () => {
         advanceTimeByMinutes(181);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.compromised).toBe(true);
@@ -339,7 +339,7 @@ describe('/api/emotional-firewall/check', () => {
         advanceTimeByMinutes(60);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.patterns_detected).not.toContain('session_fatigue');
@@ -355,7 +355,7 @@ describe('/api/emotional-firewall/check', () => {
         }
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.patterns_detected).toContain('rapid_queries');
@@ -370,7 +370,7 @@ describe('/api/emotional-firewall/check', () => {
         }
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.patterns_detected).not.toContain('rapid_queries');
@@ -389,7 +389,7 @@ describe('/api/emotional-firewall/check', () => {
         await startSession();
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.patterns_detected).toContain('session_overload');
@@ -408,7 +408,7 @@ describe('/api/emotional-firewall/check', () => {
         advanceTimeByMinutes(181);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         expect(data.compromised).toBe(true);
@@ -424,7 +424,7 @@ describe('/api/emotional-firewall/check', () => {
         advanceTimeByMinutes(121);
 
         const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const response = await GET(request);
+        const response = await (GET as any)(request);
         const data = await parseResponse<DecisionFitnessResult>(response);
 
         // Single non-severe pattern should be caution, not compromised
@@ -441,7 +441,7 @@ describe('/api/emotional-firewall/check', () => {
       vi.setSystemTime(mockNow);
 
       const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.compromised).toBe(true);
@@ -459,7 +459,7 @@ describe('/api/emotional-firewall/check', () => {
 
       // Trigger break recommendation
       let request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      await GET(request);
+      await (GET as any)(request);
 
       // Advance time by 30 minutes (still in break)
       advanceTimeByMinutes(30);
@@ -469,7 +469,7 @@ describe('/api/emotional-firewall/check', () => {
       vi.setSystemTime(mockNow);
 
       request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.compromised).toBe(true);
@@ -483,7 +483,7 @@ describe('/api/emotional-firewall/check', () => {
 
       // Check to set break
       let request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const initialResponse = await GET(request);
+      const initialResponse = await (GET as any)(request);
       const initialData = await parseResponse<DecisionFitnessResult>(initialResponse);
       expect(initialData.break_recommended_until).not.toBeNull();
 
@@ -492,7 +492,7 @@ describe('/api/emotional-firewall/check', () => {
       advanceTimeByMinutes(61); // Past the 60 minute break
 
       request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.break_recommended_until).toBeNull();
@@ -506,7 +506,7 @@ describe('/api/emotional-firewall/check', () => {
 
       // Trigger break recommendation
       let request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      await GET(request);
+      await (GET as any)(request);
 
       // Dismiss the break
       await dismissBreak();
@@ -516,7 +516,7 @@ describe('/api/emotional-firewall/check', () => {
       vi.setSystemTime(mockNow);
 
       request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.break_recommended_until).toBeNull();
@@ -538,7 +538,7 @@ describe('/api/emotional-firewall/check', () => {
           method: 'POST',
           body: { action: 'reset' },
         });
-        const response = await POST(request);
+        const response = await (POST as any)(request);
         const data = await parseResponse<SessionActionResponse>(response);
 
         expect(response.status).toBe(200);
@@ -546,8 +546,8 @@ describe('/api/emotional-firewall/check', () => {
         expect(data.message).toBe('Decision fitness state reset');
 
         // Verify state is clean
-        const checkRequest = createRequest('http://localhost:3000/api/emotional-firewall/check');
-        const checkResponse = await GET(checkRequest);
+        const _checkRequest = createRequest('http://localhost:3000/api/emotional-firewall/check');
+        const checkResponse = await GET();
         const checkData = await parseResponse<DecisionFitnessResult>(checkResponse);
 
         expect(checkData.compromised).toBe(false);
@@ -567,7 +567,7 @@ describe('/api/emotional-firewall/check', () => {
           method: 'POST',
           body: { action: 'invalid_action' },
         });
-        const response = await POST(request);
+        const response = await (POST as any)(request);
         const data = await parseResponse<ErrorResponse>(response);
 
         expect(response.status).toBe(400);
@@ -579,7 +579,7 @@ describe('/api/emotional-firewall/check', () => {
           method: 'POST',
           body: { foo: 'bar' },
         });
-        const response = await POST(request);
+        const response = await (POST as any)(request);
         const data = await parseResponse<ErrorResponse>(response);
 
         expect(response.status).toBe(400);
@@ -594,7 +594,7 @@ describe('/api/emotional-firewall/check', () => {
       advanceTimeByMinutes(30);
 
       const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.session.queries_this_session).toBe(0);
@@ -607,7 +607,7 @@ describe('/api/emotional-firewall/check', () => {
         body: null,
       });
 
-      const response = await POST(request);
+      const response = await (POST as any)(request);
       expect(response.status).toBe(500);
     });
 
@@ -624,7 +624,7 @@ describe('/api/emotional-firewall/check', () => {
       await startSession();
 
       const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.session.sessions_today).toBe(1); // Reset for new day
@@ -634,7 +634,7 @@ describe('/api/emotional-firewall/check', () => {
   describe('State isolation between tests', () => {
     it('starts with clean state in first test', async () => {
       const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.session.sessions_today).toBe(0);
@@ -642,7 +642,7 @@ describe('/api/emotional-firewall/check', () => {
 
     it('starts with clean state in second test', async () => {
       const request = createRequest('http://localhost:3000/api/emotional-firewall/check');
-      const response = await GET(request);
+      const response = await (GET as any)(request);
       const data = await parseResponse<DecisionFitnessResult>(response);
 
       expect(data.session.sessions_today).toBe(0);

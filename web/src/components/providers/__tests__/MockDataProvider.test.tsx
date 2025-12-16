@@ -92,7 +92,7 @@ describe('MockDataProvider', () => {
   describe('Production environment', () => {
     it('does not load mock data in production', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
 
       render(
         <MockDataProvider>
@@ -104,13 +104,13 @@ describe('MockDataProvider', () => {
         expect(initializeMockData).not.toHaveBeenCalled();
       });
 
-      process.env.NODE_ENV = originalEnv;
+      (process.env as any).NODE_ENV = originalEnv;
     });
   });
 
   describe('Development environment', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
     });
 
     it('renders children', () => {
@@ -445,7 +445,7 @@ describe('MockDataProvider', () => {
 
   describe('Edge cases', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
     });
 
     it('handles empty quotes from initializeMockData', async () => {
@@ -560,7 +560,7 @@ describe('MockDataProvider', () => {
 
   describe('Multiple rerenders', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
     });
 
     it('only initializes once on multiple rerenders', async () => {

@@ -89,7 +89,7 @@ describe('ChatInput', () => {
     // Mock fetch for command execution
     global.fetch = vi.fn().mockResolvedValue({
       json: async () => ({ status: 'success' }),
-    });
+    } as Response);
   });
 
   describe('Rendering', () => {
@@ -602,7 +602,7 @@ describe('ChatInput', () => {
       render(<ChatInput onSend={mockOnSend} />);
 
       const textarea = screen.getByPlaceholderText('Message DeepStack...');
-      await user.type(textarea, 'Quick message', { delay: 1 });
+      await user.type(textarea, 'Quick message');
 
       expect(textarea).toHaveValue('Quick message');
     });

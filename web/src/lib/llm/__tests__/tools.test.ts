@@ -122,7 +122,7 @@ describe('Trading Tools', () => {
         json: async () => mockQuote,
       });
 
-      const result = await tradingTools.get_quote.execute({ symbol: 'AAPL' });
+      const result = await tradingTools.get_quote.execute!({ symbol: 'AAPL' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.symbol).toBe('AAPL');
@@ -139,7 +139,7 @@ describe('Trading Tools', () => {
         }),
       });
 
-      await tradingTools.get_quote.execute({ symbol: 'aapl' });
+      await tradingTools.get_quote.execute!({ symbol: 'aapl' }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('symbols=AAPL');
@@ -148,7 +148,7 @@ describe('Trading Tools', () => {
     it('should fall back to mock data on API error', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await tradingTools.get_quote.execute({ symbol: 'AAPL' });
+      const result = await tradingTools.get_quote.execute!({ symbol: 'AAPL' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -162,7 +162,7 @@ describe('Trading Tools', () => {
         status: 500,
       });
 
-      const result = await tradingTools.get_quote.execute({ symbol: 'TSLA' });
+      const result = await tradingTools.get_quote.execute!({ symbol: 'TSLA' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -171,7 +171,7 @@ describe('Trading Tools', () => {
     it('should handle crypto symbols', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Offline'));
 
-      const result = await tradingTools.get_quote.execute({ symbol: 'BTC/USD' });
+      const result = await tradingTools.get_quote.execute!({ symbol: 'BTC/USD' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.symbol).toBe('BTC/USD');
@@ -197,7 +197,7 @@ describe('Trading Tools', () => {
         portfolio_value: 75000,
       });
 
-      const result = await tradingTools.get_positions.execute({});
+      const result = await tradingTools.get_positions.execute!({}, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.positions).toHaveLength(1);
@@ -209,7 +209,7 @@ describe('Trading Tools', () => {
 
       (api.positions as any).mockRejectedValue(new Error('API error'));
 
-      const result = await tradingTools.get_positions.execute({});
+      const result = await tradingTools.get_positions.execute!({}, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -238,7 +238,7 @@ describe('Trading Tools', () => {
         json: async () => mockAnalysis,
       });
 
-      const result = await tradingTools.analyze_stock.execute({ symbol: 'AAPL' });
+      const result = await tradingTools.analyze_stock.execute!({ symbol: 'AAPL' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.symbol).toBe('AAPL');
@@ -250,7 +250,7 @@ describe('Trading Tools', () => {
         status: 500,
       });
 
-      const result = await tradingTools.analyze_stock.execute({ symbol: 'NVDA' });
+      const result = await tradingTools.analyze_stock.execute!({ symbol: 'NVDA' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -281,12 +281,12 @@ describe('Trading Tools', () => {
         symbol: 'AAPL',
       });
 
-      const result = await tradingTools.place_order.execute({
+      const result = await tradingTools.place_order.execute!({
         symbol: 'AAPL',
         quantity: 10,
         action: 'BUY',
         order_type: 'MKT',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect((global.fetch as any).mock.calls[0][0]).toContain('emotional-firewall');
@@ -303,12 +303,12 @@ describe('Trading Tools', () => {
         }),
       });
 
-      const result = await tradingTools.place_order.execute({
+      const result = await tradingTools.place_order.execute!({
         symbol: 'TSLA',
         quantity: 100,
         action: 'BUY',
         order_type: 'MKT',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(false);
       expect(result.blocked_by_firewall).toBe(true);
@@ -325,12 +325,12 @@ describe('Trading Tools', () => {
         }),
       });
 
-      const result = await tradingTools.place_order.execute({
+      const result = await tradingTools.place_order.execute!({
         symbol: 'AAPL',
         quantity: 10,
         action: 'BUY',
         order_type: 'MKT',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.firewall_warning).toBe(true);
@@ -346,13 +346,13 @@ describe('Trading Tools', () => {
       const { api } = await import('@/lib/api-extended');
       (api.createOrderTicket as any).mockRejectedValue(new Error('API error'));
 
-      const result = await tradingTools.place_order.execute({
+      const result = await tradingTools.place_order.execute!({
         symbol: 'NVDA',
         quantity: 50,
         action: 'BUY',
         order_type: 'LMT',
         limit_price: 140.00,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -383,13 +383,13 @@ describe('Trading Tools', () => {
         price: 175.50,
       });
 
-      const result = await tradingTools.place_paper_trade.execute({
+      const result = await tradingTools.place_paper_trade.execute!({
         symbol: 'AAPL',
         quantity: 10,
         action: 'BUY',
         price: 175.50,
         order_type: 'MKT',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(createTradeEntry).toHaveBeenCalledWith(
@@ -422,12 +422,12 @@ describe('Trading Tools', () => {
         symbol: 'TSLA',
       });
 
-      const result = await tradingTools.place_paper_trade.execute({
+      const result = await tradingTools.place_paper_trade.execute!({
         symbol: 'TSLA',
         quantity: 5,
         action: 'BUY',
         order_type: 'MKT',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(createTradeEntry).toHaveBeenCalledWith(
@@ -447,12 +447,12 @@ describe('Trading Tools', () => {
         }),
       });
 
-      const result = await tradingTools.place_paper_trade.execute({
+      const result = await tradingTools.place_paper_trade.execute!({
         symbol: 'AAPL',
         quantity: 100,
         action: 'SELL',
         order_type: 'MKT',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(false);
       expect(result.blocked_by_firewall).toBe(true);
@@ -475,11 +475,11 @@ describe('Trading Tools', () => {
         risk_pct: 0.029,
       });
 
-      const result = await tradingTools.calculate_position_size.execute({
+      const result = await tradingTools.calculate_position_size.execute!({
         symbol: 'AAPL',
         entry_price: 175.00,
         stop_price: 170.00,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.risk_per_share).toBeDefined();
@@ -489,11 +489,11 @@ describe('Trading Tools', () => {
       const { api } = await import('@/lib/api-extended');
       (api.calculatePositionSize as any).mockRejectedValue(new Error('API error'));
 
-      const result = await tradingTools.calculate_position_size.execute({
+      const result = await tradingTools.calculate_position_size.execute!({
         symbol: 'NVDA',
         entry_price: 140.00,
         stop_price: 135.00,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.risk_per_share).toBe(5.00);
@@ -521,11 +521,11 @@ describe('Trading Tools', () => {
         json: async () => mockBars,
       });
 
-      const result = await tradingTools.get_chart_data.execute({
+      const result = await tradingTools.get_chart_data.execute!({
         symbol: 'AAPL',
         timeframe: '1d',
         bars: 100,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.bars).toHaveLength(1);
@@ -534,11 +534,11 @@ describe('Trading Tools', () => {
     it('should generate mock bars on error', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await tradingTools.get_chart_data.execute({
+      const result = await tradingTools.get_chart_data.execute!({
         symbol: 'SPY',
         timeframe: '1d',
         bars: 50,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -562,7 +562,7 @@ describe('Trading Tools', () => {
         ],
       });
 
-      const result = await tradingTools.search_news.execute({ query: 'Fed rates' });
+      const result = await tradingTools.search_news.execute!({ query: 'Fed rates' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.results).toHaveLength(1);
@@ -572,7 +572,7 @@ describe('Trading Tools', () => {
       const { api } = await import('@/lib/api-extended');
       (api.searchNews as any).mockRejectedValue(new Error('API error'));
 
-      const result = await tradingTools.search_news.execute({ query: 'Bitcoin' });
+      const result = await tradingTools.search_news.execute!({ query: 'Bitcoin' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -582,7 +582,7 @@ describe('Trading Tools', () => {
 
   describe('UI Panel Tools', () => {
     it('show_chart should return correct action', async () => {
-      const result = await tradingTools.show_chart.execute({ symbol: 'AAPL' });
+      const result = await tradingTools.show_chart.execute!({ symbol: 'AAPL' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.action).toBe('show_panel');
@@ -591,7 +591,7 @@ describe('Trading Tools', () => {
     });
 
     it('show_portfolio should return correct action', async () => {
-      const result = await tradingTools.show_portfolio.execute({});
+      const result = await tradingTools.show_portfolio.execute!({}, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.action).toBe('show_panel');
@@ -599,17 +599,17 @@ describe('Trading Tools', () => {
     });
 
     it('show_orders should handle optional symbol', async () => {
-      const resultWithSymbol = await tradingTools.show_orders.execute({ symbol: 'TSLA' });
-      const resultWithoutSymbol = await tradingTools.show_orders.execute({});
+      const resultWithSymbol = await tradingTools.show_orders.execute!({ symbol: 'TSLA' }, {} as any) as any;
+      const resultWithoutSymbol = await tradingTools.show_orders.execute!({}, {} as any) as any;
 
       expect(resultWithSymbol.symbol).toBe('TSLA');
       expect(resultWithoutSymbol.symbol).toBeUndefined();
     });
 
     it('show_screener should handle filters', async () => {
-      const result = await tradingTools.show_screener.execute({
+      const result = await tradingTools.show_screener.execute!({
         filters: { sector: 'Technology', priceMin: 50 },
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.filters).toEqual({ sector: 'Technology', priceMin: 50 });
@@ -627,7 +627,7 @@ describe('Trading Tools', () => {
         }),
       });
 
-      const result = await tradingTools.get_active_theses.execute({});
+      const result = await tradingTools.get_active_theses.execute!({}, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
@@ -645,7 +645,7 @@ describe('Trading Tools', () => {
         }),
       });
 
-      const result = await tradingTools.get_journal_entries.execute({ limit: 10 });
+      const result = await tradingTools.get_journal_entries.execute!({ limit: 10 }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.emotionSummary).toEqual({
@@ -664,7 +664,7 @@ describe('Trading Tools', () => {
         }),
       });
 
-      const result = await tradingTools.get_emotional_state.execute({});
+      const result = await tradingTools.get_emotional_state.execute!({}, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.status).toBe('warning');
@@ -687,10 +687,10 @@ describe('Trading Tools', () => {
         }),
       });
 
-      const result = await tradingTools.search_knowledge.execute({
+      const result = await tradingTools.search_knowledge.execute!({
         query: 'AAPL support levels',
         limit: 5,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.results).toHaveLength(1);
@@ -702,7 +702,7 @@ describe('Trading Tools', () => {
     it('should handle network errors gracefully', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await tradingTools.get_quote.execute({ symbol: 'AAPL' });
+      const result = await tradingTools.get_quote.execute!({ symbol: 'AAPL' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -716,7 +716,7 @@ describe('Trading Tools', () => {
         },
       });
 
-      const result = await tradingTools.get_quote.execute({ symbol: 'TSLA' });
+      const result = await tradingTools.get_quote.execute!({ symbol: 'TSLA' }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -725,12 +725,12 @@ describe('Trading Tools', () => {
     it('should return meaningful error messages', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Specific error message'));
 
-      const result = await tradingTools.place_order.execute({
+      const result = await tradingTools.place_order.execute!({
         symbol: 'AAPL',
         quantity: 10,
         action: 'BUY',
         order_type: 'MKT',
-      });
+      }, {} as any) as any;
 
       if (!result.success) {
         expect(result.error).toContain('error');
@@ -748,7 +748,7 @@ describe('Trading Tools', () => {
         json: async () => ({ quotes: {} }),
       });
 
-      await tradingTools.get_quote.execute({ symbol: 'AAPL' });
+      await tradingTools.get_quote.execute!({ symbol: 'AAPL' }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('https://deepstack.vercel.app');
@@ -763,7 +763,7 @@ describe('Trading Tools', () => {
         json: async () => ({ quotes: {} }),
       });
 
-      await tradingTools.get_quote.execute({ symbol: 'AAPL' });
+      await tradingTools.get_quote.execute!({ symbol: 'AAPL' }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('http://localhost:3000');

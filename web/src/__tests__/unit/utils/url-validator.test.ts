@@ -4,6 +4,7 @@
  * Tests URL validation for preventing malicious image sources.
  */
 
+import { describe, it, expect } from 'vitest';
 import {
   isValidImageUrl,
   sanitizeImageUrl,

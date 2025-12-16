@@ -4,6 +4,7 @@
  * Tests XSS attack prevention and safe HTML handling with DOMPurify.
  */
 
+import { describe, it, expect } from 'vitest';
 import { sanitizeHtml, stripHtml } from '@/lib/utils/sanitize';
 
 describe('sanitizeHtml', () => {

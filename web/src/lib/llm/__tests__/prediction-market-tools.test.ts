@@ -45,11 +45,11 @@ describe('Prediction Market Tools', () => {
         json: async () => mockResponse,
       });
 
-      const result = await predictionMarketTools.search_prediction_markets.execute({
+      const result = await predictionMarketTools.search_prediction_markets.execute!({
         query: 'Fed rate cuts',
         source: 'all',
         limit: 10,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.markets).toHaveLength(1);
@@ -63,11 +63,11 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      await predictionMarketTools.search_prediction_markets.execute({
+      await predictionMarketTools.search_prediction_markets.execute!({
         query: 'Bitcoin',
         source: 'polymarket',
         limit: 10,
-      });
+      }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('source=polymarket');
@@ -76,11 +76,11 @@ describe('Prediction Market Tools', () => {
     it('should handle API errors with mock fallback', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await predictionMarketTools.search_prediction_markets.execute({
+      const result = await predictionMarketTools.search_prediction_markets.execute!({
         query: 'Bitcoin',
         source: 'all',
         limit: 10,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -93,11 +93,11 @@ describe('Prediction Market Tools', () => {
         status: 500,
       });
 
-      const result = await predictionMarketTools.search_prediction_markets.execute({
+      const result = await predictionMarketTools.search_prediction_markets.execute!({
         query: 'recession',
         source: 'kalshi',
         limit: 5,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -106,11 +106,11 @@ describe('Prediction Market Tools', () => {
     it('should filter mock data by query', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Offline'));
 
-      const result = await predictionMarketTools.search_prediction_markets.execute({
+      const result = await predictionMarketTools.search_prediction_markets.execute!({
         query: 'Bitcoin',
         source: 'all',
         limit: 10,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.markets.every((m: any) =>
@@ -123,11 +123,11 @@ describe('Prediction Market Tools', () => {
     it('should respect limit parameter', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Offline'));
 
-      const result = await predictionMarketTools.search_prediction_markets.execute({
+      const result = await predictionMarketTools.search_prediction_markets.execute!({
         query: '',
         source: 'all',
         limit: 3,
-      });
+      }, {} as any) as any;
 
       expect(result.data.markets.length).toBeLessThanOrEqual(3);
     });
@@ -155,10 +155,10 @@ describe('Prediction Market Tools', () => {
         json: async () => mockMarket,
       });
 
-      const result = await predictionMarketTools.get_prediction_market.execute({
+      const result = await predictionMarketTools.get_prediction_market.execute!({
         platform: 'kalshi',
         market_id: 'fed-rate-jan25',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.id).toBe('fed-rate-jan25');
@@ -170,10 +170,10 @@ describe('Prediction Market Tools', () => {
         status: 404,
       });
 
-      const result = await predictionMarketTools.get_prediction_market.execute({
+      const result = await predictionMarketTools.get_prediction_market.execute!({
         platform: 'kalshi',
         market_id: 'fed-rate-jan25',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -187,10 +187,10 @@ describe('Prediction Market Tools', () => {
         status: 404,
       });
 
-      const result = await predictionMarketTools.get_prediction_market.execute({
+      const result = await predictionMarketTools.get_prediction_market.execute!({
         platform: 'kalshi',
         market_id: 'non-existent-market',
-      });
+      }, {} as any) as any;
 
       // Should try mock data, but market not found
       if (!result.success) {
@@ -201,10 +201,10 @@ describe('Prediction Market Tools', () => {
     it('should handle fetch errors gracefully', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await predictionMarketTools.get_prediction_market.execute({
+      const result = await predictionMarketTools.get_prediction_market.execute!({
         platform: 'polymarket',
         market_id: 'btc-100k-2025',
-      });
+      }, {} as any) as any;
 
       // Should fall back to mock data
       expect(result.success).toBe(true);
@@ -233,9 +233,9 @@ describe('Prediction Market Tools', () => {
         json: async () => mockResponse,
       });
 
-      const result = await predictionMarketTools.get_trending_prediction_markets.execute({
+      const result = await predictionMarketTools.get_trending_prediction_markets.execute!({
         limit: 10,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.markets).toHaveLength(2);
@@ -247,10 +247,10 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      await predictionMarketTools.get_trending_prediction_markets.execute({
+      await predictionMarketTools.get_trending_prediction_markets.execute!({
         limit: 10,
         category: 'economics',
-      });
+      }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('category=economics');
@@ -259,9 +259,9 @@ describe('Prediction Market Tools', () => {
     it('should sort mock data by volume', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Offline'));
 
-      const result = await predictionMarketTools.get_trending_prediction_markets.execute({
+      const result = await predictionMarketTools.get_trending_prediction_markets.execute!({
         limit: 10,
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -276,10 +276,10 @@ describe('Prediction Market Tools', () => {
     it('should filter mock data by category', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Offline'));
 
-      const result = await predictionMarketTools.get_trending_prediction_markets.execute({
+      const result = await predictionMarketTools.get_trending_prediction_markets.execute!({
         limit: 10,
         category: 'crypto',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.markets.every((m: any) => m.category === 'crypto')).toBe(true);
@@ -300,9 +300,9 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      const result = await predictionMarketTools.find_markets_for_thesis.execute({
+      const result = await predictionMarketTools.find_markets_for_thesis.execute!({
         hypothesis: 'The Fed will cut interest rates in 2025',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.searchTerms).toContain('fed rate');
@@ -314,9 +314,9 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      const result = await predictionMarketTools.find_markets_for_thesis.execute({
+      const result = await predictionMarketTools.find_markets_for_thesis.execute!({
         hypothesis: 'Inflation will remain elevated due to CPI pressures',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.searchTerms).toContain('inflation');
@@ -328,10 +328,10 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      const result = await predictionMarketTools.find_markets_for_thesis.execute({
+      const result = await predictionMarketTools.find_markets_for_thesis.execute!({
         symbol: 'NVDA',
         hypothesis: 'NVDA earnings will beat expectations',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.searchTerms).toContain('NVDA');
@@ -349,9 +349,9 @@ describe('Prediction Market Tools', () => {
         }),
       });
 
-      const result = await predictionMarketTools.find_markets_for_thesis.execute({
+      const result = await predictionMarketTools.find_markets_for_thesis.execute!({
         hypothesis: 'Bitcoin will reach new all-time high',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       // Should deduplicate by ID
@@ -371,9 +371,9 @@ describe('Prediction Market Tools', () => {
         }),
       });
 
-      const result = await predictionMarketTools.find_markets_for_thesis.execute({
+      const result = await predictionMarketTools.find_markets_for_thesis.execute!({
         hypothesis: 'Market hypothesis',
-      });
+      }, {} as any) as any;
 
       expect(result.data.markets.length).toBeLessThanOrEqual(10);
     });
@@ -381,9 +381,9 @@ describe('Prediction Market Tools', () => {
     it('should handle API errors with mock fallback', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await predictionMarketTools.find_markets_for_thesis.execute({
+      const result = await predictionMarketTools.find_markets_for_thesis.execute!({
         hypothesis: 'Bitcoin price prediction',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
@@ -399,7 +399,7 @@ describe('Prediction Market Tools', () => {
     });
 
     it('should return panel action without market_id', async () => {
-      const result = await predictionMarketTools.show_prediction_markets.execute({});
+      const result = await predictionMarketTools.show_prediction_markets.execute!({}, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.action).toBe('show_panel');
@@ -408,10 +408,10 @@ describe('Prediction Market Tools', () => {
     });
 
     it('should return panel action with specific market', async () => {
-      const result = await predictionMarketTools.show_prediction_markets.execute({
+      const result = await predictionMarketTools.show_prediction_markets.execute!({
         market_id: 'fed-rate-jan25',
         platform: 'kalshi',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.market_id).toBe('fed-rate-jan25');
@@ -420,12 +420,12 @@ describe('Prediction Market Tools', () => {
     });
 
     it('should include filters when provided', async () => {
-      const result = await predictionMarketTools.show_prediction_markets.execute({
+      const result = await predictionMarketTools.show_prediction_markets.execute!({
         filter: {
           category: 'economics',
           source: 'kalshi',
         },
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.filter).toEqual({
@@ -455,11 +455,11 @@ describe('Prediction Market Tools', () => {
         }),
       });
 
-      const result = await predictionMarketTools.compare_market_to_analysis.execute({
+      const result = await predictionMarketTools.compare_market_to_analysis.execute!({
         market_id: 'fed-rate-jan25',
         platform: 'kalshi',
         comparison_type: 'macro_outlook',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.market.probability).toBe(75);
@@ -472,11 +472,11 @@ describe('Prediction Market Tools', () => {
         status: 404,
       });
 
-      const result = await predictionMarketTools.compare_market_to_analysis.execute({
+      const result = await predictionMarketTools.compare_market_to_analysis.execute!({
         market_id: 'non-existent',
         platform: 'kalshi',
         comparison_type: 'stock_analysis',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Market not found');
@@ -492,12 +492,12 @@ describe('Prediction Market Tools', () => {
         }),
       });
 
-      const result = await predictionMarketTools.compare_market_to_analysis.execute({
+      const result = await predictionMarketTools.compare_market_to_analysis.execute!({
         market_id: 'nvda-earnings',
         platform: 'polymarket',
         comparison_type: 'stock_analysis',
         symbol: 'NVDA',
-      });
+      }, {} as any) as any;
 
       expect(result.success).toBe(true);
       expect(result.data.analysis.insight).toContain('NVDA');
@@ -506,11 +506,11 @@ describe('Prediction Market Tools', () => {
     it('should fall back to mock data on error', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await predictionMarketTools.compare_market_to_analysis.execute({
+      const result = await predictionMarketTools.compare_market_to_analysis.execute!({
         market_id: 'fed-rate-jan25',
         platform: 'kalshi',
         comparison_type: 'macro_outlook',
-      });
+      }, {} as any) as any;
 
       // Should try mock data
       expect(result.success).toBe(true);
@@ -525,10 +525,10 @@ describe('Prediction Market Tools', () => {
         status: 404,
       });
 
-      const result = await predictionMarketTools.get_prediction_market.execute({
+      const result = await predictionMarketTools.get_prediction_market.execute!({
         platform: 'kalshi',
         market_id: 'fed-rate-jan25',
-      });
+      }, {} as any) as any;
 
       if (result.success && result.data.priceHistory) {
         const history = result.data.priceHistory;
@@ -558,11 +558,11 @@ describe('Prediction Market Tools', () => {
         }),
       });
 
-      const result = await predictionMarketTools.compare_market_to_analysis.execute({
+      const result = await predictionMarketTools.compare_market_to_analysis.execute!({
         market_id: 'test',
         platform: 'kalshi',
         comparison_type: 'macro_outlook',
-      });
+      }, {} as any) as any;
 
       if (result.success) {
         expect(result.data.analysis.market_says).toContain('$5.5M');
@@ -580,11 +580,11 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      await predictionMarketTools.search_prediction_markets.execute({
+      await predictionMarketTools.search_prediction_markets.execute!({
         query: 'test',
         source: 'all',
         limit: 10,
-      });
+      }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('https://deepstack.vercel.app');
@@ -599,11 +599,11 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      await predictionMarketTools.search_prediction_markets.execute({
+      await predictionMarketTools.search_prediction_markets.execute!({
         query: 'test',
         source: 'all',
         limit: 10,
-      });
+      }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('http://localhost:3000');
@@ -618,11 +618,11 @@ describe('Prediction Market Tools', () => {
         json: async () => ({ markets: [] }),
       });
 
-      await predictionMarketTools.search_prediction_markets.execute({
+      await predictionMarketTools.search_prediction_markets.execute!({
         query: 'test',
         source: 'all',
         limit: 10,
-      });
+      }, {} as any) as any;
 
       const fetchCall = (global.fetch as any).mock.calls[0][0];
       expect(fetchCall).toContain('http://localhost:3000');

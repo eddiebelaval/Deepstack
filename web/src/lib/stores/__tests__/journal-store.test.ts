@@ -190,7 +190,7 @@ describe('useJournalStore', () => {
     it('updates existing entry fields', () => {
       const { addEntry, updateEntry } = useJournalStore.getState();
 
-      let entryId: string;
+      let entryId!: string;
       act(() => {
         const entry = addEntry({
           symbol: 'AAPL',
@@ -225,8 +225,8 @@ describe('useJournalStore', () => {
     it('updates updatedAt timestamp', () => {
       const { addEntry, updateEntry } = useJournalStore.getState();
 
-      let entryId: string;
-      let originalUpdatedAt: string;
+      let entryId!: string;
+      let originalUpdatedAt!: string;
 
       act(() => {
         const entry = addEntry({
@@ -280,7 +280,7 @@ describe('useJournalStore', () => {
     it('preserves other fields when updating', () => {
       const { addEntry, updateEntry } = useJournalStore.getState();
 
-      let entryId: string;
+      let entryId!: string;
       act(() => {
         const entry = addEntry({
           symbol: 'AAPL',
@@ -309,7 +309,7 @@ describe('useJournalStore', () => {
     it('removes entry by id', () => {
       const { addEntry, deleteEntry } = useJournalStore.getState();
 
-      let entryId: string;
+      let entryId!: string;
       act(() => {
         const entry = addEntry({
           symbol: 'AAPL',
@@ -336,7 +336,7 @@ describe('useJournalStore', () => {
       const { addEntry, deleteEntry } = useJournalStore.getState();
 
       let firstId: string;
-      let secondId: string;
+      let secondId!: string;
 
       // Create entries with time advancement to ensure different timestamps/IDs
       act(() => {
@@ -406,7 +406,7 @@ describe('useJournalStore', () => {
     it('returns entry with matching id', () => {
       const { addEntry, getEntryById } = useJournalStore.getState();
 
-      let entryId: string;
+      let entryId!: string;
       act(() => {
         const entry = addEntry({
           symbol: 'AAPL',
@@ -435,7 +435,7 @@ describe('useJournalStore', () => {
     it('returns correct entry from multiple entries', () => {
       const { addEntry, getEntryById } = useJournalStore.getState();
 
-      let targetId: string;
+      let targetId!: string;
 
       // Create entries with time advancement to ensure different timestamps/IDs
       act(() => {
@@ -570,7 +570,7 @@ describe('useJournalStore', () => {
     it('handles complete trade lifecycle', () => {
       const { addEntry, updateEntry, getEntryById } = useJournalStore.getState();
 
-      let entryId: string;
+      let entryId!: string;
 
       // Entry trade
       act(() => {
@@ -649,7 +649,7 @@ describe('useJournalStore', () => {
     it('links journal entry to thesis', () => {
       const { addEntry, getEntryById } = useJournalStore.getState();
 
-      let entryId: string;
+      let entryId!: string;
       act(() => {
         const entry = addEntry({
           symbol: 'AAPL',
