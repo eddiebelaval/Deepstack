@@ -20,41 +20,56 @@ class ActionCost(Enum):
     """Credit costs for different API actions.
 
     Cost tiers:
-    - Free (0): Health checks, calendar
-    - Simple (1-2): Quotes, asset search
-    - Data (5-10): Bars, news, options chain
-    - AI (15-30): Chat, analysis, deep screeners
+    - Free (0): All data endpoints (quotes, bars, news, options, predictions)
+    - AI (15-30): Chat, analysis, deep screeners - the premium value
+
+    Strategy: Data is the loss leader, AI analysis is the monetization.
+    Users can browse all data freely; they pay when they want AI insights.
     """
 
-    # Free tier (0 credits)
+    # === FREE TIER (0 credits) - Data is the loss leader ===
+
+    # Health & System
     HEALTH = 0
     CALENDAR = 0
 
-    # Simple queries (1-2 credits)
-    QUOTE = 1
-    QUOTES_BATCH = 2
-    ASSETS_SEARCH = 1
-    NEWS_SOURCES_HEALTH = 1
+    # Market Data (free to attract users)
+    QUOTE = 0
+    QUOTES_BATCH = 0
+    ASSETS_SEARCH = 0
+    BARS = 0
 
-    # Data fetches (5-10 credits)
-    BARS = 5
-    NEWS = 5
-    NEWS_AGGREGATED = 7
-    OPTIONS_EXPIRATIONS = 5
-    OPTIONS_CHAIN = 10
-    OPTIONS_QUOTE = 2
-    SCREENER = 8
-    PREDICTION_MARKETS_LIST = 5
-    PREDICTION_MARKETS_DETAIL = 3
+    # News (free - commodity data)
+    NEWS = 0
+    NEWS_AGGREGATED = 0
+    NEWS_SOURCES_HEALTH = 0
 
-    # AI analysis (15-30 credits)
+    # Options Data (free - let them explore)
+    OPTIONS_EXPIRATIONS = 0
+    OPTIONS_CHAIN = 0
+    OPTIONS_QUOTE = 0
+
+    # Screener (free - basic filtering)
+    SCREENER = 0
+
+    # Prediction Markets (free - browsing/discovery)
+    PREDICTION_MARKETS_LIST = 0
+    PREDICTION_MARKETS_DETAIL = 0
+
+    # === PAID TIER - AI Analysis (the premium value) ===
+
+    # AI Chat & Analysis (15-30 credits)
     CHAT = 15
     ANALYZE = 20
-    OPTIONS_STRATEGY = 25
-    OPTIONS_GREEKS = 10
-    PREDICTION_MARKETS_ANALYZE = 20
     DEEP_VALUE_SCREEN = 30
     EMBEDDINGS = 5
+
+    # Options Strategy (AI-powered)
+    OPTIONS_STRATEGY = 25
+    OPTIONS_GREEKS = 10
+
+    # Prediction Markets AI Analysis
+    PREDICTION_MARKETS_ANALYZE = 20
 
 
 class ActionCategory(Enum):
@@ -140,6 +155,31 @@ async def verify_token(authorization: str = Header(None)) -> str:
     except Exception as e:
         logger.error(f"Auth error: {e}")
         raise HTTPException(status_code=401, detail="Invalid Token")
+
+
+async def verify_token_optional(authorization: str = Header(None)) -> Optional[str]:
+    """Optionally verify Supabase JWT and return user ID.
+
+    Returns None if no authorization provided (for free/public endpoints).
+    Returns 'demo-user' if no Supabase configured.
+    Returns user ID if valid token provided.
+    Raises 401 only if invalid token provided (not for missing token).
+    """
+    supabase = get_supabase_client()
+
+    if not supabase:
+        return "demo-user"
+
+    if not authorization:
+        return None  # Allow anonymous access for free endpoints
+
+    try:
+        token = authorization.replace("Bearer ", "")
+        user = supabase.auth.get_user(token)
+        return user.user.id
+    except Exception as e:
+        logger.debug(f"Optional auth failed: {e}")
+        return None  # Treat invalid tokens as anonymous for free endpoints
 
 
 class CreditDeduction:
@@ -326,6 +366,71 @@ def require_action(action: ActionCost):
         @app.get("/api/endpoint", dependencies=[Depends(dep)])
     """
     return CreditDeduction(action=action)
+
+
+class FreeEndpoint:
+    """FastAPI dependency for free (public) endpoints.
+
+    Used for data endpoints that don't require auth or credits.
+    This is the "loss leader" strategy - let users browse data freely.
+
+    Usage:
+        @app.get("/api/endpoint", dependencies=[Depends(FreeEndpoint())])
+        async def endpoint():
+            ...
+
+    Or with action enum:
+        @app.get("/api/endpoint", dependencies=[Depends(free_action(ActionCost.BARS))])
+        async def endpoint():
+            ...
+    """
+
+    def __init__(self, action_name: str = "free_access"):
+        self.action_name = action_name
+
+    async def __call__(
+        self,
+        response: Response,
+        user_id: Optional[str] = Depends(verify_token_optional),
+    ) -> Dict[str, Any]:
+        """Allow access without authentication."""
+        # Set header if user is authenticated (shows their balance)
+        if user_id:
+            supabase = get_supabase_client()
+            if supabase:
+                try:
+                    result = (
+                        supabase.table("profiles")
+                        .select("credits")
+                        .eq("id", user_id)
+                        .single()
+                        .execute()
+                    )
+                    if result.data:
+                        response.headers["X-DeepStack-Credits"] = str(
+                            result.data.get("credits", 0)
+                        )
+                except Exception as e:
+                    logger.debug(f"Optional credit header fetch failed: {e}")
+
+        return {
+            "user_id": user_id or "anonymous",
+            "credits_remaining": None,
+            "free_endpoint": True,
+        }
+
+
+def free_action(action: ActionCost):
+    """Factory for creating FreeEndpoint dependencies.
+
+    Use for endpoints that should be public (no auth required).
+    The action is used for logging/tracking only.
+
+    Usage:
+        dep = free_action(ActionCost.PREDICTION_MARKETS_LIST)
+        @app.get("/api/endpoint", dependencies=[Depends(dep)])
+    """
+    return FreeEndpoint(action_name=action.name.lower())
 
 
 # Utility functions

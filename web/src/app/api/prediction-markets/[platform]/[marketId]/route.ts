@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -9,18 +10,31 @@ export async function GET(
   const params = await context.params;
   const { platform, marketId } = params;
 
-  // Get current price from URL params (passed from trending data)
+  // Get current price from URL params (passed from trending data for price history generation)
   const searchParams = request.nextUrl.searchParams;
   const currentYesPrice = parseFloat(searchParams.get('yesPrice') || '0.5');
-  const title = searchParams.get('title') || 'Market';
 
   try {
+    // Get user session for auth token
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    // Build headers with auth token if available
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
     const response = await fetch(
       `${BACKEND_URL}/api/predictions/market/${platform}/${marketId}`,
-      { cache: 'no-store' }
+      { cache: 'no-store', headers }
     );
 
     if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error(`Market detail backend error: ${response.status}`, errorText);
       throw new Error(`Backend returned ${response.status}`);
     }
 
@@ -33,23 +47,17 @@ export async function GET(
   } catch (error) {
     console.error('Market detail fetch error:', error);
 
-    // Return mock market detail for development
-    const mockMarket = getMockMarketDetail(platform, marketId);
-    if (mockMarket) {
-      return NextResponse.json({ market: mockMarket, mock: true });
-    }
-
-    // Generate synthetic market with price history based on passed params
-    const syntheticMarket = {
-      id: marketId,
-      platform,
-      title,
-      yesPrice: currentYesPrice,
-      noPrice: 1 - currentYesPrice,
-      priceHistory: generatePriceHistory(currentYesPrice),
-    };
-
-    return NextResponse.json({ market: syntheticMarket, synthetic: true });
+    // Return proper error response - no mock data
+    return NextResponse.json(
+      {
+        error: 'Unable to fetch market details',
+        message: 'The prediction markets service is currently unavailable. Please try again later.',
+        unavailable: true,
+        platform,
+        marketId,
+      },
+      { status: 503 }
+    );
   }
 }
 
@@ -93,78 +101,4 @@ function generatePriceHistory(currentPrice: number): Array<{ timestamp: string; 
   }
 
   return history;
-}
-
-function getMockMarketDetail(platform: string, marketId: string) {
-  const mockMarkets: Record<string, any> = {
-    'kalshi-MOCK-FED-JAN25': {
-      id: 'MOCK-FED-JAN25',
-      platform: 'kalshi',
-      title: 'Will the Fed cut rates in January 2025?',
-      category: 'Economics',
-      yesPrice: 0.72,
-      noPrice: 0.28,
-      volume: 2500000,
-      volume24h: 150000,
-      openInterest: 1800000,
-      endDate: '2025-01-31T23:59:59Z',
-      status: 'active',
-      url: 'https://kalshi.com/markets/FED-JAN25',
-      description: 'This market resolves YES if the Federal Reserve cuts interest rates by any amount in January 2025. The market will resolve based on official FOMC announcements.',
-      priceHistory: [
-        { timestamp: '2024-12-01T00:00:00Z', yesPrice: 0.68, volume: 100000 },
-        { timestamp: '2024-12-02T00:00:00Z', yesPrice: 0.70, volume: 120000 },
-        { timestamp: '2024-12-03T00:00:00Z', yesPrice: 0.71, volume: 150000 },
-        { timestamp: '2024-12-04T00:00:00Z', yesPrice: 0.69, volume: 130000 },
-        { timestamp: '2024-12-05T00:00:00Z', yesPrice: 0.72, volume: 150000 },
-      ],
-    },
-    'polymarket-MOCK-BTC-100K': {
-      id: 'MOCK-BTC-100K',
-      platform: 'polymarket',
-      title: 'Bitcoin above $100,000 by end of 2024?',
-      category: 'Crypto',
-      yesPrice: 0.65,
-      noPrice: 0.35,
-      volume: 5000000,
-      volume24h: 500000,
-      openInterest: 3500000,
-      endDate: '2024-12-31T23:59:59Z',
-      status: 'active',
-      url: 'https://polymarket.com/event/btc-100k',
-      description: 'Will Bitcoin trade above $100,000 on any exchange before January 1, 2025? This market resolves YES if Bitcoin reaches or exceeds $100,000 on any major cryptocurrency exchange.',
-      priceHistory: [
-        { timestamp: '2024-12-01T00:00:00Z', yesPrice: 0.58, volume: 400000 },
-        { timestamp: '2024-12-02T00:00:00Z', yesPrice: 0.61, volume: 450000 },
-        { timestamp: '2024-12-03T00:00:00Z', yesPrice: 0.63, volume: 480000 },
-        { timestamp: '2024-12-04T00:00:00Z', yesPrice: 0.62, volume: 420000 },
-        { timestamp: '2024-12-05T00:00:00Z', yesPrice: 0.65, volume: 500000 },
-      ],
-    },
-    'kalshi-MOCK-NVDA-Q4': {
-      id: 'MOCK-NVDA-Q4',
-      platform: 'kalshi',
-      title: 'NVIDIA Q4 2024 revenue exceeds $22B?',
-      category: 'Earnings',
-      yesPrice: 0.81,
-      noPrice: 0.19,
-      volume: 1800000,
-      volume24h: 200000,
-      openInterest: 1200000,
-      endDate: '2025-02-15T23:59:59Z',
-      status: 'active',
-      url: 'https://kalshi.com/markets/NVDA-Q4',
-      description: 'This market resolves YES if NVIDIA reports Q4 2024 revenue exceeding $22 billion in their official earnings release.',
-      priceHistory: [
-        { timestamp: '2024-12-01T00:00:00Z', yesPrice: 0.78, volume: 180000 },
-        { timestamp: '2024-12-02T00:00:00Z', yesPrice: 0.79, volume: 190000 },
-        { timestamp: '2024-12-03T00:00:00Z', yesPrice: 0.80, volume: 200000 },
-        { timestamp: '2024-12-04T00:00:00Z', yesPrice: 0.80, volume: 195000 },
-        { timestamp: '2024-12-05T00:00:00Z', yesPrice: 0.81, volume: 200000 },
-      ],
-    },
-  };
-
-  const key = `${platform}-${marketId}`;
-  return mockMarkets[key] || null;
 }

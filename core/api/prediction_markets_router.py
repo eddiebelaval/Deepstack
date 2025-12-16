@@ -24,7 +24,7 @@ from ..data.prediction_markets import (
     PredictionMarket,
     PredictionMarketManager,
 )
-from .credits import ActionCost, require_action
+from .credits import ActionCost, free_action, require_action
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,7 @@ class MarketAnalysisResponse(BaseModel):
 @router.get(
     "/trending",
     response_model=TrendingMarketsResponse,
-    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_LIST))],
+    dependencies=[Depends(free_action(ActionCost.PREDICTION_MARKETS_LIST))],
 )
 async def get_trending(
     limit: int = Query(20, ge=1, le=100, description="Max markets to return"),
@@ -164,7 +164,7 @@ async def get_trending(
 @router.get(
     "/new",
     response_model=TrendingMarketsResponse,
-    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_LIST))],
+    dependencies=[Depends(free_action(ActionCost.PREDICTION_MARKETS_LIST))],
 )
 async def get_new_markets(
     limit: int = Query(20, ge=1, le=100, description="Max markets to return"),
@@ -204,7 +204,7 @@ async def get_new_markets(
 @router.get(
     "/search",
     response_model=SearchMarketsResponse,
-    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_LIST))],
+    dependencies=[Depends(free_action(ActionCost.PREDICTION_MARKETS_LIST))],
 )
 async def search_markets(
     q: str = Query(..., min_length=2, description="Search query"),
@@ -234,7 +234,7 @@ async def search_markets(
 @router.get(
     "/market/{platform}/{market_id}",
     response_model=MarketDetailResponse,
-    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_DETAIL))],
+    dependencies=[Depends(free_action(ActionCost.PREDICTION_MARKETS_DETAIL))],
 )
 async def get_market(
     platform: str,
@@ -290,7 +290,7 @@ async def get_market(
 @router.get(
     "/market/{platform}/{market_id}/history",
     response_model=MarketHistoryResponse,
-    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_DETAIL))],
+    dependencies=[Depends(free_action(ActionCost.PREDICTION_MARKETS_DETAIL))],
 )
 async def get_market_history(
     platform: str,

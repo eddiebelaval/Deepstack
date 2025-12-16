@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { transformMarket } from '@/lib/utils/prediction-market-transform';
+import { createClient } from '@/lib/supabase/server';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -11,15 +12,30 @@ export async function GET(request: NextRequest) {
   const source = searchParams.get('source');
 
   try {
+    // Get user session for auth token
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
     const params = new URLSearchParams({ limit, offset });
     if (category) params.append('category', category);
     if (source && source !== 'all') params.append('source', source);
 
+    // Build headers with auth token if available
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
     const response = await fetch(`${BACKEND_URL}/api/predictions/trending?${params}`, {
       cache: 'no-store',
+      headers,
     });
 
     if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error(`Prediction markets backend error: ${response.status}`, errorText);
       throw new Error(`Backend returned ${response.status}`);
     }
 
