@@ -202,6 +202,7 @@ export const test = base.extend<AuthFixtures>({
       await authPage.login();
     }
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(authPage);
   },
 
@@ -212,6 +213,7 @@ export const test = base.extend<AuthFixtures>({
   mockAuthPage: async ({ page, context }, use) => {
     const authPage = new AuthenticatedPage(page, context);
     await authPage.mockAuth();
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(authPage);
   },
 });

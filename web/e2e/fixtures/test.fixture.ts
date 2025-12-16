@@ -277,26 +277,31 @@ type TestFixtures = {
 export const test = base.extend<TestFixtures>({
   landingPage: async ({ page }, use) => {
     const landingPage = new LandingPage(page);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(landingPage);
   },
 
   appPage: async ({ page }, use) => {
     const appPage = new AppPage(page);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(appPage);
   },
 
   loginPage: async ({ page }, use) => {
     const loginPage = new LoginPage(page);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(loginPage);
   },
 
   dashboardPage: async ({ page }, use) => {
     const dashboardPage = new DashboardPage(page);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(dashboardPage);
   },
 
   mockApi: async ({ page }, use) => {
     const mockApi = new MockAPI(page);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(mockApi);
     // Cleanup after test
     await mockApi.clearMocks();

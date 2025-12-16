@@ -6,9 +6,9 @@ import { describe, it, expect, vi } from 'vitest';
 
 describe('HomeWidgets', () => {
   it('exports HomeWidgets component', async () => {
-    const module = await import('../HomeWidgets');
-    expect(module.HomeWidgets).toBeDefined();
-    expect(typeof module.HomeWidgets).toBe('function');
+    const homeWidgetsModule = await import('../HomeWidgets');
+    expect(homeWidgetsModule.HomeWidgets).toBeDefined();
+    expect(typeof homeWidgetsModule.HomeWidgets).toBe('function');
   });
 
   describe('Component Documentation', () => {

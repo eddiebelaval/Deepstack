@@ -239,6 +239,7 @@ describe('MobileSwipeNavigation', () => {
       const { container } = render(
         <MobileSwipeNavigation className="custom-class">
           <div>Page 0</div>
+          <div>Page 1</div>
         </MobileSwipeNavigation>
       );
 
@@ -249,6 +250,7 @@ describe('MobileSwipeNavigation', () => {
       const { container } = render(
         <MobileSwipeNavigation>
           <div>Page 0</div>
+          <div>Page 1</div>
         </MobileSwipeNavigation>
       );
 

@@ -171,7 +171,7 @@ describe('useThesisStore', () => {
     it('updates existing thesis fields', () => {
       const { addThesis, updateThesis } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
       act(() => {
         const thesis = addThesis({
           title: 'Initial Thesis',
@@ -207,8 +207,8 @@ describe('useThesisStore', () => {
     it('updates updatedAt timestamp', () => {
       const { addThesis, updateThesis } = useThesisStore.getState();
 
-      let thesisId: string;
-      let originalUpdatedAt: string;
+      let thesisId!: string;
+      let originalUpdatedAt!: string;
 
       act(() => {
         const thesis = addThesis({
@@ -260,7 +260,7 @@ describe('useThesisStore', () => {
     it('preserves other fields when updating', () => {
       const { addThesis, updateThesis } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
       act(() => {
         const thesis = addThesis({
           title: 'Original Title',
@@ -286,7 +286,7 @@ describe('useThesisStore', () => {
     it('updates validation score and notes', () => {
       const { addThesis, updateThesis } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
       act(() => {
         const thesis = addThesis({
           title: 'Test Thesis',
@@ -316,7 +316,7 @@ describe('useThesisStore', () => {
     it('removes thesis by id', () => {
       const { addThesis, deleteThesis } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
       act(() => {
         const thesis = addThesis({
           title: 'To Delete',
@@ -342,7 +342,7 @@ describe('useThesisStore', () => {
       const { addThesis, deleteThesis } = useThesisStore.getState();
 
       let firstId: string;
-      let secondId: string;
+      let secondId!: string;
 
       // Create theses with time advancement to ensure different timestamps/IDs
       act(() => {
@@ -408,7 +408,7 @@ describe('useThesisStore', () => {
     it('returns thesis with matching id', () => {
       const { addThesis, getThesisById } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
       act(() => {
         const thesis = addThesis({
           title: 'Find Me',
@@ -436,7 +436,7 @@ describe('useThesisStore', () => {
     it('returns correct thesis from multiple theses', () => {
       const { addThesis, getThesisById } = useThesisStore.getState();
 
-      let targetId: string;
+      let targetId!: string;
 
       // Create theses with time advancement to ensure different timestamps/IDs
       act(() => {
@@ -583,7 +583,7 @@ describe('useThesisStore', () => {
     it('handles thesis lifecycle from drafting to validation', () => {
       const { addThesis, updateThesis, getThesisById } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
 
       // Create draft thesis
       act(() => {
@@ -627,7 +627,7 @@ describe('useThesisStore', () => {
     it('tracks thesis invalidation', () => {
       const { addThesis, updateThesis, getThesisById } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
 
       act(() => {
         const thesis = addThesis({
@@ -660,7 +660,7 @@ describe('useThesisStore', () => {
     it('links thesis to conversation', () => {
       const { addThesis, getThesisById } = useThesisStore.getState();
 
-      let thesisId: string;
+      let thesisId!: string;
       act(() => {
         const thesis = addThesis({
           title: 'AI Thesis from Chat',

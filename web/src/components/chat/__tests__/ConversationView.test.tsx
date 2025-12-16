@@ -6,9 +6,9 @@ import { describe, it, expect, vi } from 'vitest';
 
 describe('ConversationView', () => {
   it('exports ConversationView component', async () => {
-    const module = await import('../ConversationView');
-    expect(module.ConversationView).toBeDefined();
-    expect(typeof module.ConversationView).toBe('function');
+    const conversationViewModule = await import('../ConversationView');
+    expect(conversationViewModule.ConversationView).toBeDefined();
+    expect(typeof conversationViewModule.ConversationView).toBe('function');
   });
 
   describe('Component Documentation', () => {

@@ -11,7 +11,7 @@ interface NetworkStatusState {
 }
 
 export const useNetworkStatusStore = create<NetworkStatusState>((set) => ({
-  isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+  isOnline: true, // Default to true for SSR, will be updated on client
   wasOffline: false,
   setOnline: (isOnline) => set({ isOnline }),
   setWasOffline: (wasOffline) => set({ wasOffline }),
@@ -35,8 +35,10 @@ export function useNetworkStatus() {
   }, [setOnline, setWasOffline]);
 
   useEffect(() => {
-    // Set initial state
-    setOnline(navigator.onLine);
+    // Set initial state (only runs on client)
+    if (typeof navigator !== 'undefined') {
+      setOnline(navigator.onLine);
+    }
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
