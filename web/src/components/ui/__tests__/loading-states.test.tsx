@@ -45,9 +45,11 @@ describe('ChartSkeleton', () => {
 
     it('renders x-axis labels', () => {
       const { container } = render(<ChartSkeleton />);
-      // Should have 5 x-axis label skeletons
-      const axisLabels = container.querySelectorAll('.flex.justify-between.px-4 > *');
-      expect(axisLabels.length).toBe(5);
+      // Should have 7 x-axis label skeletons (9:30, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00)
+      const axisContainer = container.querySelector('.absolute.bottom-0');
+      expect(axisContainer).toBeInTheDocument();
+      const axisLabels = axisContainer?.querySelectorAll('div');
+      expect(axisLabels?.length).toBe(7);
     });
   });
 });
@@ -59,23 +61,27 @@ describe('PositionSkeleton', () => {
       expect(container.firstChild).toBeInTheDocument();
     });
 
-    it('has border-bottom class', () => {
+    it('has border class and rounded corners', () => {
       const { container } = render(<PositionSkeleton />);
       const element = container.firstChild as HTMLElement;
-      expect(element).toHaveClass('border-b');
+      // PositionSkeleton uses border (not border-b) with rounded-lg
+      expect(element).toHaveClass('border');
       expect(element).toHaveClass('border-border');
+      expect(element).toHaveClass('rounded-lg');
     });
 
-    it('renders icon skeleton', () => {
+    it('renders direction badge skeleton', () => {
       const { container } = render(<PositionSkeleton />);
-      const icon = container.querySelector('.rounded-full');
-      expect(icon).toBeInTheDocument();
+      // Direction badge has rounded-full class
+      const badge = container.querySelector('.rounded-full');
+      expect(badge).toBeInTheDocument();
     });
 
-    it('has left and right content sections', () => {
+    it('has top and bottom content rows', () => {
       const { container } = render(<PositionSkeleton />);
-      const sections = container.querySelectorAll('.space-y-1');
-      expect(sections.length).toBe(2);
+      // Component has space-y-2 with two main rows (flex items-center justify-between)
+      const rows = container.querySelectorAll('.flex.items-center.justify-between');
+      expect(rows.length).toBe(2);
     });
   });
 });
@@ -95,7 +101,8 @@ describe('PortfolioSkeleton', () => {
 
     it('renders summary stats grid', () => {
       const { container } = render(<PortfolioSkeleton />);
-      const grid = container.querySelector('.grid.grid-cols-2.gap-4');
+      // PortfolioSkeleton uses grid-cols-2 with gap-3 for cash/positions section
+      const grid = container.querySelector('.grid.grid-cols-2.gap-3');
       expect(grid).toBeInTheDocument();
     });
 
@@ -122,10 +129,11 @@ describe('WatchlistSkeleton', () => {
       expect(element).toBeInTheDocument();
     });
 
-    it('renders 6 watchlist items', () => {
+    it('renders 5 watchlist symbol rows', () => {
       const { container } = render(<WatchlistSkeleton />);
-      const items = container.querySelectorAll('.flex.items-center.justify-between.py-2');
-      expect(items.length).toBe(6);
+      // WatchlistSkeleton renders 5 symbol rows (SPY, QQQ, DIA, IWM, VIX) with px-4 py-3
+      const items = container.querySelectorAll('.flex.items-center.justify-between.px-4.py-3');
+      expect(items.length).toBe(5);
     });
   });
 });
@@ -143,10 +151,12 @@ describe('NewsSkeleton', () => {
       expect(element).toBeInTheDocument();
     });
 
-    it('renders 3 news items', () => {
+    it('renders 4 news items', () => {
       const { container } = render(<NewsSkeleton />);
-      const items = container.querySelectorAll('.space-y-2.pb-4.border-b.border-border');
-      expect(items.length).toBe(3);
+      // NewsSkeleton renders 4 news item divs inside a divide-y container
+      // Each item has p-4 flex gap-3 structure
+      const items = container.querySelectorAll('.p-4.flex.gap-3');
+      expect(items.length).toBe(4);
     });
   });
 });
