@@ -2,52 +2,27 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { FileText, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { FileText, CheckCircle2, Clock, AlertCircle, Archive, Edit } from 'lucide-react';
+import { useThesisSync } from '@/hooks/useThesisSync';
+import { ThesisEntry } from '@/lib/stores/thesis-store';
 
-// Mock thesis data types
-type ThesisStatus = 'active' | 'validating' | 'invalidated';
-
-type Thesis = {
-  id: string;
-  title: string;
-  validationScore: number; // 0-100
-  status: ThesisStatus;
-  createdAt: string;
-};
-
-// Mock data
-const MOCK_THESES: Thesis[] = [
-  {
-    id: '1',
-    title: 'Tech sector oversold on rate fears',
-    validationScore: 78,
-    status: 'active',
-    createdAt: '2024-12-08',
-  },
-  {
-    id: '2',
-    title: 'Energy rotation on geopolitical tension',
-    validationScore: 65,
-    status: 'validating',
-    createdAt: '2024-12-07',
-  },
-  {
-    id: '3',
-    title: 'Defensive play into year-end',
-    validationScore: 42,
-    status: 'invalidated',
-    createdAt: '2024-12-06',
-  },
-];
+// Use the actual status type from the store
+type ThesisStatus = ThesisEntry['status'];
 
 const getStatusIcon = (status: ThesisStatus) => {
   switch (status) {
     case 'active':
       return <CheckCircle2 className="h-3 w-3 text-profit" />;
-    case 'validating':
-      return <Clock className="h-3 w-3 text-yellow-500" />;
+    case 'drafting':
+      return <Edit className="h-3 w-3 text-blue-500" />;
+    case 'validated':
+      return <CheckCircle2 className="h-3 w-3 text-profit" />;
     case 'invalidated':
       return <AlertCircle className="h-3 w-3 text-loss" />;
+    case 'archived':
+      return <Archive className="h-3 w-3 text-muted-foreground" />;
+    default:
+      return <Clock className="h-3 w-3 text-yellow-500" />;
   }
 };
 
@@ -55,10 +30,16 @@ const getStatusLabel = (status: ThesisStatus) => {
   switch (status) {
     case 'active':
       return 'Active';
-    case 'validating':
-      return 'Validating';
+    case 'drafting':
+      return 'Drafting';
+    case 'validated':
+      return 'Validated';
     case 'invalidated':
       return 'Invalidated';
+    case 'archived':
+      return 'Archived';
+    default:
+      return status;
   }
 };
 
@@ -69,10 +50,12 @@ const getScoreColor = (score: number) => {
 };
 
 export function ThesisActiveWidget() {
-  // Show only active and validating theses
-  const activeTheses = MOCK_THESES.filter(
-    (t) => t.status === 'active' || t.status === 'validating'
-  ).slice(0, 3);
+  const { theses, isLoading } = useThesisSync();
+
+  // Filter to active/drafting theses and take top 3
+  const activeTheses = theses
+    .filter(t => t.status === 'active' || t.status === 'drafting')
+    .slice(0, 3);
 
   return (
     <div className="space-y-2">
@@ -99,8 +82,8 @@ export function ThesisActiveWidget() {
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Score:</span>
-                <span className={cn('font-bold', getScoreColor(thesis.validationScore))}>
-                  {thesis.validationScore}%
+                <span className={cn('font-bold', getScoreColor(thesis.validationScore ?? 0))}>
+                  {thesis.validationScore ?? 0}%
                 </span>
               </div>
               <span className="text-muted-foreground">

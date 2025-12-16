@@ -1,14 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { TrendingUp, Star } from 'lucide-react';
+import { TrendingUp, Star, Loader2 } from 'lucide-react';
 
 /**
  * ScreenerPicksWidget - Displays top screener results
  *
- * Shows 3-4 stocks matching screening criteria with key metrics
- * Mock data for now - ready for API integration
+ * Features:
+ * - Fetches real stock data from /api/screener
+ * - Shows 3-4 top stocks with key metrics
  *
  * Usage:
  * <ScreenerPicksWidget />
@@ -24,64 +25,82 @@ type ScreenerPick = {
     value: string;
   };
   change: number;
-  rating: number; // 1-5 stars
+  rating: number; // 1-5 stars based on performance
 };
 
-const MOCK_SCREENER_PICKS: ScreenerPick[] = [
-  {
-    id: '1',
-    symbol: 'PLTR',
-    name: 'Palantir',
-    price: 28.45,
-    metric: {
-      label: 'Growth',
-      value: '31%',
-    },
-    change: 4.2,
-    rating: 5,
-  },
-  {
-    id: '2',
-    symbol: 'SMCI',
-    name: 'Super Micro',
-    price: 42.30,
-    metric: {
-      label: 'P/E',
-      value: '12.4',
-    },
-    change: -1.8,
-    rating: 4,
-  },
-  {
-    id: '3',
-    symbol: 'COIN',
-    name: 'Coinbase',
-    price: 185.60,
-    metric: {
-      label: 'Vol',
-      value: '8.2M',
-    },
-    change: 6.5,
-    rating: 4,
-  },
-  {
-    id: '4',
-    symbol: 'MSTR',
-    name: 'MicroStrategy',
-    price: 312.50,
-    metric: {
-      label: 'RSI',
-      value: '68',
-    },
-    change: 3.1,
-    rating: 5,
-  },
-];
+// Format volume to human-readable (e.g., 1.2M, 500K)
+function formatVolume(vol: number): string {
+  if (!vol) return '—';
+  if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
+  if (vol >= 1_000) return `${(vol / 1_000).toFixed(0)}K`;
+  return vol.toString();
+}
+
+// Get star rating based on change percent
+function getStarRating(changePercent: number): number {
+  const absChange = Math.abs(changePercent || 0);
+  if (absChange >= 5) return 5;
+  if (absChange >= 3) return 4;
+  if (absChange >= 1) return 3;
+  if (absChange > 0) return 2;
+  return 1;
+}
 
 export function ScreenerPicksWidget() {
+  const [picks, setPicks] = useState<ScreenerPick[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchScreener() {
+      try {
+        const response = await fetch('/api/screener?sortBy=volume&sortOrder=desc');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+
+        const mapped: ScreenerPick[] = (data.results || []).slice(0, 4).map((s: any, idx: number) => ({
+          id: `${idx}`,
+          symbol: s.symbol,
+          name: s.name || s.symbol,
+          price: s.price || 0,
+          metric: {
+            label: 'Vol',
+            value: formatVolume(s.volume),
+          },
+          change: s.changePercent || 0,
+          rating: getStarRating(s.changePercent),
+        }));
+
+        setPicks(mapped);
+      } catch (err) {
+        console.error('Screener fetch error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchScreener();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (picks.length === 0) {
+    return (
+      <div className="text-center py-4 text-muted-foreground text-sm">
+        <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p>No screener results</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
-      {MOCK_SCREENER_PICKS.map((pick) => {
+      {picks.map((pick) => {
         const isPositive = pick.change >= 0;
 
         return (

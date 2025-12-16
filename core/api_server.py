@@ -294,6 +294,84 @@ class DeepStackAPIServer:
                     content={"error": "Failed to fetch news", "details": str(e)},
                 )
 
+        @self.app.get("/api/calendar")
+        async def get_calendar(
+            start: Optional[str] = None,
+            end: Optional[str] = None,
+            horizon: str = "3month",
+        ):
+            """
+            Get earnings calendar events from Alpha Vantage.
+
+            Args:
+                start: Optional start date filter (YYYY-MM-DD)
+                end: Optional end date filter (YYYY-MM-DD)
+                horizon: Time horizon - '3month', '6month', or '12month'
+
+            Returns:
+                List of calendar events
+            """
+            try:
+                events = []
+
+                # Try to fetch real earnings data from Alpha Vantage
+                if self.av_client:
+                    try:
+                        earnings_events = await self.av_client.get_earnings_calendar(
+                            horizon=horizon
+                        )
+
+                        if earnings_events:
+                            for event in earnings_events:
+                                report_date = event.get("report_date", "")
+
+                                # Apply date filters if provided
+                                if start and report_date < start:
+                                    continue
+                                if end and report_date > end:
+                                    continue
+
+                                symbol = event.get("symbol", "")
+                                name = event.get("name", "")
+                                events.append(
+                                    {
+                                        "id": f"earnings-{symbol}-{report_date}",
+                                        "type": "earnings",
+                                        "symbol": symbol,
+                                        "title": f"{name} Earnings",
+                                        "date": report_date,
+                                        "time": "TBD",  # AV no time
+                                        "importance": "medium",
+                                        "estimate": (
+                                            f"${event.get('estimate', 0):.2f}"
+                                            if event.get("estimate")
+                                            else None
+                                        ),
+                                        "fiscalQuarter": event.get(
+                                            "fiscal_date_ending", ""
+                                        ),
+                                    }
+                                )
+
+                            logger.info(f"Returning {len(events)} earnings from AV")
+                    except Exception as e:
+                        logger.warning(f"Alpha Vantage calendar failed: {e}")
+                        # Fall through to return empty events
+                else:
+                    logger.warning("Alpha Vantage client not initialized for calendar")
+
+                # Sort events by date
+                events.sort(key=lambda x: x.get("date", ""))
+
+                return {"events": events}
+
+            except Exception as e:
+                logger.error(f"Calendar error: {e}")
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Failed to fetch calendar", "details": str(e)},
+                )
+
         # Simple quote cache at endpoint level for faster responses
         _quote_cache: Dict[str, tuple] = {}
         _quote_cache_ttl = 10  # 10 seconds

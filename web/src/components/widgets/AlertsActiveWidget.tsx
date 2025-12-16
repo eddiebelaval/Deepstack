@@ -1,21 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Bell, TrendingUp, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAlertsStore } from '@/lib/stores/alerts-store';
+import { useMarketDataStore } from '@/lib/stores/market-data-store';
 
 /**
  * AlertsActiveWidget - Active price alerts widget
  *
  * Features:
- * - Shows count + top 3 active alerts
+ * - Shows count + top 3 active alerts from user's real alerts
  * - Symbol, target price, alert type (above/below)
  * - Compact alert overview
  * - Height: ~120px
  *
  * Usage:
- * <AlertsActiveWidget alerts={alerts} />
+ * <AlertsActiveWidget />
  */
 
 export type AlertType = 'above' | 'below';
@@ -29,46 +31,27 @@ export interface PriceAlertData {
 }
 
 interface AlertsActiveWidgetProps {
-  alerts?: PriceAlertData[];
   className?: string;
 }
 
-// Mock alerts for demo - replace with real alert data
-const MOCK_ALERTS: PriceAlertData[] = [
-  {
-    id: '1',
-    symbol: 'AAPL',
-    targetPrice: 195.00,
-    type: 'above',
-    currentPrice: 189.50,
-  },
-  {
-    id: '2',
-    symbol: 'NVDA',
-    targetPrice: 480.00,
-    type: 'below',
-    currentPrice: 495.75,
-  },
-  {
-    id: '3',
-    symbol: 'TSLA',
-    targetPrice: 250.00,
-    type: 'above',
-    currentPrice: 242.30,
-  },
-  {
-    id: '4',
-    symbol: 'SPY',
-    targetPrice: 450.00,
-    type: 'below',
-    currentPrice: 465.20,
-  },
-];
-
 export function AlertsActiveWidget({
-  alerts = MOCK_ALERTS,
   className
 }: AlertsActiveWidgetProps) {
+  // Get real alerts from store
+  const { getActiveAlerts } = useAlertsStore();
+  const quotes = useMarketDataStore((state) => state.quotes);
+
+  // Convert store alerts to widget format with current prices
+  const alerts: PriceAlertData[] = useMemo(() => {
+    const activeAlerts = getActiveAlerts();
+    return activeAlerts.map(alert => ({
+      id: alert.id,
+      symbol: alert.symbol,
+      targetPrice: alert.targetPrice,
+      type: alert.condition === 'above' ? 'above' : 'below',
+      currentPrice: quotes[alert.symbol]?.last,
+    }));
+  }, [getActiveAlerts, quotes]);
   // Show top 3 alerts
   const topAlerts = alerts.slice(0, 3);
 

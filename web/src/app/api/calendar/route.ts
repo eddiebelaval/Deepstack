@@ -135,23 +135,38 @@ export async function GET(request: NextRequest) {
 
       const data = await response.json();
 
-      // Combine backend market calendar with mock earnings/economic events
-      // (Alpaca only provides market hours, not earnings)
-      const mockEvents = generateMockEvents();
+      // Backend now returns real earnings from Alpha Vantage
       const backendEvents = (data.events || []).map((e: any) => ({
         ...e,
-        importance: e.importance || 'low',
+        importance: e.importance || 'medium',
       }));
 
-      // Filter mock events by date range if provided
-      let events = [...mockEvents];
-      if (start) events = events.filter(e => e.date >= start);
-      if (end) events = events.filter(e => e.date <= end);
+      // Only generate mock economic events (Alpha Vantage doesn't provide these)
+      const mockEvents = generateMockEvents().filter(e => e.type === 'economic');
 
-      // Merge with backend market calendar events
-      events = [...events, ...backendEvents].sort((a, b) => a.date.localeCompare(b.date));
+      // Filter mock economic events by date range if provided
+      let economicEvents = [...mockEvents];
+      if (start) economicEvents = economicEvents.filter(e => e.date >= start);
+      if (end) economicEvents = economicEvents.filter(e => e.date <= end);
 
-      return NextResponse.json({ events });
+      // Combine real earnings with mock economic events
+      const hasRealEarnings = backendEvents.length > 0;
+      let events = hasRealEarnings
+        ? [...backendEvents, ...economicEvents]
+        : [...generateMockEvents()]; // Fallback to all mock if backend returns nothing
+
+      // Apply date filters to fallback mock data
+      if (!hasRealEarnings) {
+        if (start) events = events.filter(e => e.date >= start);
+        if (end) events = events.filter(e => e.date <= end);
+      }
+
+      events = events.sort((a, b) => a.date.localeCompare(b.date));
+
+      return NextResponse.json({
+        events,
+        source: hasRealEarnings ? 'alpha_vantage' : 'mock'
+      });
     } catch (error) {
       console.warn('Backend unavailable for calendar, returning mock data:', error);
 

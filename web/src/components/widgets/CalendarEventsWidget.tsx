@@ -1,21 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 /**
  * CalendarEventsWidget - Upcoming economic events widget
  *
  * Features:
- * - Shows next 3-4 economic events with date/time
+ * - Fetches real economic/earnings events from /api/calendar
+ * - Shows next 3-4 events with date/time
  * - Impact indicator (high/medium/low)
- * - Compact calendar view
  * - Height: ~130px
  *
  * Usage:
- * <CalendarEventsWidget events={events} />
+ * <CalendarEventsWidget />
  */
 
 export type ImpactLevel = 'high' | 'medium' | 'low';
@@ -26,44 +26,23 @@ export interface EconomicEvent {
   date: string;
   time: string;
   impact: ImpactLevel;
+  type?: 'earnings' | 'economic' | 'dividend' | 'ipo' | 'market';
+  symbol?: string;
 }
 
 interface CalendarEventsWidgetProps {
-  events?: EconomicEvent[];
   className?: string;
 }
 
-// Mock events for demo - replace with real calendar data
-const MOCK_EVENTS: EconomicEvent[] = [
-  {
-    id: '1',
-    title: 'FOMC Meeting Minutes',
-    date: 'Dec 13',
-    time: '2:00 PM',
-    impact: 'high',
-  },
-  {
-    id: '2',
-    title: 'CPI Report',
-    date: 'Dec 14',
-    time: '8:30 AM',
-    impact: 'high',
-  },
-  {
-    id: '3',
-    title: 'Retail Sales',
-    date: 'Dec 15',
-    time: '8:30 AM',
-    impact: 'medium',
-  },
-  {
-    id: '4',
-    title: 'Jobless Claims',
-    date: 'Dec 16',
-    time: '8:30 AM',
-    impact: 'low',
-  },
-];
+// Format ISO date to human-readable
+function formatDate(isoDate: string): string {
+  try {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch {
+    return isoDate;
+  }
+}
 
 const IMPACT_CONFIG = {
   high: {
@@ -87,9 +66,43 @@ const IMPACT_CONFIG = {
 };
 
 export function CalendarEventsWidget({
-  events = MOCK_EVENTS,
   className
 }: CalendarEventsWidgetProps) {
+  const [events, setEvents] = useState<EconomicEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/calendar');
+        if (!response.ok) throw new Error('Failed to fetch calendar');
+        const data = await response.json();
+
+        // Map API response to widget format
+        const mapped: EconomicEvent[] = (data.events || []).slice(0, 4).map((e: any, idx: number) => ({
+          id: e.id || `event-${idx}`,
+          title: e.title || e.symbol || 'Event',
+          date: formatDate(e.date),
+          time: e.time || '—',
+          impact: e.importance || 'medium',
+          type: e.type,
+          symbol: e.symbol,
+        }));
+
+        setEvents(mapped);
+        setError(null);
+      } catch (err) {
+        console.error('Calendar fetch error:', err);
+        setError('Could not load events');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchEvents();
+  }, []);
   // Show next 3-4 events
   const upcomingEvents = events.slice(0, 4);
 
