@@ -11,7 +11,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field, validator
+
+# Load environment variables from .env file
+# Look in project root (parent of 'core' directory)
+_project_root = Path(__file__).parent.parent
+load_dotenv(_project_root / ".env")
 
 logger = logging.getLogger(__name__)
 
