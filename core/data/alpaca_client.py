@@ -200,6 +200,19 @@ class AlpacaClient:
                     else str(created_at) if created_at else ""
                 )
 
+                # Extract image URL if available
+                images = getattr(article, "images", []) or []
+                image_url = ""
+                if images and len(images) > 0:
+                    # Images can be dicts or objects with 'url' attribute
+                    first_img = images[0]
+                    if isinstance(first_img, dict):
+                        image_url = first_img.get("url", "")
+                    elif hasattr(first_img, "url"):
+                        image_url = first_img.url
+                    else:
+                        image_url = str(first_img) if first_img else ""
+
                 results.append(
                     {
                         "id": str(getattr(article, "id", "")),
@@ -207,10 +220,12 @@ class AlpacaClient:
                         "summary": getattr(article, "summary", "") or "",
                         "url": getattr(article, "url", "") or "",
                         "source": getattr(article, "source", "") or "",
+                        "source_provider": "alpaca",
                         "publishedAt": published_at,
                         "symbols": list(getattr(article, "symbols", []) or []),
                         "author": getattr(article, "author", "") or "",
                         "sentiment": "neutral",  # Alpaca: no sentiment
+                        "imageUrl": image_url,
                     }
                 )
 

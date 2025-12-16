@@ -491,11 +491,29 @@ class RSSAggregator:
                         item_content,
                         re.DOTALL | re.IGNORECASE,
                     )
+                    # Try multiple image tag formats:
+                    # 1. media:content or enclosure with url attribute
+                    # 2. <img>URL</img> (Benzinga style)
+                    # 3. <img src="URL"> (standard HTML)
                     image_match = re.search(
                         r'<(?:media:content|enclosure)[^>]*url=["\']([^"\']+)["\']',
                         item_content,
                         re.IGNORECASE,
                     )
+                    if not image_match:
+                        # Try <img>URL</img> format (Benzinga)
+                        image_match = re.search(
+                            r"<img[^>]*>\s*(https?://[^\s<]+)\s*</img>",
+                            item_content,
+                            re.IGNORECASE,
+                        )
+                    if not image_match:
+                        # Try <img src="URL"> format
+                        image_match = re.search(
+                            r'<img[^>]*src=["\']([^"\']+)["\']',
+                            item_content,
+                            re.IGNORECASE,
+                        )
 
                     title = title_match.group(1).strip() if title_match else ""
                     description = desc_match.group(1).strip() if desc_match else ""
