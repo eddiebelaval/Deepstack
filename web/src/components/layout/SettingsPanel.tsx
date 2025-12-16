@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useChatStore } from '@/lib/stores/chat-store';
+import { useNewsStore } from '@/lib/stores/news-store';
 import { Button } from '@/components/ui/button';
-import { X, Monitor, Bell, Globe, Brain, Database, Download, Clock, User } from 'lucide-react';
+import { X, Monitor, Bell, Globe, Brain, Database, Download, Clock, User, Newspaper, RefreshCw, MessageSquare, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,14 @@ import { PersonaSection } from '@/components/settings/PersonaSection';
 export function SettingsPanel() {
     const { settingsOpen, toggleSettings, credits } = useUIStore();
     const { activeProvider, setActiveProvider, useExtendedThinking, setUseExtendedThinking } = useChatStore();
+    const {
+        autoRefreshEnabled,
+        setAutoRefresh,
+        includeSocial,
+        setIncludeSocial,
+        sourcesHealth,
+        fetchSourcesHealth,
+    } = useNewsStore();
     useTheme(); // Hook must be called but values not directly used (used by ThemeToggle)
 
     // Local state for settings that don't have stores yet
@@ -31,8 +40,16 @@ export function SettingsPanel() {
     const [marketAlerts, setMarketAlerts] = React.useState(true);
     const [researchUpdates, setResearchUpdates] = React.useState(true);
     const [predictionAlerts, setPredictionAlerts] = React.useState(false);
-    const [newsSource, setNewsSource] = React.useState('alpaca');
     const [timezone, setTimezone] = React.useState('auto');
+    const [isLoadingHealth, setIsLoadingHealth] = React.useState(false);
+
+    // Fetch source health when settings panel opens
+    useEffect(() => {
+        if (settingsOpen && !sourcesHealth) {
+            setIsLoadingHealth(true);
+            fetchSourcesHealth().finally(() => setIsLoadingHealth(false));
+        }
+    }, [settingsOpen, sourcesHealth, fetchSourcesHealth]);
 
     const handleExportData = () => {
         // Export user data (theses, journal entries) as JSON
@@ -217,29 +234,106 @@ export function SettingsPanel() {
 
                                 <Separator />
 
-                                {/* Data Sources */}
+                                {/* News & Data Sources */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center space-x-2">
+                                        <Newspaper className="h-5 w-5 text-primary" />
+                                        <h3 className="text-lg font-semibold">News Feed</h3>
+                                    </div>
+                                    <div className="space-y-4 pl-7">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <Label className="flex items-center gap-1.5">
+                                                    <RefreshCw className="h-3.5 w-3.5" />
+                                                    Auto-Refresh
+                                                </Label>
+                                                <p className="text-xs text-muted-foreground">Automatically check for new articles</p>
+                                            </div>
+                                            <Switch
+                                                checked={autoRefreshEnabled}
+                                                onCheckedChange={setAutoRefresh}
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <Label className="flex items-center gap-1.5">
+                                                    <MessageSquare className="h-3.5 w-3.5" />
+                                                    Social Media
+                                                </Label>
+                                                <p className="text-xs text-muted-foreground">Include StockTwits posts in feed</p>
+                                            </div>
+                                            <Switch
+                                                checked={includeSocial}
+                                                onCheckedChange={setIncludeSocial}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                {/* Data Sources Health */}
                                 <div className="space-y-4">
                                     <div className="flex items-center space-x-2">
                                         <Database className="h-5 w-5 text-primary" />
                                         <h3 className="text-lg font-semibold">Data Sources</h3>
                                     </div>
-                                    <div className="space-y-4 pl-7">
-                                        <div className="flex items-center justify-between">
-                                            <div className="space-y-0.5">
-                                                <Label>News Provider</Label>
-                                                <p className="text-xs text-muted-foreground">Source for market news</p>
+                                    <div className="space-y-3 pl-7">
+                                        {isLoadingHealth ? (
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span>Checking source status...</span>
                                             </div>
-                                            <Select value={newsSource} onValueChange={setNewsSource}>
-                                                <SelectTrigger className="w-[140px]">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="alpaca">Alpaca News</SelectItem>
-                                                    <SelectItem value="benzinga" disabled>Benzinga (Soon)</SelectItem>
-                                                    <SelectItem value="polygon" disabled>Polygon (Soon)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        ) : sourcesHealth ? (
+                                            <>
+                                                <div className="flex items-center justify-between text-sm">
+                                                    <span className="text-muted-foreground">Overall Status</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        {sourcesHealth.overall_healthy ? (
+                                                            <>
+                                                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                                <span className="text-green-500 font-medium">Healthy</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <XCircle className="h-4 w-4 text-amber-500" />
+                                                                <span className="text-amber-500 font-medium">Degraded</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {Object.entries(sourcesHealth.sources).map(([name, status]) => (
+                                                        <div key={name} className="flex items-center justify-between text-sm">
+                                                            <span className="capitalize text-muted-foreground">{name}</span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                {!status.configured ? (
+                                                                    <span className="text-xs text-muted-foreground/60">Not configured</span>
+                                                                ) : status.healthy ? (
+                                                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                                                                ) : (
+                                                                    <XCircle className="h-3.5 w-3.5 text-red-500" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground pt-2">
+                                                    {sourcesHealth.healthy_sources} of {sourcesHealth.total_sources} sources active
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setIsLoadingHealth(true);
+                                                    fetchSourcesHealth().finally(() => setIsLoadingHealth(false));
+                                                }}
+                                            >
+                                                Check Status
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
