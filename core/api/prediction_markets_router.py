@@ -12,7 +12,7 @@ Provides REST endpoints for:
 import logging
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..analysis.prediction_market_analyzer import (
@@ -24,6 +24,7 @@ from ..data.prediction_markets import (
     PredictionMarket,
     PredictionMarketManager,
 )
+from .credits import ActionCost, require_action
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,11 @@ class MarketAnalysisResponse(BaseModel):
 # ============== API Endpoints ==============
 
 
-@router.get("/trending", response_model=TrendingMarketsResponse)
+@router.get(
+    "/trending",
+    response_model=TrendingMarketsResponse,
+    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_LIST))],
+)
 async def get_trending(
     limit: int = Query(20, ge=1, le=100, description="Max markets to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
@@ -156,7 +161,11 @@ async def get_trending(
         raise HTTPException(status_code=500, detail="Failed to fetch trending markets")
 
 
-@router.get("/new", response_model=TrendingMarketsResponse)
+@router.get(
+    "/new",
+    response_model=TrendingMarketsResponse,
+    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_LIST))],
+)
 async def get_new_markets(
     limit: int = Query(20, ge=1, le=100, description="Max markets to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
@@ -192,7 +201,11 @@ async def get_new_markets(
         raise HTTPException(status_code=500, detail="Failed to fetch new markets")
 
 
-@router.get("/search", response_model=SearchMarketsResponse)
+@router.get(
+    "/search",
+    response_model=SearchMarketsResponse,
+    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_LIST))],
+)
 async def search_markets(
     q: str = Query(..., min_length=2, description="Search query"),
 ):
@@ -218,7 +231,11 @@ async def search_markets(
         raise HTTPException(status_code=500, detail="Failed to search markets")
 
 
-@router.get("/market/{platform}/{market_id}", response_model=MarketDetailResponse)
+@router.get(
+    "/market/{platform}/{market_id}",
+    response_model=MarketDetailResponse,
+    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_DETAIL))],
+)
 async def get_market(
     platform: str,
     market_id: str,
@@ -271,7 +288,9 @@ async def get_market(
 
 
 @router.get(
-    "/market/{platform}/{market_id}/history", response_model=MarketHistoryResponse
+    "/market/{platform}/{market_id}/history",
+    response_model=MarketHistoryResponse,
+    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_DETAIL))],
 )
 async def get_market_history(
     platform: str,
@@ -375,7 +394,11 @@ async def get_categories():
         raise HTTPException(status_code=500, detail="Failed to fetch categories")
 
 
-@router.post("/analyze", response_model=MarketAnalysisResponse)
+@router.post(
+    "/analyze",
+    response_model=MarketAnalysisResponse,
+    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_ANALYZE))],
+)
 async def analyze_market(request: AnalysisRequest) -> MarketAnalysisResponse:
     """
     Run AI-powered analysis on a prediction market.
@@ -515,7 +538,10 @@ async def analyze_market(request: AnalysisRequest) -> MarketAnalysisResponse:
         raise HTTPException(status_code=500, detail="Failed to analyze market")
 
 
-@router.get("/analyze/{platform}/{market_id}")
+@router.get(
+    "/analyze/{platform}/{market_id}",
+    dependencies=[Depends(require_action(ActionCost.PREDICTION_MARKETS_ANALYZE))],
+)
 async def analyze_market_quick(
     platform: str,
     market_id: str,

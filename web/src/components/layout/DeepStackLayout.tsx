@@ -7,6 +7,7 @@ import { WidgetPanel } from './WidgetPanel';
 import { StreamingTicker } from './StreamingTicker';
 import { ProfilePanel } from './ProfilePanel';
 import { SettingsPanel } from './SettingsPanel';
+import { UsagePanel } from './UsagePanel';
 import { MobileSwipeNavigation } from './MobileSwipeNavigation';
 import { ChatHistoryPage, ChatPage, DiscoverPage, PredictionMarketsPage } from './MobilePages';
 import { ToolsHubPage } from './ToolsHubPage';
@@ -81,6 +82,9 @@ export function DeepStackLayout({ children }: DeepStackLayoutProps) {
             </ErrorBoundary>
             <ErrorBoundary variant="panel">
                 <SettingsPanel />
+            </ErrorBoundary>
+            <ErrorBoundary variant="panel">
+                <UsagePanel />
             </ErrorBoundary>
 
             {/* Right Toolbar - Only on desktop */}

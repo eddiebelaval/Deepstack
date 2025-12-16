@@ -46,6 +46,7 @@ export type AccountSummary = {
 };
 
 import { createClient } from '@/lib/supabase/client';
+import { useCreditStore } from '@/lib/stores/credit-store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -85,16 +86,17 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     throw new PaywallError();
   }
 
-  // Check for Credit Sync Header
+  // Sync credits from response header
   const creditsHeader = res.headers.get('X-DeepStack-Credits');
-  if (creditsHeader && typeof window !== 'undefined') {
-    // Import store dynamically or assume global availability?
-    // Better to use a simpler method or import strictly.
-    // Ideally we'd import useUIStore but that's a React hook/store.
-    // We can use the Zustand store outside React components via .getState()
+  if (creditsHeader) {
+    // syncFromHeader handles parsing internally
+    useCreditStore.getState().syncFromHeader(creditsHeader);
+  }
 
-    // We need to dynamic import or cleaner: dispatch a credit event
-    window.dispatchEvent(new CustomEvent('deepstack-credits', { detail: parseInt(creditsHeader) }));
+  // Also check for tier header if provided
+  const tierHeader = res.headers.get('X-DeepStack-Tier');
+  if (tierHeader && ['free', 'pro', 'elite'].includes(tierHeader)) {
+    useCreditStore.getState().setTier(tierHeader as 'free' | 'pro' | 'elite');
   }
 
   if (!res.ok) {

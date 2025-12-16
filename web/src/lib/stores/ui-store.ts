@@ -64,6 +64,9 @@ interface UIState {
   setCredits: (credits: number) => void;
   paywallOpen: boolean;
   setPaywallOpen: (isOpen: boolean) => void;
+  usageOpen: boolean;
+  toggleUsage: () => void;
+  setUsageOpen: (isOpen: boolean) => void;
 }
 
 // Constants for Market Watch Panel
@@ -99,6 +102,7 @@ export const useUIStore = create<UIState>()(
       ],
       credits: 500, // Default optimistic start, updated by DB
       paywallOpen: false,
+      usageOpen: false,
 
       // Actions
       // Smart panel persistence: when a tool opens, collapse panels; when returning to 'none', restore them
@@ -195,6 +199,18 @@ export const useUIStore = create<UIState>()(
 
       setCredits: (credits) => set({ credits }),
       setPaywallOpen: (isOpen) => set({ paywallOpen: isOpen }),
+      toggleUsage: () => set((state) => ({
+        usageOpen: !state.usageOpen,
+        // Close other panels when opening usage
+        settingsOpen: state.usageOpen ? state.settingsOpen : false,
+        profileOpen: state.usageOpen ? state.profileOpen : false,
+      })),
+      setUsageOpen: (isOpen) => set({
+        usageOpen: isOpen,
+        // Close other panels when opening usage
+        settingsOpen: isOpen ? false : undefined,
+        profileOpen: isOpen ? false : undefined,
+      }),
     }),
     {
       name: 'deepstack-ui-storage',

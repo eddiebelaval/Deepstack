@@ -23,7 +23,7 @@ import {
 import { PersonaSection } from '@/components/settings/PersonaSection';
 
 export function SettingsPanel() {
-    const { settingsOpen, toggleSettings, credits } = useUIStore();
+    const { settingsOpen, toggleSettings, toggleUsage, credits } = useUIStore();
     const { activeProvider, setActiveProvider, useExtendedThinking, setUseExtendedThinking } = useChatStore();
     const {
         autoRefreshEnabled,
@@ -95,9 +95,15 @@ export function SettingsPanel() {
                         <div className="flex items-center justify-between p-6 border-b border-border">
                             <div className="flex flex-col">
                                 <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Credits: <span className="font-mono text-primary font-bold">{credits}</span>
-                                </p>
+                                <button
+                                    onClick={() => {
+                                        toggleSettings(); // Close settings
+                                        toggleUsage(); // Open usage panel
+                                    }}
+                                    className="text-sm text-muted-foreground mt-1 text-left hover:text-foreground transition-colors group"
+                                >
+                                    Credits: <span className="font-mono text-primary font-bold group-hover:underline">{credits}</span>
+                                </button>
                             </div>
                             <Button variant="ghost" size="icon" onClick={toggleSettings}>
                                 <X className="h-5 w-5" />

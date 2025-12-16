@@ -27,6 +27,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .api.auth import AuthenticatedUser, get_current_user
+from .api.credits import ActionCost, require_action
 from .api.options_router import router as options_router
 from .api.prediction_markets_router import router as prediction_markets_router
 from .broker.ibkr_client import IBKRClient
@@ -276,7 +277,9 @@ class DeepStackAPIServer:
             """Health check endpoint."""
             return HealthResponse(status="healthy", timestamp=datetime.now())
 
-        @self.app.get("/api/news")
+        @self.app.get(
+            "/api/news", dependencies=[Depends(require_action(ActionCost.NEWS))]
+        )
         async def get_news(
             symbol: Optional[str] = None,
             limit: int = 10,
@@ -308,7 +311,10 @@ class DeepStackAPIServer:
                     content={"error": "Failed to fetch news", "details": str(e)},
                 )
 
-        @self.app.get("/api/news/aggregated")
+        @self.app.get(
+            "/api/news/aggregated",
+            dependencies=[Depends(require_action(ActionCost.NEWS_AGGREGATED))],
+        )
         async def get_aggregated_news(
             symbol: Optional[str] = None,
             source: Optional[str] = None,
@@ -365,7 +371,10 @@ class DeepStackAPIServer:
                     },
                 )
 
-        @self.app.get("/api/news/sources/health")
+        @self.app.get(
+            "/api/news/sources/health",
+            dependencies=[Depends(require_action(ActionCost.NEWS_SOURCES_HEALTH))],
+        )
         async def get_news_sources_health():
             """
             Get health status of all news sources.
@@ -527,7 +536,11 @@ class DeepStackAPIServer:
         _quote_cache: Dict[str, tuple] = {}
         _quote_cache_ttl = 10  # 10 seconds
 
-        @self.app.get("/quote/{symbol}", response_model=QuoteResponse)
+        @self.app.get(
+            "/quote/{symbol}",
+            response_model=QuoteResponse,
+            dependencies=[Depends(require_action(ActionCost.QUOTE))],
+        )
         async def get_quote(symbol: str):
             """Get current quote for symbol with optimized source selection."""
             import asyncio
@@ -641,7 +654,9 @@ class DeepStackAPIServer:
                     message=f"Unable to fetch quote for {symbol}", symbol=symbol
                 )
 
-        @self.app.get("/api/market/bars")
+        @self.app.get(
+            "/api/market/bars", dependencies=[Depends(require_action(ActionCost.BARS))]
+        )
         async def get_market_bars(symbol: str, timeframe: str = "1d", limit: int = 100):
             """Get historical market bars from Alpaca (stocks and crypto)."""
             try:
@@ -894,7 +909,10 @@ class DeepStackAPIServer:
                     message="Unable to cancel order", order_id=order_id
                 )
 
-        @self.app.get("/strategies/deep-value/screen")
+        @self.app.get(
+            "/strategies/deep-value/screen",
+            dependencies=[Depends(require_action(ActionCost.DEEP_VALUE_SCREEN))],
+        )
         async def run_deep_value_screen():
             """Run Deep Value screener."""
             try:
@@ -1213,7 +1231,7 @@ class DeepStackAPIServer:
         """
         Handle successful checkout completion.
 
-        Updates user profile with subscription data.
+        Updates user profile with subscription data AND allocates tier credits.
         """
         try:
             from supabase import create_client
@@ -1232,12 +1250,11 @@ class DeepStackAPIServer:
             customer_id = session["customer"]
             subscription_id = session["subscription"]
 
-            # Update user profile
+            # Update user profile with Stripe IDs
             (
                 supabase.table("profiles")
                 .update(
                     {
-                        "subscription_tier": tier,
                         "stripe_customer_id": customer_id,
                         "stripe_subscription_id": subscription_id,
                         "subscription_status": "active",
@@ -1249,6 +1266,23 @@ class DeepStackAPIServer:
                 .eq("id", user_id)
                 .execute()
             )
+
+            # Allocate tier credits using database function
+            # This sets subscription_tier, credits, billing_cycle_anchor, etc.
+            credit_result = supabase.rpc(
+                "allocate_tier_credits", {"p_user_id": user_id, "p_new_tier": tier}
+            ).execute()
+
+            if credit_result.data and credit_result.data.get("success"):
+                logger.info(
+                    f"Allocated {credit_result.data.get('credits')} credits "
+                    f"for user {user_id} (tier: {tier})"
+                )
+            else:
+                logger.error(
+                    f"Failed to allocate credits for user {user_id}: "
+                    f"{credit_result.data}"
+                )
 
             logger.info(f"Updated subscription for user {user_id} to {tier}")
 

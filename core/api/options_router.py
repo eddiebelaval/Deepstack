@@ -13,7 +13,7 @@ import os
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..data.alpaca_options_client import (
@@ -31,6 +31,7 @@ from ..strategies.options.pnl_modeling import (
     find_breakeven_points,
     model_pnl_scenarios,
 )
+from .credits import ActionCost, require_action
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +209,11 @@ class GreeksCalculationRequest(BaseModel):
 # ============== API Endpoints ==============
 
 
-@router.get("/expirations/{symbol}", response_model=ExpirationResponse)
+@router.get(
+    "/expirations/{symbol}",
+    response_model=ExpirationResponse,
+    dependencies=[Depends(require_action(ActionCost.OPTIONS_EXPIRATIONS))],
+)
 async def get_expirations(symbol: str):
     """
     Get available expiration dates for a symbol.
@@ -234,7 +239,11 @@ async def get_expirations(symbol: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/chain/{symbol}", response_model=OptionChainResponse)
+@router.get(
+    "/chain/{symbol}",
+    response_model=OptionChainResponse,
+    dependencies=[Depends(require_action(ActionCost.OPTIONS_CHAIN))],
+)
 async def get_option_chain(
     symbol: str,
     expiration: Optional[str] = Query(
@@ -311,7 +320,11 @@ async def get_option_chain(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/quote/{contract_symbol}", response_model=OptionContractResponse)
+@router.get(
+    "/quote/{contract_symbol}",
+    response_model=OptionContractResponse,
+    dependencies=[Depends(require_action(ActionCost.OPTIONS_QUOTE))],
+)
 async def get_option_quote(contract_symbol: str):
     """
     Get real-time quote for a specific option contract.
@@ -339,7 +352,11 @@ async def get_option_quote(contract_symbol: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/screen", response_model=ScreenerResponse)
+@router.post(
+    "/screen",
+    response_model=ScreenerResponse,
+    dependencies=[Depends(require_action(ActionCost.SCREENER))],
+)
 async def screen_options(filters: ScreenerFilters):
     """
     Screen options based on filter criteria.
@@ -454,7 +471,11 @@ async def screen_options(filters: ScreenerFilters):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/strategy/calculate", response_model=StrategyCalculationResponse)
+@router.post(
+    "/strategy/calculate",
+    response_model=StrategyCalculationResponse,
+    dependencies=[Depends(require_action(ActionCost.OPTIONS_STRATEGY))],
+)
 async def calculate_strategy(request: StrategyCalculationRequest):
     """
     Calculate P&L scenarios and Greeks for an options strategy.
@@ -604,7 +625,11 @@ async def calculate_strategy(request: StrategyCalculationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/greeks/calculate", response_model=GreeksResponse)
+@router.post(
+    "/greeks/calculate",
+    response_model=GreeksResponse,
+    dependencies=[Depends(require_action(ActionCost.OPTIONS_GREEKS))],
+)
 async def calculate_greeks(request: GreeksCalculationRequest):
     """
     Calculate Greeks for a single option using Black-Scholes.

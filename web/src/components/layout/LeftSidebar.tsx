@@ -23,12 +23,13 @@ import {
     Lightbulb,
     BookOpen,
     Brain,
-    ListChecks
+    ListChecks,
+    Coins,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function LeftSidebar() {
-    const { leftSidebarOpen, toggleLeftSidebar, setLeftSidebarOpen, toggleProfile, toggleSettings, profileOpen, settingsOpen, activeContent, setActiveContent } = useUIStore();
+    const { leftSidebarOpen, toggleLeftSidebar, setLeftSidebarOpen, toggleProfile, toggleSettings, toggleUsage, profileOpen, settingsOpen, usageOpen, activeContent, setActiveContent } = useUIStore();
     const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
     const { isMobile, isTablet, isDesktop } = useIsMobile();
     const { tier } = useUser();
@@ -285,6 +286,26 @@ export function LeftSidebar() {
                             </Button>
                         </TooltipTrigger>
                         {!showExpanded && <TooltipContent side="right">Manage Watchlist</TooltipContent>}
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={usageOpen ? "secondary" : "ghost"}
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2",
+                                    usageOpen && "bg-primary/20 text-primary"
+                                )}
+                                onClick={() => {
+                                    toggleUsage();
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <Coins className="h-4 w-4 shrink-0 text-amber-500" />
+                                {showExpanded && <span className="ml-2">Usage & Credits</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">Usage & Credits</TooltipContent>}
                     </Tooltip>
                 </div>
 
