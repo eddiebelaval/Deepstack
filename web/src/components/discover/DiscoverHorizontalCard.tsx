@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { NewsArticle } from '@/lib/stores/news-store';
 import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { DiscoverTextCard } from './DiscoverTextCard';
 
 /**
  * DiscoverHorizontalCard - Wide card with image on left
@@ -14,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
  * - Image on left (fixed width)
  * - Content on right with headline + summary
  * - Good for longer form content
+ * - Falls back to text-only card when no image available
  */
 
 interface DiscoverHorizontalCardProps {
@@ -62,6 +64,18 @@ export function DiscoverHorizontalCard({
   const hasImage = article.imageUrl && !imageError;
   const sentiment = article.sentiment || 'neutral';
   const sourceColor = getSourceColor(article.source);
+
+  // Use text-only card when no image is available
+  if (!article.imageUrl) {
+    return (
+      <DiscoverTextCard
+        article={article}
+        onSymbolClick={onSymbolClick}
+        variant="horizontal"
+        className={className}
+      />
+    );
+  }
 
   return (
     <a

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { NewsArticle } from '@/lib/stores/news-store';
 import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
+import { DiscoverTextCard } from './DiscoverTextCard';
 
 /**
  * DiscoverGridCard - Square card for 3-column grid layout
@@ -13,6 +14,7 @@ import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
  * - Image (aspect-[4/3])
  * - Title below image
  * - Source + time meta
+ * - Falls back to text-only card when no image available
  */
 
 interface DiscoverGridCardProps {
@@ -60,6 +62,18 @@ export function DiscoverGridCard({
   const hasImage = article.imageUrl && !imageError;
   const sentiment = article.sentiment || 'neutral';
   const sourceColor = getSourceColor(article.source);
+
+  // Use text-only card when no image is available
+  if (!article.imageUrl) {
+    return (
+      <DiscoverTextCard
+        article={article}
+        onSymbolClick={onSymbolClick}
+        variant="grid"
+        className={className}
+      />
+    );
+  }
 
   return (
     <a
