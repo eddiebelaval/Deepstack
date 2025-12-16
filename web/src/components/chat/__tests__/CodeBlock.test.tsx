@@ -1,25 +1,46 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CodeBlock } from '../CodeBlock';
 
+// Mock react-syntax-highlighter to avoid rendering issues in tests
+vi.mock('react-syntax-highlighter', () => ({
+  Prism: vi.fn(({ children, language }) => (
+    <pre data-testid="syntax-highlighter" data-language={language}>
+      {children}
+    </pre>
+  )),
+}));
+
+vi.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
+  oneDark: {},
+}));
+
 describe('CodeBlock', () => {
+  const mockWriteText = vi.fn().mockResolvedValue(undefined);
+
   // Mock clipboard API
   beforeEach(() => {
+    vi.clearAllMocks();
     Object.defineProperty(navigator, 'clipboard', {
       value: {
-        writeText: vi.fn().mockResolvedValue(undefined),
+        writeText: mockWriteText,
       },
       writable: true,
       configurable: true,
     });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('Rendering', () => {
     it('renders code with syntax highlighting', () => {
       render(<CodeBlock language="javascript" value="const x = 10;" />);
 
-      expect(screen.getByText('const')).toBeInTheDocument();
+      expect(screen.getByTestId('syntax-highlighter')).toBeInTheDocument();
+      expect(screen.getByText('const x = 10;')).toBeInTheDocument();
     });
 
     it('displays language label', () => {
@@ -62,28 +83,22 @@ describe('CodeBlock', () => {
 
   describe('Copy functionality', () => {
     it('copies code to clipboard on button click', async () => {
-      const user = userEvent.setup();
       const testCode = 'const greeting = "Hello, World!";';
       render(<CodeBlock language="javascript" value={testCode} />);
 
-      const copyButton = screen.getByText('Copy').closest('button');
-      if (copyButton) {
-        await user.click(copyButton);
-      }
+      const copyButton = screen.getByRole('button', { name: 'Copy code' });
+      fireEvent.click(copyButton);
 
       await waitFor(() => {
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testCode);
+        expect(mockWriteText).toHaveBeenCalledWith(testCode);
       });
     });
 
     it('shows "Copied!" feedback after copying', async () => {
-      const user = userEvent.setup();
       render(<CodeBlock language="javascript" value="test code" />);
 
-      const copyButton = screen.getByText('Copy').closest('button');
-      if (copyButton) {
-        await user.click(copyButton);
-      }
+      const copyButton = screen.getByRole('button', { name: 'Copy code' });
+      fireEvent.click(copyButton);
 
       await waitFor(() => {
         expect(screen.getByText('Copied!')).toBeInTheDocument();
@@ -92,60 +107,42 @@ describe('CodeBlock', () => {
 
     it('resets copy feedback after 2 seconds', async () => {
       vi.useFakeTimers();
-      const user = userEvent.setup({ delay: null });
 
       render(<CodeBlock language="javascript" value="test code" />);
 
-      const copyButton = screen.getByText('Copy').closest('button');
-      if (copyButton) {
-        await user.click(copyButton);
-      }
-
-      await waitFor(() => {
-        expect(screen.getByText('Copied!')).toBeInTheDocument();
+      const copyButton = screen.getByRole('button', { name: 'Copy code' });
+      await act(async () => {
+        fireEvent.click(copyButton);
       });
 
-      vi.advanceTimersByTime(2000);
+      expect(screen.getByText('Copied!')).toBeInTheDocument();
 
-      await waitFor(() => {
-        expect(screen.getByText('Copy')).toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
       });
 
-      vi.useRealTimers();
+      expect(screen.getByText('Copy')).toBeInTheDocument();
     });
 
     it('shows check icon when copied', async () => {
-      const user = userEvent.setup();
       render(<CodeBlock language="javascript" value="test" />);
 
-      const copyButton = screen.getByText('Copy').closest('button');
-      if (copyButton) {
-        await user.click(copyButton);
-      }
+      const copyButton = screen.getByRole('button', { name: 'Copy code' });
+      fireEvent.click(copyButton);
 
       await waitFor(() => {
-        const checkIcon = copyButton?.querySelector('svg');
-        expect(checkIcon).toBeInTheDocument();
+        expect(document.querySelector('.lucide-check')).toBeInTheDocument();
       });
     });
 
     it('handles copy failure gracefully', async () => {
-      const user = userEvent.setup();
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      Object.defineProperty(navigator, 'clipboard', {
-        value: {
-          writeText: vi.fn().mockRejectedValue(new Error('Copy failed')),
-        },
-        writable: true,
-        configurable: true,
-      });
+      mockWriteText.mockRejectedValueOnce(new Error('Copy failed'));
 
       render(<CodeBlock language="javascript" value="test" />);
 
-      const copyButton = screen.getByText('Copy').closest('button');
-      if (copyButton) {
-        await user.click(copyButton);
-      }
+      const copyButton = screen.getByRole('button', { name: 'Copy code' });
+      fireEvent.click(copyButton);
 
       await waitFor(() => {
         expect(consoleError).toHaveBeenCalledWith(
@@ -158,15 +155,12 @@ describe('CodeBlock', () => {
     });
 
     it('does not copy empty value', async () => {
-      const user = userEvent.setup();
       render(<CodeBlock language="javascript" value="" />);
 
-      const copyButton = screen.getByText('Copy').closest('button');
-      if (copyButton) {
-        await user.click(copyButton);
-      }
+      const copyButton = screen.getByRole('button', { name: 'Copy code' });
+      fireEvent.click(copyButton);
 
-      expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+      expect(mockWriteText).not.toHaveBeenCalled();
     });
   });
 
@@ -217,10 +211,10 @@ describe('CodeBlock', () => {
   describe('Code formatting', () => {
     it('displays line numbers', () => {
       const code = 'line 1\nline 2\nline 3';
-      const { container } = render(<CodeBlock language="javascript" value={code} />);
+      render(<CodeBlock language="javascript" value={code} />);
 
-      // SyntaxHighlighter should have showLineNumbers prop set
-      const highlighter = container.querySelector('[class*="react-syntax-highlighter"]');
+      // Mocked SyntaxHighlighter renders as pre element
+      const highlighter = screen.getByTestId('syntax-highlighter');
       expect(highlighter).toBeInTheDocument();
     });
 
@@ -324,13 +318,10 @@ describe('CodeBlock', () => {
     });
 
     it('copy button shows visual feedback', async () => {
-      const user = userEvent.setup();
       render(<CodeBlock language="javascript" value="test" />);
 
-      const copyButton = screen.getByText('Copy').closest('button');
-      if (copyButton) {
-        await user.click(copyButton);
-      }
+      const copyButton = screen.getByRole('button', { name: 'Copy code' });
+      fireEvent.click(copyButton);
 
       await waitFor(() => {
         expect(screen.getByText('Copied!')).toBeInTheDocument();
