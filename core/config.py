@@ -159,12 +159,35 @@ class StrategiesConfig(BaseModel):
     )
 
 
+def _get_cors_origins() -> List[str]:
+    """Get CORS origins from environment or use safe defaults."""
+    env_origins = os.environ.get("CORS_ORIGINS", "")
+    if env_origins:
+        return [origin.strip() for origin in env_origins.split(",") if origin.strip()]
+    # Safe defaults for development - explicit localhost origins
+    return ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+
 class APIConfig(BaseModel):
     """API server configuration."""
 
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=8000)
-    cors_origins: List[str] = Field(default_factory=lambda: ["*"])
+    cors_origins: List[str] = Field(default_factory=_get_cors_origins)
+    cors_allow_credentials: bool = Field(default=True)
+
+    @validator("cors_origins")
+    def validate_cors_origins(cls, v, values):
+        """Validate CORS origins - prevent wildcard with credentials."""
+        # If credentials are allowed (default True), wildcard is forbidden
+        allow_credentials = values.get("cors_allow_credentials", True)
+        if allow_credentials and "*" in v:
+            raise ValueError(
+                "CORS origins cannot contain '*' when credentials are allowed. "
+                "Use explicit origins like 'http://localhost:3000' or set "
+                "cors_allow_credentials=False (not recommended for authenticated APIs)."
+            )
+        return v
 
 
 class LoggingConfig(BaseModel):
