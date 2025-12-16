@@ -72,19 +72,32 @@ describe('NewsPanel', () => {
       isLoadingMore: false,
       error: null,
       filterSymbol: null,
-      hasMore: true,
+      sourceFilter: 'all',
+      includeSocial: true,
+      sourceCounts: {},
+      totalFetched: 0,
+      totalReturned: 0,
+      sourcesHealth: null,
+      hasMore: false,
+      nextPageToken: null,
       newArticleCount: 0,
       autoRefreshEnabled: true,
+      lastFetchTime: null,
       fetchNews: mockFetchNews,
       loadMore: mockLoadMore,
       setFilterSymbol: mockSetFilterSymbol,
       clearFilter: mockClearFilter,
+      setSourceFilter: vi.fn(),
+      setIncludeSocial: vi.fn(),
       markAsViewed: mockMarkAsViewed,
       setAutoRefresh: mockSetAutoRefresh,
       checkForNewArticles: mockCheckForNewArticles,
+      fetchSourcesHealth: vi.fn(),
     } as any);
 
     vi.mocked(useNewsAutoRefresh).mockReturnValue({
+      shouldRefresh: false,
+      checkForNewArticles: mockCheckForNewArticles,
       interval: 60000,
     });
 

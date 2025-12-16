@@ -1,22 +1,46 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type NewsSourceProvider = 'finnhub' | 'newsapi' | 'alphavantage' | 'alpaca' | 'rss' | 'stocktwits';
+export type NewsSourceFilter = 'all' | 'api' | 'rss' | 'social';
+export type NewsSentiment = 'positive' | 'negative' | 'neutral' | 'bullish' | 'bearish';
+
 export type NewsArticle = {
   id: string;
   headline: string;
   summary: string;
   url: string;
   source: string;
+  source_provider?: NewsSourceProvider;
   publishedAt: string;
   symbols?: string[];
-  sentiment?: 'positive' | 'negative' | 'neutral';
+  sentiment?: NewsSentiment;
+  sentiment_score?: number;
   imageUrl?: string;
+  author?: string;
+  // StockTwits-specific
+  engagement?: {
+    likes?: number;
+    comments?: number;
+  };
+};
+
+export type SourceHealthStatus = {
+  configured: boolean;
+  healthy: boolean;
+};
+
+export type SourcesHealth = {
+  sources: Record<string, SourceHealthStatus>;
+  overall_healthy: boolean;
+  total_sources: number;
+  healthy_sources: number;
 };
 
 // Auto-refresh interval: 5 minutes
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
 // Page size for pagination
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 30;
 
 interface NewsState {
   // Core data
@@ -25,8 +49,21 @@ interface NewsState {
   error: string | null;
   filterSymbol: string | null;
 
-  // Pagination (cursor-based)
-  nextPageToken: string | null;
+  // Source filtering
+  sourceFilter: NewsSourceFilter;
+  includeSocial: boolean;
+
+  // Source metadata from aggregated endpoint
+  sourceCounts: Record<string, number>;
+  totalFetched: number;
+  totalReturned: number;
+  totalAvailable: number;
+
+  // Source health
+  sourcesHealth: SourcesHealth | null;
+
+  // Pagination (offset-based)
+  currentOffset: number;
   hasMore: boolean;
   isLoadingMore: boolean;
 
@@ -40,9 +77,12 @@ interface NewsState {
   loadMore: () => Promise<void>;
   setFilterSymbol: (symbol: string | null) => void;
   clearFilter: () => void;
+  setSourceFilter: (filter: NewsSourceFilter) => void;
+  setIncludeSocial: (include: boolean) => void;
   markAsViewed: () => void;
   setAutoRefresh: (enabled: boolean) => void;
   checkForNewArticles: () => Promise<number>;
+  fetchSourcesHealth: () => Promise<void>;
 }
 
 export const useNewsStore = create<NewsState>()(
@@ -52,7 +92,14 @@ export const useNewsStore = create<NewsState>()(
       isLoading: false,
       error: null,
       filterSymbol: null,
-      nextPageToken: null,
+      sourceFilter: 'all',
+      includeSocial: true,
+      sourceCounts: {},
+      totalFetched: 0,
+      totalReturned: 0,
+      totalAvailable: 0,
+      sourcesHealth: null,
+      currentOffset: 0,
       hasMore: true,
       isLoadingMore: false,
       lastFetchTime: null,
@@ -62,17 +109,25 @@ export const useNewsStore = create<NewsState>()(
       fetchNews: async (symbol?: string, reset = true) => {
         const state = get();
 
-        // If reset, start fresh
+        // If reset, start fresh from offset 0
         if (reset) {
-          set({ isLoading: true, error: null, nextPageToken: null });
+          set({ isLoading: true, error: null, currentOffset: 0 });
         }
 
         try {
           const params = new URLSearchParams();
           if (symbol) params.append('symbol', symbol);
           params.append('limit', PAGE_SIZE.toString());
+          params.append('offset', '0'); // Always start from 0 for fresh fetch
+          params.append('include_social', state.includeSocial.toString());
 
-          const response = await fetch(`/api/news?${params.toString()}`);
+          // Add source filter if not 'all'
+          if (state.sourceFilter !== 'all') {
+            params.append('source', state.sourceFilter);
+          }
+
+          // Use aggregated endpoint with pagination
+          const response = await fetch(`/api/news/aggregated?${params.toString()}`);
           if (!response.ok) throw new Error('Failed to fetch news');
 
           const data = await response.json();
@@ -85,10 +140,14 @@ export const useNewsStore = create<NewsState>()(
           set({
             articles: newArticles,
             isLoading: false,
-            hasMore: !!data.next_page_token,
-            nextPageToken: data.next_page_token || null,
+            hasMore: data.has_more ?? false,
+            currentOffset: PAGE_SIZE,
             lastFetchTime: Date.now(),
             newArticleCount: reset ? 0 : trulyNewCount,
+            sourceCounts: data.sources || {},
+            totalFetched: data.total_fetched || 0,
+            totalReturned: data.total_returned || 0,
+            totalAvailable: data.total_available || 0,
           });
         } catch (error) {
           set({
@@ -100,7 +159,11 @@ export const useNewsStore = create<NewsState>()(
 
       loadMore: async () => {
         const state = get();
-        if (state.isLoadingMore || !state.hasMore || !state.nextPageToken) return;
+
+        // Don't load more if already loading or no more available
+        if (state.isLoadingMore || state.isLoading || !state.hasMore) {
+          return;
+        }
 
         set({ isLoadingMore: true });
 
@@ -108,38 +171,56 @@ export const useNewsStore = create<NewsState>()(
           const params = new URLSearchParams();
           if (state.filterSymbol) params.append('symbol', state.filterSymbol);
           params.append('limit', PAGE_SIZE.toString());
-          params.append('page_token', state.nextPageToken);
+          params.append('offset', state.currentOffset.toString());
+          params.append('include_social', state.includeSocial.toString());
 
-          const response = await fetch(`/api/news?${params.toString()}`);
-          if (!response.ok) throw new Error('Failed to fetch more news');
+          if (state.sourceFilter !== 'all') {
+            params.append('source', state.sourceFilter);
+          }
+
+          const response = await fetch(`/api/news/aggregated?${params.toString()}`);
+          if (!response.ok) throw new Error('Failed to load more news');
 
           const data = await response.json();
           const moreArticles = data.articles || [];
 
-          // Deduplicate in case of overlap
+          // Append new articles to existing list (avoid duplicates)
           const existingIds = new Set(state.articles.map(a => a.id));
-          const uniqueNewArticles = moreArticles.filter((a: NewsArticle) => !existingIds.has(a.id));
+          const uniqueNewArticles = moreArticles.filter(
+            (a: NewsArticle) => !existingIds.has(a.id)
+          );
 
           set({
             articles: [...state.articles, ...uniqueNewArticles],
-            nextPageToken: data.next_page_token || null,
-            hasMore: !!data.next_page_token,
             isLoadingMore: false,
+            hasMore: data.has_more ?? false,
+            currentOffset: state.currentOffset + PAGE_SIZE,
+            totalAvailable: data.total_available || state.totalAvailable,
           });
         } catch (error) {
+          console.error('Error loading more news:', error);
           set({ isLoadingMore: false });
-          console.error('Failed to load more news:', error);
         }
       },
 
       setFilterSymbol: (symbol) => {
-        set({ filterSymbol: symbol, nextPageToken: null, hasMore: true });
+        set({ filterSymbol: symbol, currentOffset: 0, hasMore: true });
         get().fetchNews(symbol || undefined, true);
       },
 
       clearFilter: () => {
-        set({ filterSymbol: null, nextPageToken: null, hasMore: true });
+        set({ filterSymbol: null, currentOffset: 0, hasMore: true });
         get().fetchNews(undefined, true);
+      },
+
+      setSourceFilter: (filter) => {
+        set({ sourceFilter: filter });
+        get().fetchNews(get().filterSymbol || undefined, true);
+      },
+
+      setIncludeSocial: (include) => {
+        set({ includeSocial: include });
+        get().fetchNews(get().filterSymbol || undefined, true);
       },
 
       markAsViewed: () => {
@@ -156,10 +237,14 @@ export const useNewsStore = create<NewsState>()(
         try {
           const params = new URLSearchParams();
           if (state.filterSymbol) params.append('symbol', state.filterSymbol);
-          params.append('limit', '5'); // Just check first few
-          params.append('page', '1');
+          params.append('limit', '10'); // Just check first few
+          params.append('include_social', state.includeSocial.toString());
 
-          const response = await fetch(`/api/news?${params.toString()}`);
+          if (state.sourceFilter !== 'all') {
+            params.append('source', state.sourceFilter);
+          }
+
+          const response = await fetch(`/api/news/aggregated?${params.toString()}`);
           if (!response.ok) return 0;
 
           const data = await response.json();
@@ -178,12 +263,26 @@ export const useNewsStore = create<NewsState>()(
           return 0;
         }
       },
+
+      fetchSourcesHealth: async () => {
+        try {
+          const response = await fetch('/api/news/sources/health');
+          if (!response.ok) return;
+
+          const health = await response.json();
+          set({ sourcesHealth: health });
+        } catch (error) {
+          console.error('Failed to fetch sources health:', error);
+        }
+      },
     }),
     {
       name: 'deepstack-news-store',
       partialize: (state) => ({
         autoRefreshEnabled: state.autoRefreshEnabled,
         filterSymbol: state.filterSymbol,
+        sourceFilter: state.sourceFilter,
+        includeSocial: state.includeSocial,
       }),
     }
   )
@@ -199,4 +298,25 @@ export function useNewsAutoRefresh() {
     checkForNewArticles,
     interval: AUTO_REFRESH_INTERVAL,
   };
+}
+
+// Helper to get display name for source provider
+export function getSourceProviderDisplay(provider?: NewsSourceProvider): string {
+  const displayNames: Record<NewsSourceProvider, string> = {
+    finnhub: 'Finnhub',
+    newsapi: 'NewsAPI',
+    alphavantage: 'Alpha Vantage',
+    alpaca: 'Alpaca',
+    rss: 'RSS Feed',
+    stocktwits: 'StockTwits',
+  };
+  return provider ? displayNames[provider] || provider : 'Unknown';
+}
+
+// Helper to get provider category
+export function getSourceProviderCategory(provider?: NewsSourceProvider): 'api' | 'rss' | 'social' {
+  if (!provider) return 'api';
+  if (provider === 'stocktwits') return 'social';
+  if (provider === 'rss') return 'rss';
+  return 'api';
 }

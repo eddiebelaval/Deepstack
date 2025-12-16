@@ -233,6 +233,10 @@ class Config(BaseModel):
     deepseek_api_key: Optional[str] = None
     xai_api_key: Optional[str] = None
 
+    # News API Keys (from environment)
+    finnhub_api_key: Optional[str] = None
+    newsapi_api_key: Optional[str] = None
+
     @classmethod
     def from_yaml(cls, config_path: str) -> "Config":
         """
@@ -308,6 +312,8 @@ class Config(BaseModel):
             "perplexity_api_key": os.getenv("PERPLEXITY_API_KEY"),
             "deepseek_api_key": os.getenv("DEEPSEEK_API_KEY"),
             "xai_api_key": os.getenv("XAI_API_KEY"),
+            "finnhub_api_key": os.getenv("FINNHUB_API_KEY"),
+            "newsapi_api_key": os.getenv("NEWSAPI_API_KEY"),
         }
 
         # Only add optional vars if they have values
@@ -350,6 +356,8 @@ class Config(BaseModel):
                 "perplexity_api_key",
                 "deepseek_api_key",
                 "xai_api_key",
+                "finnhub_api_key",
+                "newsapi_api_key",
             }
         )
 
