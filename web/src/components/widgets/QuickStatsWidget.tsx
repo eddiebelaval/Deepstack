@@ -2,16 +2,8 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown } from 'lucide-react';
-
-// Mock portfolio data
-const MOCK_PORTFOLIO_DATA = {
-  totalValue: 104230,
-  dayPnL: 1240,
-  dayPnLPercent: 1.2,
-  openPositions: 5,
-  buyingPower: 42850,
-};
+import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { usePortfolio } from '@/hooks/usePortfolio';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -23,8 +15,25 @@ const formatCurrency = (value: number) => {
 };
 
 export function QuickStatsWidget() {
-  const { totalValue, dayPnL, dayPnLPercent, openPositions, buyingPower } = MOCK_PORTFOLIO_DATA;
+  const { positions, summary, isLoading } = usePortfolio();
+
+  // Calculate values from real portfolio data
+  const totalValue = summary.total_value;
+  const dayPnL = summary.unrealized_pnl; // Day P&L approximated by unrealized
+  const dayPnLPercent = summary.total_value > 0
+    ? (summary.unrealized_pnl / (summary.total_value - summary.unrealized_pnl)) * 100
+    : 0;
+  const openPositions = positions.filter(p => p.quantity !== 0).length;
+  const buyingPower = summary.cash;
   const isProfitable = dayPnL >= 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2.5">

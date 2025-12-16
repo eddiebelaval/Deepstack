@@ -1,20 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Newspaper, ExternalLink } from 'lucide-react';
+import { Newspaper, ExternalLink, Loader2 } from 'lucide-react';
 
 /**
  * NewsHeadlinesWidget - Latest news headlines widget
  *
  * Features:
+ * - Fetches real news from /api/news (Alpaca News API)
  * - Shows 3-4 latest headlines with source
- * - Truncated text with ellipsis
  * - Clickable links to full articles
  * - Height: ~140px
  *
  * Usage:
- * <NewsHeadlinesWidget headlines={headlines} />
+ * <NewsHeadlinesWidget />
  */
 
 export interface Headline {
@@ -26,46 +26,60 @@ export interface Headline {
 }
 
 interface NewsHeadlinesWidgetProps {
-  headlines?: Headline[];
   className?: string;
 }
 
-// Mock headlines for demo - replace with real news data
-const MOCK_HEADLINES: Headline[] = [
-  {
-    id: '1',
-    title: 'Fed signals potential rate cuts in Q2 amid cooling inflation',
-    source: 'Bloomberg',
-    url: '#',
-    timeAgo: '15m',
-  },
-  {
-    id: '2',
-    title: 'Tech stocks rally as AI spending accelerates across sectors',
-    source: 'Reuters',
-    url: '#',
-    timeAgo: '1h',
-  },
-  {
-    id: '3',
-    title: 'Oil prices surge on Middle East supply concerns',
-    source: 'CNBC',
-    url: '#',
-    timeAgo: '2h',
-  },
-  {
-    id: '4',
-    title: 'Earnings season preview: Banks expected to beat estimates',
-    source: 'WSJ',
-    url: '#',
-    timeAgo: '3h',
-  },
-];
+// Calculate relative time
+function getTimeAgo(isoDate: string): string {
+  try {
+    const now = new Date();
+    const time = new Date(isoDate);
+    const diffMs = now.getTime() - time.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d`;
+  } catch {
+    return '';
+  }
+}
 
 export function NewsHeadlinesWidget({
-  headlines = MOCK_HEADLINES,
   className
 }: NewsHeadlinesWidgetProps) {
+  const [headlines, setHeadlines] = useState<Headline[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        const response = await fetch('/api/news?limit=4');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+
+        const mapped: Headline[] = (data.articles || []).slice(0, 4).map((a: any, idx: number) => ({
+          id: a.id || `news-${idx}`,
+          title: a.headline || a.title || 'News',
+          source: a.source || 'News',
+          url: a.url || '#',
+          timeAgo: getTimeAgo(a.publishedAt || a.created_at),
+        }));
+
+        setHeadlines(mapped);
+      } catch (err) {
+        console.error('News fetch error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchNews();
+  }, []);
+
   // Show top 3-4 headlines
   const topHeadlines = headlines.slice(0, 4);
 
