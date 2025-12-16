@@ -5,6 +5,24 @@ export type NewsSourceProvider = 'finnhub' | 'newsapi' | 'alphavantage' | 'alpac
 export type NewsSourceFilter = 'all' | 'api' | 'rss' | 'social';
 export type NewsSentiment = 'positive' | 'negative' | 'neutral' | 'bullish' | 'bearish';
 
+// Category filter for client-side keyword-based filtering
+export type NewsCategoryFilter = 'all' | 'top' | 'tech' | 'trending';
+
+// Keywords for category classification
+const TECH_KEYWORDS = ['tech', 'ai', 'artificial intelligence', 'software', 'chip', 'nvidia', 'apple', 'google', 'microsoft', 'meta', 'amazon', 'tesla', 'semiconductor', 'cloud', 'data center', 'startup', 'crypto', 'bitcoin', 'blockchain', 'cybersecurity'];
+const TOP_SOURCES = ['reuters', 'bloomberg', 'wsj', 'wall street journal', 'financial times', 'cnbc', 'marketwatch', 'fortune', 'barrons'];
+
+// Helper to categorize articles client-side
+export function categorizeArticle(article: NewsArticle): { isTech: boolean; isTop: boolean } {
+  const headlineLower = article.headline.toLowerCase();
+  const sourceLower = article.source.toLowerCase();
+
+  const isTech = TECH_KEYWORDS.some(kw => headlineLower.includes(kw));
+  const isTop = TOP_SOURCES.some(src => sourceLower.includes(src));
+
+  return { isTech, isTop };
+}
+
 export type NewsArticle = {
   id: string;
   headline: string;
@@ -121,10 +139,8 @@ export const useNewsStore = create<NewsState>()(
           params.append('offset', '0'); // Always start from 0 for fresh fetch
           params.append('include_social', state.includeSocial.toString());
 
-          // Add source filter if not 'all'
-          if (state.sourceFilter !== 'all') {
-            params.append('source', state.sourceFilter);
-          }
+          // Always fetch all sources - filtering is done client-side by category
+          // This ensures tabs always have content even if specific sources aren't available
 
           // Use aggregated endpoint with pagination
           const response = await fetch(`/api/news/aggregated?${params.toString()}`);
@@ -174,9 +190,7 @@ export const useNewsStore = create<NewsState>()(
           params.append('offset', state.currentOffset.toString());
           params.append('include_social', state.includeSocial.toString());
 
-          if (state.sourceFilter !== 'all') {
-            params.append('source', state.sourceFilter);
-          }
+          // Always fetch all - client-side filtering handles categories
 
           const response = await fetch(`/api/news/aggregated?${params.toString()}`);
           if (!response.ok) throw new Error('Failed to load more news');
@@ -214,8 +228,9 @@ export const useNewsStore = create<NewsState>()(
       },
 
       setSourceFilter: (filter) => {
+        // Only update the filter - client-side filtering handles the rest
+        // No need to re-fetch since we always have all articles
         set({ sourceFilter: filter });
-        get().fetchNews(get().filterSymbol || undefined, true);
       },
 
       setIncludeSocial: (include) => {
@@ -240,9 +255,7 @@ export const useNewsStore = create<NewsState>()(
           params.append('limit', '10'); // Just check first few
           params.append('include_social', state.includeSocial.toString());
 
-          if (state.sourceFilter !== 'all') {
-            params.append('source', state.sourceFilter);
-          }
+          // Always check all sources
 
           const response = await fetch(`/api/news/aggregated?${params.toString()}`);
           if (!response.ok) return 0;

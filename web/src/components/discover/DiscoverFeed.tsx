@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
-import { useNewsStore } from '@/lib/stores/news-store';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNewsStore, categorizeArticle } from '@/lib/stores/news-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { DiscoverHeroCard } from './DiscoverHeroCard';
 import { DiscoverGridCard } from './DiscoverGridCard';
@@ -29,6 +29,7 @@ export function DiscoverFeed() {
     isLoadingMore,
     error,
     filterSymbol,
+    sourceFilter,
     hasMore,
     fetchNews,
     loadMore,
@@ -40,10 +41,33 @@ export function DiscoverFeed() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
 
-  // Initial fetch
+  // Initial fetch - always fetch all, filter client-side
   useEffect(() => {
     fetchNews(filterSymbol || undefined, true);
   }, [filterSymbol, fetchNews]);
+
+  // Client-side category filtering based on sourceFilter tab
+  const filteredArticles = useMemo(() => {
+    if (sourceFilter === 'all') {
+      return articles;
+    }
+
+    return articles.filter((article) => {
+      const { isTech, isTop } = categorizeArticle(article);
+
+      switch (sourceFilter) {
+        case 'api': // "Top Stories" - from major outlets
+          return isTop;
+        case 'rss': // "Tech & Business" - tech-related content
+          return isTech;
+        case 'social': // "Trending" - most recent (already sorted by date)
+          // Show all but prioritize engagement - for now just show recent
+          return true;
+        default:
+          return true;
+      }
+    });
+  }, [articles, sourceFilter]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -77,25 +101,25 @@ export function DiscoverFeed() {
 
   // Split articles into layout chunks
   const renderArticles = () => {
-    if (articles.length === 0) return null;
+    if (filteredArticles.length === 0) return null;
 
     const elements: React.ReactNode[] = [];
     let index = 0;
 
-    while (index < articles.length) {
+    while (index < filteredArticles.length) {
       const chunkStart = index;
 
       // 1. Hero card (first article of chunk)
-      if (articles[index]) {
+      if (filteredArticles[index]) {
         elements.push(
           <motion.div
-            key={`hero-${articles[index].id}`}
+            key={`hero-${filteredArticles[index].id}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
           >
             <DiscoverHeroCard
-              article={articles[index]}
+              article={filteredArticles[index]}
               onSymbolClick={handleSymbolClick}
             />
           </motion.div>
@@ -104,7 +128,7 @@ export function DiscoverFeed() {
       }
 
       // 2. 3-column grid (next 3 articles)
-      const gridArticles = articles.slice(index, index + 3);
+      const gridArticles = filteredArticles.slice(index, index + 3);
       if (gridArticles.length > 0) {
         elements.push(
           <motion.div
@@ -127,7 +151,7 @@ export function DiscoverFeed() {
       }
 
       // 3. Horizontal cards (next 2 articles)
-      const horizontalArticles = articles.slice(index, index + 2);
+      const horizontalArticles = filteredArticles.slice(index, index + 2);
       if (horizontalArticles.length > 0) {
         elements.push(
           <motion.div
@@ -150,7 +174,7 @@ export function DiscoverFeed() {
       }
 
       // 4. Another grid (next 3 articles)
-      const gridArticles2 = articles.slice(index, index + 3);
+      const gridArticles2 = filteredArticles.slice(index, index + 3);
       if (gridArticles2.length > 0) {
         elements.push(
           <motion.div
@@ -173,7 +197,7 @@ export function DiscoverFeed() {
       }
 
       // 5. More horizontal cards (next 2 articles)
-      const horizontalArticles2 = articles.slice(index, index + 2);
+      const horizontalArticles2 = filteredArticles.slice(index, index + 2);
       if (horizontalArticles2.length > 0) {
         elements.push(
           <motion.div
@@ -228,11 +252,18 @@ export function DiscoverFeed() {
   }
 
   // Empty state
-  if (articles.length === 0) {
+  if (filteredArticles.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
         <Newspaper className="h-16 w-16 opacity-30" />
         <p className="text-xl font-medium">No articles found</p>
+        <p className="text-sm text-center max-w-sm">
+          {sourceFilter !== 'all'
+            ? 'Try selecting "For You" to see all articles'
+            : filterSymbol
+              ? 'No articles match your filter'
+              : 'Check back later for new articles'}
+        </p>
         {filterSymbol && (
           <Button variant="outline" onClick={clearFilter}>
             Clear filter
@@ -258,7 +289,7 @@ export function DiscoverFeed() {
             <span className="text-sm">Loading more articles...</span>
           </div>
         )}
-        {!hasMore && articles.length > 0 && (
+        {!hasMore && filteredArticles.length > 0 && (
           <span className="text-sm text-muted-foreground">
             You've reached the end
           </span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// Using regular img for external news images - more reliable than next/image for third-party URLs
 import { cn } from '@/lib/utils';
 import type { NewsArticle } from '@/lib/stores/news-store';
 import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
@@ -77,13 +77,12 @@ export function DiscoverGridCard({
       {/* Image */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         {hasImage ? (
-          <Image
+          <img
             src={article.imageUrl!}
             alt={article.headline}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={() => setImageError(true)}
-            sizes="(max-width: 768px) 100vw, 300px"
+            loading="lazy"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted-foreground/10 flex items-center justify-center">

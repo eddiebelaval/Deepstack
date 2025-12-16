@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// Using regular img for external news images - more reliable than next/image for third-party URLs
 import { cn } from '@/lib/utils';
 import type { NewsArticle, NewsSentiment } from '@/lib/stores/news-store';
 import {
@@ -91,14 +91,12 @@ export function DiscoverHeroCard({
       {/* Hero Image */}
       <div className="relative aspect-[21/9] w-full overflow-hidden bg-muted">
         {hasImage ? (
-          <Image
+          <img
             src={article.imageUrl!}
             alt={article.headline}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-700"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             onError={() => setImageError(true)}
-            sizes="(max-width: 1200px) 100vw, 900px"
-            priority
+            loading="eager"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">

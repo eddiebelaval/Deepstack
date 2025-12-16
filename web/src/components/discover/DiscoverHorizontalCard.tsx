@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// Using regular img for external news images - more reliable than next/image for third-party URLs
 import { cn } from '@/lib/utils';
 import type { NewsArticle } from '@/lib/stores/news-store';
-import { Clock, TrendingUp, TrendingDown, Heart } from 'lucide-react';
+import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 /**
@@ -79,13 +79,12 @@ export function DiscoverHorizontalCard({
       {/* Image (left side) */}
       <div className="relative w-48 flex-shrink-0 overflow-hidden bg-muted">
         {hasImage ? (
-          <Image
+          <img
             src={article.imageUrl!}
             alt={article.headline}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={() => setImageError(true)}
-            sizes="200px"
+            loading="lazy"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted-foreground/10 flex items-center justify-center">
