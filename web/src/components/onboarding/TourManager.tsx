@@ -88,13 +88,21 @@ export function TourProvider({ children, steps = DEFAULT_TOUR_STEPS }: TourProvi
     const [isActive, setIsActive] = useState(false);
     const [completedSteps, setCompletedSteps] = useState<string[]>([]);
     const [hasInitialized, setHasInitialized] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
     // Calculate current step based on completed steps
     const currentStepIndex = completedSteps.length;
     const currentStep = currentStepIndex < steps.length ? steps[currentStepIndex] : null;
 
-    // Load progress from localStorage
+    // Mark component as mounted (client-side only)
     useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    // Load progress from localStorage (only on client after mount)
+    useEffect(() => {
+        if (!isMounted) return;
+
         const savedProgress = localStorage.getItem(TOUR_STORAGE_KEY);
         const tourComplete = localStorage.getItem(TOUR_COMPLETE_KEY);
 
@@ -113,7 +121,7 @@ export function TourProvider({ children, steps = DEFAULT_TOUR_STEPS }: TourProvi
             }, 1000);
         }
         setHasInitialized(true);
-    }, [steps]);
+    }, [isMounted, steps]);
 
     // Save progress to localStorage
     useEffect(() => {
