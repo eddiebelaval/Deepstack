@@ -40,7 +40,7 @@ export type SourcesHealth = {
 // Auto-refresh interval: 5 minutes
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
 // Page size for pagination
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 interface NewsState {
   // Core data
@@ -57,12 +57,13 @@ interface NewsState {
   sourceCounts: Record<string, number>;
   totalFetched: number;
   totalReturned: number;
+  totalAvailable: number;
 
   // Source health
   sourcesHealth: SourcesHealth | null;
 
-  // Pagination (cursor-based) - Note: aggregated endpoint doesn't support pagination
-  nextPageToken: string | null;
+  // Pagination (offset-based)
+  currentOffset: number;
   hasMore: boolean;
   isLoadingMore: boolean;
 
@@ -96,9 +97,10 @@ export const useNewsStore = create<NewsState>()(
       sourceCounts: {},
       totalFetched: 0,
       totalReturned: 0,
+      totalAvailable: 0,
       sourcesHealth: null,
-      nextPageToken: null,
-      hasMore: false, // Aggregated endpoint doesn't support pagination
+      currentOffset: 0,
+      hasMore: true,
       isLoadingMore: false,
       lastFetchTime: null,
       newArticleCount: 0,
@@ -107,15 +109,16 @@ export const useNewsStore = create<NewsState>()(
       fetchNews: async (symbol?: string, reset = true) => {
         const state = get();
 
-        // If reset, start fresh
+        // If reset, start fresh from offset 0
         if (reset) {
-          set({ isLoading: true, error: null, nextPageToken: null });
+          set({ isLoading: true, error: null, currentOffset: 0 });
         }
 
         try {
           const params = new URLSearchParams();
           if (symbol) params.append('symbol', symbol);
           params.append('limit', PAGE_SIZE.toString());
+          params.append('offset', '0'); // Always start from 0 for fresh fetch
           params.append('include_social', state.includeSocial.toString());
 
           // Add source filter if not 'all'
@@ -123,7 +126,7 @@ export const useNewsStore = create<NewsState>()(
             params.append('source', state.sourceFilter);
           }
 
-          // Use aggregated endpoint
+          // Use aggregated endpoint with pagination
           const response = await fetch(`/api/news/aggregated?${params.toString()}`);
           if (!response.ok) throw new Error('Failed to fetch news');
 
@@ -137,13 +140,14 @@ export const useNewsStore = create<NewsState>()(
           set({
             articles: newArticles,
             isLoading: false,
-            hasMore: false, // Aggregated endpoint doesn't paginate
-            nextPageToken: null,
+            hasMore: data.has_more ?? false,
+            currentOffset: PAGE_SIZE,
             lastFetchTime: Date.now(),
             newArticleCount: reset ? 0 : trulyNewCount,
             sourceCounts: data.sources || {},
             totalFetched: data.total_fetched || 0,
             totalReturned: data.total_returned || 0,
+            totalAvailable: data.total_available || 0,
           });
         } catch (error) {
           set({
@@ -154,18 +158,58 @@ export const useNewsStore = create<NewsState>()(
       },
 
       loadMore: async () => {
-        // Aggregated endpoint doesn't support pagination
-        // This is kept for interface compatibility but is a no-op
-        console.log('Load more not supported with aggregated news');
+        const state = get();
+
+        // Don't load more if already loading or no more available
+        if (state.isLoadingMore || state.isLoading || !state.hasMore) {
+          return;
+        }
+
+        set({ isLoadingMore: true });
+
+        try {
+          const params = new URLSearchParams();
+          if (state.filterSymbol) params.append('symbol', state.filterSymbol);
+          params.append('limit', PAGE_SIZE.toString());
+          params.append('offset', state.currentOffset.toString());
+          params.append('include_social', state.includeSocial.toString());
+
+          if (state.sourceFilter !== 'all') {
+            params.append('source', state.sourceFilter);
+          }
+
+          const response = await fetch(`/api/news/aggregated?${params.toString()}`);
+          if (!response.ok) throw new Error('Failed to load more news');
+
+          const data = await response.json();
+          const moreArticles = data.articles || [];
+
+          // Append new articles to existing list (avoid duplicates)
+          const existingIds = new Set(state.articles.map(a => a.id));
+          const uniqueNewArticles = moreArticles.filter(
+            (a: NewsArticle) => !existingIds.has(a.id)
+          );
+
+          set({
+            articles: [...state.articles, ...uniqueNewArticles],
+            isLoadingMore: false,
+            hasMore: data.has_more ?? false,
+            currentOffset: state.currentOffset + PAGE_SIZE,
+            totalAvailable: data.total_available || state.totalAvailable,
+          });
+        } catch (error) {
+          console.error('Error loading more news:', error);
+          set({ isLoadingMore: false });
+        }
       },
 
       setFilterSymbol: (symbol) => {
-        set({ filterSymbol: symbol, nextPageToken: null, hasMore: false });
+        set({ filterSymbol: symbol, currentOffset: 0, hasMore: true });
         get().fetchNews(symbol || undefined, true);
       },
 
       clearFilter: () => {
-        set({ filterSymbol: null, nextPageToken: null, hasMore: false });
+        set({ filterSymbol: null, currentOffset: 0, hasMore: true });
         get().fetchNews(undefined, true);
       },
 

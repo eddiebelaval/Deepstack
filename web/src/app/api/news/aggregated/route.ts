@@ -82,12 +82,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol')?.toUpperCase();
     const limit = searchParams.get('limit') || '50';
+    const offset = searchParams.get('offset') || '0';
     const source = searchParams.get('source'); // 'api', 'rss', 'social'
     const includeSocial = searchParams.get('include_social') !== 'false';
 
     try {
-      // Proxy to Python backend aggregated endpoint
-      const params = new URLSearchParams({ limit });
+      // Proxy to Python backend aggregated endpoint with pagination
+      const params = new URLSearchParams({ limit, offset });
       if (symbol) params.append('symbol', symbol);
       if (source) params.append('source', source);
       params.append('include_social', includeSocial.toString());

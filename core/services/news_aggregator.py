@@ -7,11 +7,12 @@ Aggregates news from multiple sources with:
 - Unified article format
 - Caching with 5-minute TTL
 - Graceful degradation if sources fail
+- Hybrid StockTwits: API + Playwright fallback
 
 Sources:
 - API: Finnhub, NewsAPI, Alpha Vantage, Alpaca
 - RSS: Reuters, CNBC, Yahoo Finance, Seeking Alpha, MarketWatch
-- Social: StockTwits
+- Social: StockTwits (hybrid: API with browser fallback)
 """
 
 import asyncio
@@ -43,6 +44,7 @@ class NewsAggregator:
         alpaca_client=None,
         rss_aggregator=None,
         stocktwits_client=None,
+        stocktwits_scraper=None,
         cache_ttl: int = 300,
     ):
         """
@@ -55,6 +57,7 @@ class NewsAggregator:
             alpaca_client: AlpacaClient instance (optional)
             rss_aggregator: RSSAggregator instance (optional)
             stocktwits_client: StockTwitsClient instance (optional)
+            stocktwits_scraper: StockTwitsScraper instance for hybrid mode (optional)
             cache_ttl: Cache time-to-live in seconds (default: 5 minutes)
         """
         self.finnhub_client = finnhub_client
@@ -63,6 +66,7 @@ class NewsAggregator:
         self.alpaca_client = alpaca_client
         self.rss_aggregator = rss_aggregator
         self.stocktwits_client = stocktwits_client
+        self.stocktwits_scraper = stocktwits_scraper
         self.cache_ttl = cache_ttl
 
         # Cache storage: {cache_key: (data, timestamp)}
@@ -70,6 +74,9 @@ class NewsAggregator:
 
         # Track source health
         self.source_health: Dict[str, bool] = {}
+
+        # Track pending scrapes (for hybrid StockTwits)
+        self.pending_scrapes: Dict[str, Dict] = {}
 
         # Count active sources
         active_sources = sum(
@@ -79,23 +86,25 @@ class NewsAggregator:
                 self.alphavantage_client is not None,
                 self.alpaca_client is not None,
                 self.rss_aggregator is not None,
-                self.stocktwits_client is not None,
+                self.stocktwits_client is not None
+                or self.stocktwits_scraper is not None,
             ]
         )
 
         logger.info(
             f"NewsAggregator initialized with {active_sources} sources, "
-            f"cache_ttl={cache_ttl}s"
+            f"cache_ttl={cache_ttl}s, "
+            f"hybrid_stocktwits={self.stocktwits_scraper is not None}"
         )
 
     def _get_cache_key(
-        self, symbol: Optional[str], source_filter: Optional[str], limit: int
+        self, symbol: Optional[str], source_filter: Optional[str], include_social: bool
     ) -> str:
-        """Generate cache key from parameters."""
+        """Generate cache key from parameters (excludes offset/limit for reuse)."""
         key_parts = [
             f"symbol:{symbol or 'all'}",
             f"source:{source_filter or 'all'}",
-            f"limit:{limit}",
+            f"social:{include_social}",
         ]
         return f"news_aggregated:{'|'.join(key_parts)}"
 
@@ -271,16 +280,100 @@ class NewsAggregator:
     async def _fetch_from_stocktwits(
         self, symbol: Optional[str], limit: int
     ) -> List[Dict]:
-        """Fetch posts from StockTwits."""
-        if not self.stocktwits_client:
+        """
+        Fetch posts from StockTwits using hybrid approach.
+
+        1. Try hybrid scraper first (API + fallback)
+        2. Fall back to direct API client if scraper not available
+        3. Store pending scrape info if browser scraping needed
+        """
+        # Try hybrid scraper first (preferred)
+        if self.stocktwits_scraper:
+            try:
+                result = await self.stocktwits_scraper.get_posts(
+                    symbol=symbol, limit=limit
+                )
+
+                # Check if scrape is pending (API blocked, need browser)
+                if result.get("method") == "scrape_pending":
+                    scrape_key = f"stocktwits:{symbol or 'trending'}"
+                    self.pending_scrapes[scrape_key] = {
+                        "url": result.get("scrape_url"),
+                        "script": result.get("scrape_script"),
+                        "symbol": symbol,
+                        "limit": limit,
+                    }
+                    logger.info(f"StockTwits scrape pending for {symbol or 'trending'}")
+                    self.source_health["stocktwits"] = False
+                    return []
+
+                # API succeeded via scraper
+                self.source_health["stocktwits"] = True
+                return result.get("articles", [])
+
+            except Exception as e:
+                logger.warning(f"StockTwits scraper failed: {e}")
+                self.source_health["stocktwits"] = False
+                return []
+
+        # Fall back to direct API client
+        if self.stocktwits_client:
+            try:
+                result = await self.stocktwits_client.get_posts(
+                    symbol=symbol, limit=limit
+                )
+                self.source_health["stocktwits"] = True
+                return result.get("articles", [])
+            except Exception as e:
+                logger.warning(f"StockTwits API failed: {e}")
+                self.source_health["stocktwits"] = False
+                return []
+
+        return []
+
+    def get_pending_scrapes(self) -> Dict[str, Dict]:
+        """
+        Get pending browser scrapes that need execution.
+
+        Returns:
+            Dict mapping scrape keys to scrape info (url, script, symbol)
+        """
+        return self.pending_scrapes.copy()
+
+    def add_scraped_stocktwits(
+        self, symbol: Optional[str], scraped_data: Dict[str, Any]
+    ) -> List[Dict]:
+        """
+        Add scraped StockTwits data to the aggregator.
+
+        Call this after executing the scrape script via Playwright.
+
+        Args:
+            symbol: Symbol that was scraped (or None for trending)
+            scraped_data: Raw result from browser evaluate
+
+        Returns:
+            List of normalized articles
+        """
+        if not self.stocktwits_scraper:
+            logger.warning("No scraper available to parse scraped data")
             return []
+
         try:
-            result = await self.stocktwits_client.get_posts(symbol=symbol, limit=limit)
-            self.source_health["stocktwits"] = True
-            return result.get("articles", [])
+            result = self.stocktwits_scraper.parse_scraped_data(scraped_data, symbol)
+            articles = result.get("articles", [])
+
+            if articles:
+                self.source_health["stocktwits"] = True
+                # Clear pending scrape
+                scrape_key = f"stocktwits:{symbol or 'trending'}"
+                self.pending_scrapes.pop(scrape_key, None)
+
+            logger.info(f"Added {len(articles)} scraped StockTwits articles")
+            return articles
+
         except Exception as e:
-            logger.warning(f"StockTwits fetch failed: {e}")
-            self.source_health["stocktwits"] = False
+            logger.error(f"Failed to parse scraped StockTwits data: {e}")
             return []
 
     async def get_aggregated_news(
@@ -288,10 +381,11 @@ class NewsAggregator:
         symbol: Optional[str] = None,
         source_filter: Optional[str] = None,
         limit: int = 50,
+        offset: int = 0,
         include_social: bool = True,
     ) -> Dict[str, Any]:
         """
-        Get aggregated news from all sources.
+        Get aggregated news from all sources with pagination support.
 
         Args:
             symbol: Optional ticker symbol to filter by (e.g., 'AAPL')
@@ -301,6 +395,7 @@ class NewsAggregator:
                 - 'social': Only StockTwits
                 - None: All sources (default)
             limit: Maximum number of articles to return (default: 50)
+            offset: Number of articles to skip for pagination (default: 0)
             include_social: Include StockTwits social posts (default: True)
 
         Returns:
@@ -308,88 +403,112 @@ class NewsAggregator:
                 - articles: List of normalized, deduplicated articles
                 - sources: Dict mapping source names to article counts
                 - total_fetched: Total articles before deduplication
-                - total_returned: Final article count
-                - next_page_token: None (pagination not supported for aggregated)
+                - total_returned: Final article count after pagination
+                - total_available: Total unique articles available (for has_more)
+                - has_more: Whether more articles are available
+                - offset: Current offset
         """
-        # Check cache first
-        cache_key = self._get_cache_key(symbol, source_filter, limit)
-        cached = self._get_from_cache(cache_key)
-        if cached:
-            return cached
+        # Check cache first (cache key excludes offset/limit for reuse)
+        cache_key = self._get_cache_key(symbol, source_filter, include_social)
+        cached_data = self._get_from_cache(cache_key)
 
-        # Determine which sources to fetch from
-        fetch_tasks = []
-        source_names = []
+        if cached_data:
+            # Cache hit - slice from cached full result
+            unique_articles = cached_data.get("_unique_articles", [])
+            source_counts = cached_data.get("sources", {})
+            total_fetched = cached_data.get("total_fetched", 0)
+        else:
+            # Cache miss - fetch from all sources
+            fetch_tasks = []
+            source_names = []
 
-        # Per-source limit (fetch more than needed for deduplication)
-        per_source_limit = min(limit * 2, 100)
+            # Fetch more articles for caching (up to 200 per source)
+            per_source_limit = 100
 
-        if source_filter in (None, "api"):
-            # API sources
-            fetch_tasks.append(self._fetch_from_finnhub(symbol, per_source_limit))
-            source_names.append("finnhub")
+            if source_filter in (None, "api"):
+                # API sources
+                fetch_tasks.append(self._fetch_from_finnhub(symbol, per_source_limit))
+                source_names.append("finnhub")
 
-            fetch_tasks.append(self._fetch_from_newsapi(symbol, per_source_limit))
-            source_names.append("newsapi")
+                fetch_tasks.append(self._fetch_from_newsapi(symbol, per_source_limit))
+                source_names.append("newsapi")
 
-            fetch_tasks.append(self._fetch_from_alphavantage(symbol, per_source_limit))
-            source_names.append("alphavantage")
+                fetch_tasks.append(
+                    self._fetch_from_alphavantage(symbol, per_source_limit)
+                )
+                source_names.append("alphavantage")
 
-            fetch_tasks.append(self._fetch_from_alpaca(symbol, per_source_limit))
-            source_names.append("alpaca")
+                fetch_tasks.append(self._fetch_from_alpaca(symbol, per_source_limit))
+                source_names.append("alpaca")
 
-        if source_filter in (None, "rss"):
-            # RSS sources
-            fetch_tasks.append(self._fetch_from_rss(symbol, per_source_limit))
-            source_names.append("rss")
+            if source_filter in (None, "rss"):
+                # RSS sources
+                fetch_tasks.append(self._fetch_from_rss(symbol, per_source_limit))
+                source_names.append("rss")
 
-        if source_filter in (None, "social") and include_social:
-            # Social sources
-            fetch_tasks.append(self._fetch_from_stocktwits(symbol, per_source_limit))
-            source_names.append("stocktwits")
+            if source_filter in (None, "social") and include_social:
+                # Social sources
+                fetch_tasks.append(
+                    self._fetch_from_stocktwits(symbol, per_source_limit)
+                )
+                source_names.append("stocktwits")
 
-        # Fetch from all sources concurrently
-        results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+            # Fetch from all sources concurrently
+            results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
-        # Combine all articles and track source counts
-        all_articles = []
-        source_counts = {}
+            # Combine all articles and track source counts
+            all_articles = []
+            source_counts = {}
 
-        for source_name, result in zip(source_names, results):
-            if isinstance(result, Exception):
-                logger.warning(f"Source {source_name} failed: {result}")
-                source_counts[source_name] = 0
-                continue
+            for source_name, result in zip(source_names, results):
+                if isinstance(result, Exception):
+                    logger.warning(f"Source {source_name} failed: {result}")
+                    source_counts[source_name] = 0
+                    continue
 
-            articles = result if isinstance(result, list) else []
-            source_counts[source_name] = len(articles)
-            all_articles.extend(articles)
+                articles = result if isinstance(result, list) else []
+                source_counts[source_name] = len(articles)
+                all_articles.extend(articles)
 
-        total_fetched = len(all_articles)
+            total_fetched = len(all_articles)
 
-        # Sort by publishedAt (newest first)
-        all_articles.sort(key=lambda x: x.get("publishedAt", ""), reverse=True)
+            # Sort by publishedAt (newest first)
+            all_articles.sort(key=lambda x: x.get("publishedAt", ""), reverse=True)
 
-        # Deduplicate
-        unique_articles = self._deduplicate_articles(all_articles)
+            # Deduplicate (keep full list in cache for pagination)
+            unique_articles = self._deduplicate_articles(all_articles)
 
-        # Apply limit
-        final_articles = unique_articles[:limit]
+            # Cache the full deduplicated result (for pagination reuse)
+            cache_data = {
+                "_unique_articles": unique_articles,
+                "sources": source_counts,
+                "total_fetched": total_fetched,
+            }
+            self._set_cache(cache_key, cache_data)
+
+            logger.info(
+                f"Aggregated news: {total_fetched} fetched -> "
+                f"{len(unique_articles)} unique (cached for pagination)"
+            )
+
+        # Apply offset and limit for pagination
+        total_available = len(unique_articles)
+        paginated_articles = unique_articles[offset : offset + limit]
+        has_more = (offset + limit) < total_available
 
         result = {
-            "articles": final_articles,
+            "articles": paginated_articles,
             "sources": source_counts,
             "total_fetched": total_fetched,
-            "total_returned": len(final_articles),
-            "next_page_token": None,
+            "total_returned": len(paginated_articles),
+            "total_available": total_available,
+            "has_more": has_more,
+            "offset": offset,
         }
 
-        # Cache the result
-        self._set_cache(cache_key, result)
-
-        logger.info(
-            f"Aggregated news: {total_fetched} fetched -> "
-            f"{len(unique_articles)} unique -> {len(final_articles)} returned"
+        logger.debug(
+            f"Returning {len(paginated_articles)} articles "
+            f"(offset={offset}, has_more={has_more})"
         )
 
         return result
@@ -399,13 +518,14 @@ class NewsAggregator:
         Get health status of all news sources.
 
         Returns:
-            Dict with source health status and last check timestamps
+            Dict with source health status, pending scrapes, and timestamps
         """
         health = {
             "sources": {},
             "overall_healthy": False,
             "total_sources": 0,
             "healthy_sources": 0,
+            "pending_scrapes": list(self.pending_scrapes.keys()),
         }
 
         # Check each source
@@ -415,7 +535,7 @@ class NewsAggregator:
             ("alphavantage", self.alphavantage_client),
             ("alpaca", self.alpaca_client),
             ("rss", self.rss_aggregator),
-            ("stocktwits", self.stocktwits_client),
+            ("stocktwits", self.stocktwits_client or self.stocktwits_scraper),
         ]
 
         for source_name, client in sources:
@@ -427,10 +547,19 @@ class NewsAggregator:
             else:
                 health["total_sources"] += 1
                 is_healthy = self.source_health.get(source_name, False)
-                health["sources"][source_name] = {
+
+                # Add extra info for StockTwits hybrid mode
+                source_info = {
                     "configured": True,
                     "healthy": is_healthy,
                 }
+                if source_name == "stocktwits":
+                    source_info["hybrid_mode"] = self.stocktwits_scraper is not None
+                    source_info["scrape_pending"] = any(
+                        "stocktwits" in k for k in self.pending_scrapes
+                    )
+
+                health["sources"][source_name] = source_info
                 if is_healthy:
                     health["healthy_sources"] += 1
 
@@ -460,6 +589,7 @@ class NewsAggregator:
             self.alpaca_client,
             self.rss_aggregator,
             self.stocktwits_client,
+            self.stocktwits_scraper,
         ]
 
         for client in clients:
@@ -468,5 +598,8 @@ class NewsAggregator:
                     await client.close()
                 except Exception as e:
                     logger.warning(f"Error closing client: {e}")
+
+        # Clear pending scrapes
+        self.pending_scrapes.clear()
 
         logger.info("NewsAggregator closed all client connections")

@@ -190,35 +190,45 @@ FALSE_POSITIVES: Set[str] = {
 }
 
 
-# RSS Feed configuration
+# RSS Feed configuration - Updated Dec 2025 with verified working feeds
 RSS_FEEDS: Dict[str, Dict[str, str]] = {
-    "reuters": {
-        "url": (
-            "https://www.reutersagency.com/feed/"
-            "?best-topics=business-finance&post_type=best"
-        ),
-        "name": "Reuters",
-        "backup_url": "https://feeds.reuters.com/reuters/businessNews",
+    "benzinga": {
+        "url": "http://feeds.benzinga.com/benzinga",
+        "name": "Benzinga",
+        "backup_url": "https://www.benzinga.com/feed",
     },
-    "cnbc": {
-        "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
-        "name": "CNBC",
-        "backup_url": "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+    "thestreet": {
+        "url": "https://www.thestreet.com/.rss/full/",
+        "name": "TheStreet",
+        "backup_url": "https://www.thestreet.com/.rss/full/",
     },
-    "yahoo_finance": {
-        "url": "https://finance.yahoo.com/news/rssindex",
-        "name": "Yahoo Finance",
-        "backup_url": "https://feeds.finance.yahoo.com/rss/2.0/headline",
+    "marketbeat": {
+        "url": "https://www.marketbeat.com/feed/",
+        "name": "MarketBeat",
+        "backup_url": "https://www.marketbeat.com/feed/",
     },
     "seeking_alpha": {
-        "url": "https://seekingalpha.com/market_currents.xml",
+        "url": "https://seekingalpha.com/feed.xml",
         "name": "Seeking Alpha",
-        "backup_url": "https://seekingalpha.com/feed.xml",
+        "backup_url": "https://seekingalpha.com/market_currents.xml",
     },
     "marketwatch": {
         "url": "https://feeds.marketwatch.com/marketwatch/topstories/",
         "name": "MarketWatch",
         "backup_url": "https://feeds.marketwatch.com/marketwatch/marketpulse/",
+    },
+    "motley_fool": {
+        "url": (
+            "https://www.fool.com/a/feeds/partner/googlechromefollow"
+            "?apikey=5e092c1f-c5f9-4428-9219-908a47d2e2de"
+        ),
+        "name": "Motley Fool",
+        "backup_url": "https://www.fool.com/feeds/index.aspx?id=foolwatch",
+    },
+    "fortune": {
+        "url": "https://fortune.com/feed/fortune-feeds/?id=3230629",
+        "name": "Fortune",
+        "backup_url": "https://fortune.com/feed/",
     },
 }
 

@@ -40,6 +40,7 @@ from .data.market_data import MarketDataManager
 from .data.newsapi_client import NewsAPIClient
 from .data.rss_aggregator import RSSAggregator
 from .data.stocktwits_client import StockTwitsClient
+from .data.stocktwits_scraper import StockTwitsScraper
 from .exceptions import (
     AuthenticationError,
     CircuitBreakerTrippedError,
@@ -196,6 +197,7 @@ class DeepStackAPIServer:
         self.finnhub_client: Optional[FinnhubClient] = None
         self.newsapi_client: Optional[NewsAPIClient] = None
         self.stocktwits_client: Optional[StockTwitsClient] = None
+        self.stocktwits_scraper: Optional[StockTwitsScraper] = None
         self.rss_aggregator: Optional[RSSAggregator] = None
         self.news_aggregator: Optional[NewsAggregator] = None
 
@@ -311,19 +313,25 @@ class DeepStackAPIServer:
             symbol: Optional[str] = None,
             source: Optional[str] = None,
             limit: int = 50,
+            offset: int = 0,
             include_social: bool = True,
         ):
             """
-            Get aggregated news from all configured sources.
+            Get aggregated news from all configured sources with pagination.
 
             Args:
                 symbol: Optional ticker symbol to filter by (e.g., 'AAPL')
                 source: Optional source filter ('api', 'rss', 'social', or None for all)
                 limit: Maximum number of articles to return (default: 50)
+                offset: Number of articles to skip for pagination (default: 0)
                 include_social: Include StockTwits social posts (default: True)
 
             Returns:
-                Aggregated, deduplicated news from all sources with source metadata
+                Aggregated, deduplicated news with pagination metadata:
+                - articles: List of news articles
+                - has_more: Whether more articles are available
+                - total_available: Total unique articles
+                - offset: Current offset
             """
             try:
                 if not self.news_aggregator:
@@ -333,12 +341,15 @@ class DeepStackAPIServer:
                         "sources": {},
                         "total_fetched": 0,
                         "total_returned": 0,
+                        "has_more": False,
+                        "offset": 0,
                     }
 
                 result = await self.news_aggregator.get_aggregated_news(
                     symbol=symbol,
                     source_filter=source,
                     limit=limit,
+                    offset=offset,
                     include_social=include_social,
                 )
 
@@ -378,6 +389,60 @@ class DeepStackAPIServer:
                 return JSONResponse(
                     status_code=500,
                     content={"error": "Failed to check news source health"},
+                )
+
+        @self.app.post("/api/news/stocktwits/parse-scraped")
+        async def parse_scraped_stocktwits(request: Request):
+            """
+            Parse scraped StockTwits data from Playwright browser.
+
+            This endpoint accepts raw DOM-scraped data and normalizes it
+            to the standard article format.
+
+            Body:
+                symbol: Optional stock symbol context
+                scraped_data: Raw scrape result from browser evaluate
+
+            Returns:
+                Normalized articles list
+            """
+            try:
+                body = await request.json()
+                symbol = body.get("symbol")
+                scraped_data = body.get("scraped_data")
+
+                if not scraped_data:
+                    return JSONResponse(
+                        status_code=400,
+                        content={"error": "Missing scraped_data in request body"},
+                    )
+
+                if not self.stocktwits_scraper:
+                    return JSONResponse(
+                        status_code=503,
+                        content={"error": "StockTwits scraper not initialized"},
+                    )
+
+                # Parse the scraped data using the scraper's normalization
+                result = self.stocktwits_scraper.parse_scraped_data(
+                    scraped_data, symbol=symbol
+                )
+
+                # If news aggregator has pending scrapes, add them
+                if self.news_aggregator:
+                    self.news_aggregator.add_scraped_stocktwits(symbol, scraped_data)
+
+                return {
+                    "articles": result.get("articles", []),
+                    "count": len(result.get("articles", [])),
+                    "source": "scraped",
+                }
+
+            except Exception as e:
+                logger.error(f"Error parsing scraped StockTwits data: {e}")
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "Failed to parse scraped data"},
                 )
 
         @self.app.get("/api/calendar")
@@ -1418,6 +1483,16 @@ class DeepStackAPIServer:
         except Exception as e:
             logger.warning(f"StockTwits client init failed: {e}")
 
+        # Initialize StockTwits hybrid scraper (API + Playwright fallback)
+        try:
+            self.stocktwits_scraper = StockTwitsScraper(
+                api_client=self.stocktwits_client,
+                use_api_first=True,
+            )
+            logger.info("StockTwits scraper initialized (hybrid mode)")
+        except Exception as e:
+            logger.warning(f"StockTwits scraper init failed: {e}")
+
         # Initialize RSS aggregator
         try:
             self.rss_aggregator = RSSAggregator()
@@ -1434,6 +1509,7 @@ class DeepStackAPIServer:
                 alpaca_client=self.alpaca_client,
                 rss_aggregator=self.rss_aggregator,
                 stocktwits_client=self.stocktwits_client,
+                stocktwits_scraper=self.stocktwits_scraper,
             )
             logger.info("News aggregator initialized with all available sources")
         except Exception as e:
