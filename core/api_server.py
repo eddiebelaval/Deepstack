@@ -244,12 +244,14 @@ class DeepStackAPIServer:
 
     def _setup_middleware(self):
         """Setup CORS and other middleware."""
+        # Security: CORS origins are validated in config to prevent
+        # wildcard (*) being used with credentials
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=self.config.api.cors_origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_credentials=self.config.api.cors_allow_credentials,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
         )
 
     def _setup_routes(self):

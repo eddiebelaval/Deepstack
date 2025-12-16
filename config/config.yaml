@@ -32,7 +32,7 @@ strategies:
       debt_equity_max: 1.0
       current_ratio_min: 1.5
       roe_min: 0.15
-      
+
   squeeze_hunter:
     enabled: true
     allocation: 0.30
@@ -41,7 +41,7 @@ strategies:
       days_to_cover_min: 5
       borrow_cost_min: 0.05
       float_available_max: 0.20
-      
+
   pairs_trading:
     enabled: false
     allocation: 0.20
@@ -54,8 +54,11 @@ strategies:
 api:
   host: "127.0.0.1"
   port: 8000
-  cors_origins: ["*"]
-  
+  # CORS origins - explicit list required when credentials are enabled
+  # For production, set via CORS_ORIGINS env var: "https://your-domain.com,https://app.your-domain.com"
+  cors_origins: ["http://localhost:3000", "http://127.0.0.1:3000"]
+  cors_allow_credentials: true
+
 # Logging
 logging:
   level: "INFO"
