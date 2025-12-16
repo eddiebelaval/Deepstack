@@ -21,6 +21,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from supabase import Client, create_client
 
 # Load environment variables (override=True ensures fresh values from .env file)
@@ -57,12 +58,14 @@ from core.api.router import router as command_router
 
 # Use shared AlpacaClient for consistent data access
 from core.data.alpaca_client import AlpacaClient
+from core.data.alphavantage_client import AlphaVantageClient
 
 app.include_router(command_router)
 
 # Initialize Clients
 api_key = os.getenv("ALPACA_API_KEY")
 secret_key = os.getenv("ALPACA_SECRET_KEY")
+alphavantage_api_key = os.getenv("ALPHAVANTAGE_API_KEY")
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv(
     "SUPABASE_SERVICE_KEY"
@@ -81,6 +84,14 @@ else:
     # Initialize shared AlpacaClient wrapper
     alpaca_client = AlpacaClient(api_key=api_key, secret_key=secret_key)
     logger.info("Alpaca clients initialized successfully")
+
+# Initialize Alpha Vantage client for additional news source
+if alphavantage_api_key:
+    alphavantage_client = AlphaVantageClient(api_key=alphavantage_api_key)
+    logger.info("Alpha Vantage client initialized for news aggregation")
+else:
+    alphavantage_client = None
+    logger.warning("Alpha Vantage API key not found - using Alpaca news only")
 
 if not supabase_url or not supabase_key:
     logger.warning("Supabase credentials not found - Auth disabled (NOT SECURE)")
@@ -511,22 +522,81 @@ async def get_quotes(
 @app.get("/api/news", dependencies=[Depends(CreditDeduction(5))])
 async def get_news(
     symbol: Optional[str] = Query(None, description="Filter by stock symbol"),
-    limit: int = Query(10, description="Number of news items to return"),
+    limit: int = Query(20, description="Number of news items to return"),
     user_id: str = Depends(verify_token),
 ):
-    """Get latest market news from Alpaca."""
+    """Get aggregated market news from multiple sources (Alpaca + Alpha Vantage)."""
+    import asyncio
 
-    if not alpaca_client:
-        logger.warning("Alpaca client not initialized - returning empty news")
-        return {"news": []}
+    all_articles = []
+
+    # Create tasks for parallel fetching
+    tasks = []
+
+    # Alpaca news
+    if alpaca_client:
+        tasks.append(("alpaca", alpaca_client.get_news(symbol=symbol, limit=limit)))
+
+    # Alpha Vantage news
+    if alphavantage_client:
+        tasks.append(
+            ("alphavantage", alphavantage_client.get_news(symbol=symbol, limit=limit))
+        )
+
+    if not tasks:
+        logger.warning("No news clients initialized - returning empty news")
+        return {"news": {"articles": [], "next_page_token": None}}
 
     try:
-        articles = await alpaca_client.get_news(symbol=symbol, limit=limit)
-        return {"news": articles}
+        # Fetch from all sources in parallel
+        results = await asyncio.gather(
+            *[task[1] for task in tasks], return_exceptions=True
+        )
+
+        # Process results from each source
+        seen_headlines = set()
+
+        for i, result in enumerate(results):
+            source_name = tasks[i][0]
+
+            if isinstance(result, Exception):
+                logger.error(f"Error fetching from {source_name}: {result}")
+                continue
+
+            # Handle different response formats
+            articles = []
+            if isinstance(result, dict):
+                articles = result.get("articles", [])
+            elif isinstance(result, list):
+                articles = result
+
+            for article in articles:
+                # Tag with source provider if not already tagged
+                if "source_provider" not in article:
+                    article["source_provider"] = source_name
+
+                # Deduplicate by headline (case-insensitive)
+                headline = article.get("headline", "").lower().strip()
+                if headline and headline not in seen_headlines:
+                    seen_headlines.add(headline)
+                    all_articles.append(article)
+
+        # Sort by publish date (most recent first)
+        all_articles.sort(key=lambda x: x.get("publishedAt", ""), reverse=True)
+
+        # Limit results
+        limited_articles = all_articles[:limit]
+
+        logger.info(
+            f"Aggregated {len(limited_articles)} news articles from "
+            f"{len([t for t in tasks])} sources (requested {limit})"
+        )
+
+        return {"news": {"articles": limited_articles, "next_page_token": None}}
 
     except Exception as e:
-        logger.error(f"Error fetching news: {e}")
-        return {"news": [], "error": str(e)}
+        logger.error(f"Error aggregating news: {e}")
+        return {"news": {"articles": [], "next_page_token": None}, "error": str(e)}
 
 
 @app.get("/api/calendar")

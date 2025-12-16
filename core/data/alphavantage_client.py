@@ -77,6 +77,7 @@ class AlphaVantageClient:
             "earnings": 21600,  # 6 hours (quarterly updates)
             "insider": 3600,  # 1 hour (more frequent)
             "overview": 86400,  # 24 hours
+            "news": 300,  # 5 minutes (news should be fresh)
         }
 
         # Rate limiting
@@ -91,7 +92,8 @@ class AlphaVantageClient:
         self.session: Optional[aiohttp.ClientSession] = None
 
         logger.info(
-            f"AlphaVantageClient initialized with rate_limit={rate_limit}/{rate_limit_window}s"
+            f"AlphaVantageClient initialized "
+            f"rate_limit={rate_limit}/{rate_limit_window}s"
         )
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
@@ -226,9 +228,10 @@ class AlphaVantageClient:
                     if "Note" in data and "rate limit" in data["Note"].lower():
                         logger.warning(f"Rate limit message: {data['Note']}")
                         if retry_count < self.max_retries:
-                            wait_time = min(60 * (2**retry_count), 300)  # Max 5 min
+                            wait_time = min(60 * (2**retry_count), 300)
+                            retries = self.max_retries
                             logger.info(
-                                f"Retrying in {wait_time}s (attempt {retry_count + 1}/{self.max_retries})"
+                                f"Retry in {wait_time}s ({retry_count+1}/{retries})"
                             )
                             await asyncio.sleep(wait_time)
                             return await self._make_request(params, retry_count + 1)
@@ -571,9 +574,7 @@ class AlphaVantageClient:
             # Cache result
             self._set_cache(cache_key, result)
 
-            logger.debug(
-                f"Retrieved earnings for {symbol}: {len(quarterly)} quarterly, {len(annual)} annual"
-            )
+            logger.debug(f"Earnings {symbol}: {len(quarterly)} qtr, {len(annual)} ann")
             return result
 
         except ValueError as e:
@@ -645,6 +646,118 @@ class AlphaVantageClient:
             logger.error(f"Error getting insider transactions for {symbol}: {e}")
             return None
 
+    async def get_earnings_calendar(
+        self,
+        symbol: Optional[str] = None,
+        horizon: str = "3month",
+    ) -> Optional[List[Dict[str, Any]]]:
+        """
+        Get upcoming earnings calendar events.
+
+        Uses Alpha Vantage's EARNINGS_CALENDAR API which returns CSV data
+        with upcoming earnings announcements.
+
+        Args:
+            symbol: Optional stock symbol to filter by (e.g., 'AAPL')
+            horizon: Time horizon - '3month', '6month', or '12month' (default: 3month)
+
+        Returns:
+            List of earnings events or None on error
+
+            Example response:
+            [
+                {
+                    'symbol': 'AAPL',
+                    'name': 'Apple Inc',
+                    'report_date': '2024-01-25',
+                    'fiscal_date_ending': '2023-12-31',
+                    'estimate': 2.10,
+                    'currency': 'USD'
+                },
+                ...
+            ]
+        """
+        try:
+            # Validate horizon parameter
+            valid_horizons = ["3month", "6month", "12month"]
+            if horizon not in valid_horizons:
+                logger.warning(f"Invalid horizon '{horizon}', using '3month'")
+                horizon = "3month"
+
+            # Validate symbol if provided
+            if symbol:
+                symbol = self._validate_symbol(symbol)
+
+            # Check cache (use 6-hour TTL for calendar data to respect rate limits)
+            cache_params = {"horizon": horizon}
+            if symbol:
+                cache_params["symbol"] = symbol
+            cache_key = self._get_cache_key("EARNINGS_CALENDAR", cache_params)
+            cached = self._get_from_cache(cache_key, "earnings")
+            if cached:
+                return cached
+
+            # Build API request parameters
+            params = {
+                "function": "EARNINGS_CALENDAR",
+                "horizon": horizon,
+            }
+            if symbol:
+                params["symbol"] = symbol
+
+            # Make API request (returns CSV, not JSON)
+            await self._check_rate_limit()
+            params["apikey"] = self.api_key
+
+            session = await self._ensure_session()
+            async with session.get(self.BASE_URL, params=params) as response:
+                if response.status != 200:
+                    logger.error(f"Earnings calendar API returned {response.status}")
+                    return None
+
+                csv_text = await response.text()
+
+                # Check for API error messages in CSV
+                if "Error" in csv_text or "Thank you" in csv_text:
+                    logger.error(f"Earnings calendar API error: {csv_text[:200]}")
+                    return None
+
+                # Parse CSV response
+                import csv
+                import io
+
+                reader = csv.DictReader(io.StringIO(csv_text))
+                result = []
+
+                for row in reader:
+                    # Parse each row from CSV
+                    event = {
+                        "symbol": row.get("symbol", ""),
+                        "name": row.get("name", ""),
+                        "report_date": row.get("reportDate", ""),
+                        "fiscal_date_ending": row.get("fiscalDateEnding", ""),
+                        "estimate": self._parse_float(row.get("estimate")),
+                        "currency": row.get("currency", "USD"),
+                    }
+                    result.append(event)
+
+                logger.info(
+                    f"Retrieved {len(result)} earnings calendar events "
+                    f"(horizon={horizon}, symbol={symbol or 'all'})"
+                )
+
+                # Cache result
+                self._set_cache(cache_key, result)
+
+                return result
+
+        except ValueError as e:
+            logger.error(f"Validation error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error getting earnings calendar: {e}")
+            return None
+
     def clear_cache(self, cache_type: Optional[str] = None) -> None:
         """
         Clear cached data.
@@ -681,6 +794,142 @@ class AlphaVantageClient:
             "recent_requests": len(self.request_timestamps),
             "cache_ttl": self.cache_ttl,
         }
+
+    async def get_news(
+        self,
+        symbol: Optional[str] = None,
+        topics: Optional[List[str]] = None,
+        limit: int = 50,
+        sort: str = "LATEST",
+    ) -> Dict[str, Any]:
+        """
+        Get market news with sentiment from Alpha Vantage NEWS_SENTIMENT API.
+
+        Args:
+            symbol: Optional ticker to filter by (e.g., 'AAPL')
+            topics: Optional list of topics (e.g., ['technology', 'earnings'])
+            limit: Max number of articles (default 50, max 1000)
+            sort: Sort order - 'LATEST', 'EARLIEST', or 'RELEVANCE'
+
+        Returns:
+            Dict with 'articles' list containing news with sentiment data
+
+            Example article:
+            {
+                'id': 'av_12345',
+                'headline': 'Apple Reports Record Quarter',
+                'summary': 'Apple Inc announced...',
+                'url': 'https://example.com/article',
+                'source': 'Reuters',
+                'publishedAt': '2024-01-15T10:30:00Z',
+                'symbols': ['AAPL'],
+                'author': 'John Doe',
+                'sentiment': 'positive',
+                'sentiment_score': 0.75,
+                'source_provider': 'alphavantage'
+            }
+        """
+        try:
+            # Build cache key
+            cache_params = {"limit": limit, "sort": sort}
+            if symbol:
+                cache_params["symbol"] = symbol
+            if topics:
+                cache_params["topics"] = ",".join(topics)
+
+            cache_key = self._get_cache_key("NEWS_SENTIMENT", cache_params)
+
+            # Use shorter TTL for news (5 minutes)
+            cached = self._get_from_cache(cache_key, "news")
+            if cached:
+                return cached
+
+            # Build API request parameters
+            params = {
+                "function": "NEWS_SENTIMENT",
+                "limit": str(min(limit, 1000)),  # API max is 1000
+                "sort": sort,
+            }
+
+            if symbol:
+                # Alpha Vantage uses 'tickers' parameter
+                params["tickers"] = self._validate_symbol(symbol)
+
+            if topics:
+                params["topics"] = ",".join(topics)
+
+            # Make API request
+            data = await self._make_request(params)
+
+            if not data or "feed" not in data:
+                logger.warning("No news feed data from Alpha Vantage")
+                return {"articles": [], "next_page_token": None}
+
+            # Parse and normalize articles to match Alpaca format
+            articles = []
+            for item in data.get("feed", []):
+                # Extract sentiment label from score
+                overall_score = self._parse_float(
+                    item.get("overall_sentiment_score", 0)
+                )
+                if overall_score is None:
+                    overall_score = 0
+
+                if overall_score >= 0.15:
+                    sentiment = "positive"
+                elif overall_score <= -0.15:
+                    sentiment = "negative"
+                else:
+                    sentiment = "neutral"
+
+                # Extract ticker symbols from ticker_sentiment
+                symbols = []
+                for ticker_data in item.get("ticker_sentiment", []):
+                    ticker = ticker_data.get("ticker", "")
+                    # Skip crypto/forex prefixes for consistency
+                    if ":" not in ticker:
+                        symbols.append(ticker)
+
+                # Parse time_published (format: YYYYMMDDTHHMMSS)
+                time_published = item.get("time_published", "")
+                published_at = ""
+                if time_published:
+                    try:
+                        # Parse Alpha Vantage format: 20240115T103000
+                        dt = datetime.strptime(time_published, "%Y%m%dT%H%M%S")
+                        published_at = dt.isoformat() + "Z"
+                    except ValueError:
+                        published_at = time_published
+
+                article = {
+                    "id": f"av_{hash(item.get('url', '')) & 0xFFFFFFFF}",
+                    "headline": item.get("title", ""),
+                    "summary": item.get("summary", ""),
+                    "url": item.get("url", ""),
+                    "source": item.get("source", ""),
+                    "publishedAt": published_at,
+                    "symbols": symbols,
+                    "author": ", ".join(item.get("authors", [])),
+                    "sentiment": sentiment,
+                    "sentiment_score": overall_score,
+                    "source_provider": "alphavantage",
+                }
+                articles.append(article)
+
+            result = {"articles": articles, "next_page_token": None}
+
+            # Cache with 5 minute TTL for news
+            self._set_cache(cache_key, result)
+
+            logger.info(f"Retrieved {len(articles)} news articles from Alpha Vantage")
+            return result
+
+        except ValueError as e:
+            logger.error(f"Validation error: {e}")
+            return {"articles": [], "next_page_token": None}
+        except Exception as e:
+            logger.error(f"Error getting news from Alpha Vantage: {e}")
+            return {"articles": [], "next_page_token": None}
 
     async def health_check(self) -> bool:
         """
