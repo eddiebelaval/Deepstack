@@ -128,24 +128,37 @@ export function MarketWatchPanel() {
         isExpanded ? "border-border/40 bg-muted/30" : "border-border/20 bg-transparent"
       )}>
         {/* Left: Chevron + Title */}
-        <button
-          onClick={toggleMarketWatchPanel}
-          className="flex items-center gap-2 hover:text-primary transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-md px-1 -ml-1"
-          aria-expanded={isExpanded}
-          aria-controls="market-watch-content"
-        >
-          <div className={cn(
-            "transition-transform duration-200",
-            isExpanded && "rotate-180"
-          )}>
-            <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-          </div>
-          <LineChart className={cn(
-            "h-4 w-4 transition-colors",
-            isExpanded ? "text-primary" : "text-primary/70"
-          )} />
-          <span className="text-sm font-semibold text-foreground">Market Watch</span>
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggleMarketWatchPanel}
+              className="flex items-center gap-2 hover:text-primary transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-lg px-2 py-1 -ml-2"
+              aria-expanded={isExpanded}
+              aria-controls="market-watch-content"
+            >
+              {/* Chevron with pill background for visibility */}
+              <div className={cn(
+                "flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200",
+                "bg-muted/60 group-hover:bg-primary/20",
+                "border border-border/40 group-hover:border-primary/40",
+                isExpanded && "rotate-180 bg-primary/15 border-primary/30"
+              )}>
+                <ChevronDown className={cn(
+                  "h-4 w-4 transition-colors",
+                  isExpanded ? "text-primary" : "text-muted-foreground group-hover:text-primary"
+                )} />
+              </div>
+              <LineChart className={cn(
+                "h-4 w-4 transition-colors",
+                isExpanded ? "text-primary" : "text-primary/70"
+              )} />
+              <span className="text-sm font-semibold text-foreground">Market Watch</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {isExpanded ? "Collapse Market Watch" : "Expand Market Watch"}
+          </TooltipContent>
+        </Tooltip>
 
         {/* Center: Connection + Market Status with backlit glow */}
         <div className="flex items-center gap-4 text-xs">

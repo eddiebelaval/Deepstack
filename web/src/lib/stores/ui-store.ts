@@ -24,6 +24,7 @@ interface UIState {
 
   // Market Watch Panel State (global, fixed at top)
   marketWatchPanel: MarketWatchPanelState;
+  marketWatchWasExpandedBeforeTool: boolean; // Track MW state before tool panel opened
   openMarketWatchPanel: () => void;
   closeMarketWatchPanel: () => void;
   toggleMarketWatchPanel: () => void;
@@ -82,6 +83,7 @@ export const useUIStore = create<UIState>()(
         isExpanded: false,  // Starts collapsed
         height: MARKET_WATCH_PANEL_DEFAULT_HEIGHT,
       },
+      marketWatchWasExpandedBeforeTool: false, // Track MW state before tool opens
 
       chartPanelOpen: true, // Chart visible by default
       chartPanelCollapsed: false, // Not collapsed by default
@@ -99,7 +101,7 @@ export const useUIStore = create<UIState>()(
       paywallOpen: false,
 
       // Actions
-      // Smart chart persistence: when a tool opens, hide chart; when returning to 'none', restore chart
+      // Smart panel persistence: when a tool opens, collapse panels; when returning to 'none', restore them
       setActiveContent: (content) => set((state) => {
         const wasNone = state.activeContent === 'none';
         const isNone = content === 'none';
@@ -110,6 +112,8 @@ export const useUIStore = create<UIState>()(
             activeContent: content,
             chartWasOpenBeforeTool: state.chartPanelOpen, // Save current chart state
             chartPanelCollapsed: true, // Collapse chart when tool opens (not fully hide)
+            marketWatchWasExpandedBeforeTool: state.marketWatchPanel.isExpanded, // Save MW state
+            marketWatchPanel: { ...state.marketWatchPanel, isExpanded: false }, // Collapse MW
           };
         }
 
@@ -118,10 +122,22 @@ export const useUIStore = create<UIState>()(
           return {
             activeContent: content,
             chartPanelCollapsed: !state.chartWasOpenBeforeTool, // Restore to previous state (collapsed = !open)
+            marketWatchPanel: {
+              ...state.marketWatchPanel,
+              isExpanded: state.marketWatchWasExpandedBeforeTool, // Restore MW to previous state
+            },
           };
         }
 
-        // Switching between tools or to 'chart' explicitly
+        // Switching between tools - keep panels collapsed
+        if (!wasNone && !isNone) {
+          return {
+            activeContent: content,
+            marketWatchPanel: { ...state.marketWatchPanel, isExpanded: false }, // Keep MW collapsed
+          };
+        }
+
+        // Default case (e.g., to 'chart' explicitly)
         return { activeContent: content };
       }),
 
