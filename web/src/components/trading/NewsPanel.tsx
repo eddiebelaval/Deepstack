@@ -1,87 +1,46 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import {
-  Newspaper,
   Loader2,
   RefreshCw,
-  ExternalLink,
   X,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Search,
   Bell,
   ChevronUp,
-  MessageSquare,
-  Rss,
-  Globe,
-  Heart,
-  MessageCircle,
+  Sparkles,
+  Newspaper,
+  Cpu,
+  TrendingUp,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   useNewsStore,
-  NewsArticle,
   useNewsAutoRefresh,
   NewsSourceFilter,
-  getSourceProviderDisplay,
 } from '@/lib/stores/news-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
-import { RelatedPredictionMarkets } from '@/components/news/RelatedPredictionMarkets';
+import { DiscoverCard } from '@/components/news/DiscoverCard';
+import { DiscoverFeed } from '@/components/discover/DiscoverFeed';
+import { DiscoverHeader } from '@/components/discover/DiscoverHeader';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SENTIMENT_CONFIG = {
-  positive: {
-    icon: TrendingUp,
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-500/30',
-    label: 'Positive',
-  },
-  negative: {
-    icon: TrendingDown,
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/30',
-    label: 'Negative',
-  },
-  neutral: {
-    icon: Minus,
-    color: 'text-muted-foreground',
-    bgColor: 'bg-muted/50',
-    borderColor: 'border-border',
-    label: 'Neutral',
-  },
-  bullish: {
-    icon: TrendingUp,
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-500/30',
-    label: 'Bullish',
-  },
-  bearish: {
-    icon: TrendingDown,
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/30',
-    label: 'Bearish',
-  },
-};
+// Perplexity-style category tabs
+const CATEGORY_TABS = [
+  { value: 'all', label: 'For You', icon: Sparkles },
+  { value: 'api', label: 'Top Stories', icon: Newspaper },
+  { value: 'rss', label: 'Tech & Business', icon: Cpu },
+  { value: 'social', label: 'Trending', icon: TrendingUp },
+] as const;
 
-const SOURCE_FILTER_OPTIONS: { value: NewsSourceFilter; label: string; icon: React.ElementType }[] = [
-  { value: 'all', label: 'All', icon: Globe },
-  { value: 'api', label: 'News', icon: Newspaper },
-  { value: 'rss', label: 'RSS', icon: Rss },
-  { value: 'social', label: 'Social', icon: MessageSquare },
-];
+type ViewMode = 'discover' | 'compact';
 
 export function NewsPanel() {
   const {
@@ -92,7 +51,6 @@ export function NewsPanel() {
     filterSymbol,
     sourceFilter,
     includeSocial,
-    sourceCounts,
     totalFetched,
     totalReturned,
     hasMore,
@@ -108,10 +66,16 @@ export function NewsPanel() {
     setAutoRefresh,
     checkForNewArticles,
   } = useNewsStore();
-  const { activeSymbol, setActiveSymbol } = useTradingStore();
+  const { setActiveSymbol } = useTradingStore();
   const { interval } = useNewsAutoRefresh();
+  const { isMobile, isTablet, isDesktop } = useIsMobile();
 
-  const [searchSymbol, setSearchSymbol] = React.useState('');
+  // Use full Discover layout for tablet and desktop
+  const useFullDiscoverLayout = isDesktop || isTablet;
+
+  const [searchSymbol, setSearchSymbol] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('discover');
+  const [likedArticles, setLikedArticles] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
@@ -154,6 +118,13 @@ export function NewsPanel() {
     };
   }, [hasMore, isLoadingMore, isLoading, loadMore]);
 
+  // Include social when not on social tab
+  useEffect(() => {
+    if (sourceFilter !== 'social') {
+      setIncludeSocial(true);
+    }
+  }, [sourceFilter, setIncludeSocial]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchSymbol.trim()) {
@@ -164,12 +135,7 @@ export function NewsPanel() {
 
   const handleSymbolClick = (symbol: string) => {
     setActiveSymbol(symbol);
-  };
-
-  const handleFilterByActiveSymbol = () => {
-    if (activeSymbol) {
-      setFilterSymbol(activeSymbol);
-    }
+    setFilterSymbol(symbol);
   };
 
   const handleRefresh = useCallback(() => {
@@ -186,214 +152,256 @@ export function NewsPanel() {
     }
   }, [fetchNews, filterSymbol, markAsViewed]);
 
-  const formatTimeAgo = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays}d ago`;
+  const handleCategoryChange = (category: string) => {
+    setSourceFilter(category as NewsSourceFilter);
   };
 
-  // Calculate source counts for display
-  const totalSources = Object.values(sourceCounts).reduce((a, b) => a + b, 0);
+  const toggleLike = (articleId: string) => {
+    setLikedArticles((prev) => {
+      const next = new Set(prev);
+      if (next.has(articleId)) {
+        next.delete(articleId);
+      } else {
+        next.add(articleId);
+      }
+      return next;
+    });
+  };
 
+  // Desktop/Tablet: Full Discover layout (full-width feed, no sidebar - widgets are in main UI)
+  if (useFullDiscoverLayout) {
+    return (
+      <div className="h-full flex flex-col bg-background">
+        {/* Header with tabs */}
+        <DiscoverHeader />
+
+        {/* Full-width feed area */}
+        <ScrollArea className="flex-1">
+          <div className="p-6">
+            <DiscoverFeed />
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
+
+  // Mobile: Original card-based layout
   return (
-    <div className="h-full flex flex-col p-4 gap-3">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Newspaper className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Market News</h2>
-          {/* Live indicator */}
-          {autoRefreshEnabled && (
-            <div className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Live</span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Auto-refresh toggle */}
-          <Button
-            variant={autoRefreshEnabled ? 'default' : 'ghost'}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setAutoRefresh(!autoRefreshEnabled)}
-            title={autoRefreshEnabled ? 'Auto-refresh on' : 'Auto-refresh off'}
-          >
-            <Bell className={cn('h-3 w-3', autoRefreshEnabled && 'text-green-400')} />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="h-7"
-          >
-            {isLoading ? (
-              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-            )}
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      {/* Source Filter Tabs */}
-      <div className="flex-shrink-0">
-        <Tabs value={sourceFilter} onValueChange={(v) => setSourceFilter(v as NewsSourceFilter)}>
-          <TabsList className="h-8 w-full grid grid-cols-4">
-            {SOURCE_FILTER_OPTIONS.map((option) => (
-              <TabsTrigger key={option.value} value={option.value} className="text-xs gap-1 h-7">
-                <option.icon className="h-3 w-3" />
-                {option.label}
-                {sourceCounts[option.value === 'api' ? 'finnhub' : option.value] !== undefined && (
-                  <span className="text-[10px] text-muted-foreground">
-                    ({option.value === 'all' ? totalSources : (sourceCounts[option.value] || 0)})
-                  </span>
+      <div className="flex-shrink-0 p-4 pb-2 space-y-3">
+        {/* Title Row */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Discover</h1>
+          <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-muted rounded-lg p-0.5">
+              <button
+                onClick={() => setViewMode('discover')}
+                className={cn(
+                  'p-1.5 rounded-md transition-colors',
+                  viewMode === 'discover'
+                    ? 'bg-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
+                title="Card view"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={cn(
+                  'p-1.5 rounded-md transition-colors',
+                  viewMode === 'compact'
+                    ? 'bg-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title="List view"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
 
-      {/* Social toggle (when not on social tab) */}
-      {sourceFilter !== 'social' && (
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Switch
-            id="include-social"
-            checked={includeSocial}
-            onCheckedChange={setIncludeSocial}
-            className="h-4 w-7"
-          />
-          <Label htmlFor="include-social" className="text-xs text-muted-foreground cursor-pointer">
-            Include StockTwits
-          </Label>
-        </div>
-      )}
-
-      {/* New articles notification banner */}
-      <AnimatePresence>
-        {newArticleCount > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex-shrink-0"
-          >
+            {/* Auto-refresh toggle */}
             <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-8 bg-primary/10 border-primary/30 hover:bg-primary/20 text-primary"
-              onClick={handleLoadNewArticles}
+              variant={autoRefreshEnabled ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setAutoRefresh(!autoRefreshEnabled)}
+              title={autoRefreshEnabled ? 'Auto-refresh on' : 'Auto-refresh off'}
             >
-              <ChevronUp className="h-3.5 w-3.5 mr-1.5" />
-              {newArticleCount} new article{newArticleCount > 1 ? 's' : ''} available
+              <Bell className={cn('h-4 w-4', autoRefreshEnabled && 'text-primary-foreground')} />
             </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Search & Filter */}
-      <div className="flex gap-2 flex-shrink-0">
-        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+            {/* Refresh button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Category Tabs - Perplexity style */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          {CATEGORY_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = sourceFilter === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => handleCategoryChange(tab.value)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchSymbol}
             onChange={(e) => setSearchSymbol(e.target.value.toUpperCase())}
-            placeholder="Filter by symbol..."
-            className="h-8 text-sm uppercase"
+            placeholder="Search by ticker symbol..."
+            className="pl-10 h-10 bg-muted/50 border-0 focus-visible:ring-1"
           />
-          <Button type="submit" size="sm" variant="outline" className="h-8">
-            <Search className="h-3.5 w-3.5" />
-          </Button>
         </form>
-        {activeSymbol && !filterSymbol && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8"
-            onClick={handleFilterByActiveSymbol}
-          >
-            {activeSymbol}
-          </Button>
+
+        {/* Active Filter Badge */}
+        {filterSymbol && (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="gap-1.5 pr-1">
+              <span>Filtering: ${filterSymbol}</span>
+              <button
+                onClick={clearFilter}
+                className="ml-1 p-0.5 rounded-full hover:bg-muted-foreground/20 transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {totalReturned} of {totalFetched} articles
+            </span>
+          </div>
+        )}
+
+        {/* New Articles Banner */}
+        <AnimatePresence>
+          {newArticleCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+            >
+              <Button
+                variant="outline"
+                className="w-full h-10 bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary"
+                onClick={handleLoadNewArticles}
+              >
+                <ChevronUp className="h-4 w-4 mr-2" />
+                {newArticleCount} new article{newArticleCount > 1 ? 's' : ''} available
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Live Indicator */}
+        {autoRefreshEnabled && (
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span className="text-xs text-muted-foreground">Live updates enabled</span>
+          </div>
         )}
       </div>
 
-      {/* Active Filter */}
-      {filterSymbol && (
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Badge variant="secondary" className="gap-1">
-            Filtered: {filterSymbol}
-            <button
-              onClick={clearFilter}
-              className="ml-1 hover:text-destructive transition-colors"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
-        </div>
-      )}
-
-      {/* Source stats */}
-      {totalFetched > 0 && (
-        <div className="text-[10px] text-muted-foreground flex-shrink-0">
-          Showing {totalReturned} of {totalFetched} articles (duplicates removed)
-        </div>
-      )}
-
-      {/* News List */}
+      {/* Content Area */}
       <div className="flex-1 min-h-0">
         {error ? (
-          <div className="h-full flex items-center justify-center text-destructive">
-            {error}
+          <div className="h-full flex items-center justify-center text-destructive p-4">
+            <p>{error}</p>
           </div>
         ) : isLoading && articles.length === 0 ? (
           <div className="h-full flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : articles.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-            <Newspaper className="h-8 w-8 opacity-50" />
-            <p className="text-sm">No news articles found</p>
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-3 p-4">
+            <Newspaper className="h-12 w-12 opacity-30" />
+            <p className="text-lg font-medium">No articles found</p>
             {filterSymbol && (
-              <Button variant="outline" size="sm" onClick={clearFilter}>
-                Clear Filter
+              <Button variant="outline" onClick={clearFilter}>
+                Clear filter
               </Button>
             )}
           </div>
         ) : (
           <ScrollArea className="h-full" ref={scrollRef}>
-            <div className="space-y-3">
-              {articles.map((article) => (
-                <ArticleCard
-                  key={article.id}
-                  article={article}
-                  onSymbolClick={handleSymbolClick}
-                  formatTimeAgo={formatTimeAgo}
-                />
-              ))}
+            <div
+              className={cn(
+                'p-4 pt-2',
+                viewMode === 'discover' ? 'space-y-4' : 'space-y-2'
+              )}
+            >
+              {viewMode === 'discover' ? (
+                // Discover (card) view
+                articles.map((article, index) => (
+                  <motion.div
+                    key={article.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05, duration: 0.3 }}
+                  >
+                    <DiscoverCard
+                      article={article}
+                      isLiked={likedArticles.has(article.id)}
+                      onToggleLike={() => toggleLike(article.id)}
+                      onSymbolClick={handleSymbolClick}
+                    />
+                  </motion.div>
+                ))
+              ) : (
+                // Compact (list) view
+                articles.map((article) => (
+                  <CompactArticleCard
+                    key={article.id}
+                    article={article}
+                    onSymbolClick={handleSymbolClick}
+                  />
+                ))
+              )}
 
               {/* Load more trigger (infinite scroll) */}
-              <div ref={loadMoreTriggerRef} className="h-8 flex items-center justify-center">
+              <div ref={loadMoreTriggerRef} className="h-12 flex items-center justify-center">
                 {isLoadingMore && (
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-xs">Loading more...</span>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="text-sm">Loading more...</span>
                   </div>
                 )}
                 {!hasMore && articles.length > 0 && (
-                  <span className="text-xs text-muted-foreground">End of feed</span>
+                  <span className="text-sm text-muted-foreground">
+                    You've reached the end
+                  </span>
                 )}
               </div>
             </div>
@@ -404,157 +412,81 @@ export function NewsPanel() {
   );
 }
 
-function ArticleCard({
+// Compact card for list view (preserves original dense layout)
+function CompactArticleCard({
   article,
   onSymbolClick,
-  formatTimeAgo,
 }: {
-  article: NewsArticle;
+  article: ReturnType<typeof useNewsStore.getState>['articles'][0];
   onSymbolClick: (symbol: string) => void;
-  formatTimeAgo: (dateStr: string) => string;
 }) {
-  const sentiment = article.sentiment || 'neutral';
-  const sentimentConfig = SENTIMENT_CONFIG[sentiment] || SENTIMENT_CONFIG.neutral;
-  const SentimentIcon = sentimentConfig.icon;
-  const isStockTwits = article.source_provider === 'stocktwits';
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
+  };
 
   return (
-    <div
-      className={cn(
-        'p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors',
-        isStockTwits && 'border-l-4 border-l-blue-500/50'
-      )}
+    <a
+      href={article.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
     >
       <div className="flex items-start gap-3">
-        {/* Sentiment indicator */}
-        <div
-          className={cn(
-            'p-1.5 rounded-md border flex-shrink-0',
-            sentimentConfig.bgColor,
-            sentimentConfig.borderColor
-          )}
-        >
-          <SentimentIcon className={cn('h-4 w-4', sentimentConfig.color)} />
-        </div>
+        {/* Thumbnail */}
+        {article.imageUrl && (
+          <div className="w-20 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
+            <img
+              src={article.imageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
 
         <div className="flex-1 min-w-0">
           {/* Headline */}
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-sm hover:text-primary transition-colors line-clamp-2 flex items-start gap-1 group"
-          >
+          <h3 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
             {article.headline}
-            <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
-          </a>
-
-          {/* Summary */}
-          {article.summary && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-              {article.summary}
-            </p>
-          )}
+          </h3>
 
           {/* Meta */}
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            {/* Source with provider badge */}
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">{article.source}</span>
-              {article.source_provider && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'text-[9px] px-1 py-0 h-4',
-                    article.source_provider === 'stocktwits' && 'bg-blue-500/10 border-blue-500/30 text-blue-500',
-                    article.source_provider === 'rss' && 'bg-orange-500/10 border-orange-500/30 text-orange-500',
-                    ['finnhub', 'newsapi', 'alphavantage', 'alpaca'].includes(article.source_provider) &&
-                      'bg-purple-500/10 border-purple-500/30 text-purple-500'
-                  )}
-                >
-                  {getSourceProviderDisplay(article.source_provider)}
-                </Badge>
-              )}
-            </div>
-            <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs text-muted-foreground">
-              {formatTimeAgo(article.publishedAt)}
-            </span>
-
-            {/* Sentiment score for StockTwits */}
-            {isStockTwits && article.sentiment_score !== undefined && (
-              <>
-                <span className="text-xs text-muted-foreground">•</span>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'text-[9px] px-1 py-0 h-4',
-                    article.sentiment_score > 0 && 'bg-green-500/10 border-green-500/30 text-green-500',
-                    article.sentiment_score < 0 && 'bg-red-500/10 border-red-500/30 text-red-500',
-                    article.sentiment_score === 0 && 'bg-muted border-border text-muted-foreground'
-                  )}
-                >
-                  {sentimentConfig.label}
-                </Badge>
-              </>
-            )}
-
-            {/* Engagement metrics for StockTwits */}
-            {isStockTwits && article.engagement && (
-              <>
-                <span className="text-xs text-muted-foreground">•</span>
-                <div className="flex items-center gap-2">
-                  {article.engagement.likes !== undefined && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                      <Heart className="h-3 w-3" />
-                      {article.engagement.likes}
-                    </span>
-                  )}
-                  {article.engagement.comments !== undefined && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                      <MessageCircle className="h-3 w-3" />
-                      {article.engagement.comments}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Symbols */}
+          <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+            <span>{article.source}</span>
+            <span>·</span>
+            <span>{formatTimeAgo(article.publishedAt)}</span>
             {article.symbols && article.symbols.length > 0 && (
               <>
-                <span className="text-xs text-muted-foreground">•</span>
-                <div className="flex gap-1 flex-wrap">
-                  {article.symbols.slice(0, 3).map((symbol) => (
+                <span>·</span>
+                <div className="flex gap-1">
+                  {article.symbols.slice(0, 2).map((symbol) => (
                     <Badge
                       key={symbol}
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10"
-                      onClick={() => onSymbolClick(symbol)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onSymbolClick(symbol);
+                      }}
                     >
                       {symbol}
                     </Badge>
                   ))}
-                  {article.symbols.length > 3 && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                      +{article.symbols.length - 3}
-                    </Badge>
-                  )}
                 </div>
               </>
             )}
           </div>
-
-          {/* Related Prediction Markets (only for news, not social) */}
-          {!isStockTwits && (
-            <RelatedPredictionMarkets
-              headline={article.headline}
-              summary={article.summary}
-              symbols={article.symbols}
-            />
-          )}
         </div>
       </div>
-    </div>
+    </a>
   );
 }
