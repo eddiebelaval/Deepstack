@@ -15,6 +15,8 @@ import { JournalEntryDialog } from './JournalEntryDialog';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeImageUrl } from '@/lib/utils/url-validator';
+import { SafeHtml } from '@/components/ui/safe-html';
 
 const EMOTION_EMOJIS: Record<string, string> = {
     confident: '💪',
@@ -232,32 +234,36 @@ function JournalEntryCard({ entry, linkedThesis, onEdit, onDelete }: JournalEntr
                         </div>
                     )}
 
-                    {/* Notes Preview */}
+                    {/* Notes Preview - XSS-safe via DOMPurify sanitization */}
                     {entry.notes && (
-                        <div
+                        <SafeHtml
+                            html={entry.notes}
                             className="mt-2 text-sm text-muted-foreground line-clamp-2 prose prose-sm prose-invert"
-                            dangerouslySetInnerHTML={{ __html: entry.notes }}
                         />
                     )}
 
-                    {/* Screenshot Thumbnails */}
+                    {/* Screenshot Thumbnails - URLs validated against trusted domains */}
                     {entry.screenshotUrls && entry.screenshotUrls.length > 0 && (
                         <div className="flex items-center gap-2 mt-2">
                             <ImageIcon className="h-4 w-4 text-muted-foreground" />
                             <div className="flex gap-2 overflow-x-auto">
-                                {entry.screenshotUrls.slice(0, 3).map((url, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="h-12 w-16 rounded overflow-hidden border bg-muted shrink-0"
-                                    >
-                                        <img
-                                            src={url}
-                                            alt={`Screenshot ${idx + 1}`}
-                                            className="w-full h-full object-cover"
-                                            loading="lazy"
-                                        />
-                                    </div>
-                                ))}
+                                {entry.screenshotUrls.slice(0, 3).map((url, idx) => {
+                                    const safeUrl = sanitizeImageUrl(url, { allowAnyHttps: true });
+                                    if (!safeUrl) return null;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className="h-12 w-16 rounded overflow-hidden border bg-muted shrink-0"
+                                        >
+                                            <img
+                                                src={safeUrl}
+                                                alt={`Screenshot ${idx + 1}`}
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                    );
+                                })}
                                 {entry.screenshotUrls.length > 3 && (
                                     <div className="h-12 w-12 rounded bg-muted border flex items-center justify-center text-xs text-muted-foreground shrink-0">
                                         +{entry.screenshotUrls.length - 3}
