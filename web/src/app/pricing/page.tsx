@@ -17,7 +17,7 @@ const tiers = [
         features: [
             'Paper trading with $100k virtual cash',
             'Basic charts & market data',
-            '5 AI chats per day',
+            '100 AI credits/month',
             '10 journal entries',
             'Community support',
         ],
@@ -28,13 +28,13 @@ const tiers = [
         name: 'Pro',
         price: '$19',
         period: 'per month',
-        description: 'For serious traders who want unlimited tools',
+        description: 'For serious traders who want more AI power',
         icon: Sparkles,
         color: 'from-amber-500 to-orange-600',
         popular: true,
         features: [
             'Everything in Free',
-            'Unlimited AI chat',
+            '1,000 AI credits/month',
             'Unlimited journal entries',
             'Thesis tracking system',
             'Options analysis & Greeks',
@@ -47,14 +47,14 @@ const tiers = [
         name: 'Elite',
         price: '$49',
         period: 'per month',
-        description: 'Maximum protection with the Emotional Firewall',
+        description: 'Maximum power with the Emotional Firewall',
         icon: Shield,
         color: 'from-emerald-500 to-green-600',
         features: [
             'Everything in Pro',
+            '5,000 AI credits/month',
             '🔥 Emotional Firewall',
             '🧠 Psychology Analytics',
-            '⚡ Trading automation',
             'Revenge trade detection',
             'Overtrading prevention',
             'VIP support',
@@ -198,6 +198,38 @@ export default function PricingPage() {
                 <p className="text-muted-foreground">
                     The Emotional Firewall detects these patterns and <span className="text-emerald-400 font-semibold">stops you before you blow up your account</span>.
                     It&apos;s like having an experienced trading mentor watching over your shoulder 24/7.
+                </p>
+            </div>
+
+            {/* AI Model Pricing */}
+            <div className="max-w-4xl mx-auto mt-8 bg-card border border-border rounded-2xl p-8">
+                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                    Flexible AI Model Pricing
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                    Choose the right model for each task. Budget-friendly options for quick questions, premium models for deep analysis.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                        <h3 className="font-semibold text-emerald-400">Budget-Friendly</h3>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between"><span>Haiku 4.5</span><span className="text-emerald-400 font-mono">4c</span></div>
+                            <div className="flex justify-between"><span>Perplexity Search</span><span className="text-emerald-400 font-mono">6c</span></div>
+                            <div className="flex justify-between"><span>DeepSeek R1</span><span className="text-emerald-400 font-mono">7c</span></div>
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <h3 className="font-semibold text-amber-400">Premium Power</h3>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between"><span>Grok</span><span className="font-mono">12c</span></div>
+                            <div className="flex justify-between"><span>Sonnet 4.5</span><span className="font-mono">15c</span></div>
+                            <div className="flex justify-between"><span>Opus 4.5</span><span className="text-amber-400 font-mono">45c</span></div>
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
+                    Extended Thinking mode adds 50% to credit cost for deeper reasoning.
                 </p>
             </div>
 

@@ -83,7 +83,11 @@ const FAQ = [
     },
     {
         question: 'What AI models are available?',
-        answer: 'We support Claude (Sonnet, Opus, Haiku), GPT-4, and Groq Llama. You can switch models in Settings. Extended Thinking mode enables deeper reasoning for complex questions.',
+        answer: 'We offer multiple models at different credit costs: Haiku (4c) for quick tasks, Perplexity (6c) for real-time search, DeepSeek R1 (7c) for reasoning, Grok (12c) for fast responses, Sonnet (15c) for balanced analysis, and Opus (45c) for complex research. Switch models in Settings. Extended Thinking adds 50% to credit cost for deeper reasoning.',
+    },
+    {
+        question: 'How do credits work?',
+        answer: 'Credits are used for AI features. Free tier gets 100 credits/month, Pro gets 1,000, and Elite gets 5,000. Data browsing (charts, news, options chains) is free. Only AI analysis costs credits. Check your balance anytime in the Usage panel.',
     },
 ];
 
@@ -176,6 +180,8 @@ export default function HelpPage() {
                         </div>
                         <p className="text-xs text-muted-foreground border-t border-primary/20 pt-3">
                             The AI has access to your thesis, journal, and emotional state for personalized guidance.
+                            <br /><br />
+                            <strong>Tip:</strong> Use Haiku (4c) for quick questions, Sonnet (15c) for analysis, and Opus (45c) for deep research.
                         </p>
                     </div>
                 </section>

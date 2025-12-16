@@ -171,28 +171,32 @@ export function SettingsPanel() {
                                                 value={activeProvider}
                                                 onValueChange={(value) => setActiveProvider(value as any)}
                                             >
-                                                <SelectTrigger className="w-[140px]">
+                                                <SelectTrigger className="w-[160px]">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="claude">Claude Sonnet</SelectItem>
-                                                    <SelectItem value="claude_opus">Claude Opus</SelectItem>
-                                                    <SelectItem value="claude_haiku">Claude Haiku</SelectItem>
-                                                    <SelectItem value="openai">GPT-4</SelectItem>
-                                                    <SelectItem value="groq">Groq Llama</SelectItem>
+                                                    <SelectItem value="claude_haiku">Haiku (4c)</SelectItem>
+                                                    <SelectItem value="perplexity">Perplexity (6c)</SelectItem>
+                                                    <SelectItem value="sonar_reasoning">DeepSeek R1 (7c)</SelectItem>
+                                                    <SelectItem value="grok">Grok (12c)</SelectItem>
+                                                    <SelectItem value="claude">Sonnet (15c)</SelectItem>
+                                                    <SelectItem value="claude_opus">Opus (45c)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-0.5">
                                                 <Label>Extended Thinking</Label>
-                                                <p className="text-xs text-muted-foreground">Enable deeper reasoning (slower)</p>
+                                                <p className="text-xs text-muted-foreground">+50% credits for deeper reasoning</p>
                                             </div>
                                             <Switch
                                                 checked={useExtendedThinking}
                                                 onCheckedChange={setUseExtendedThinking}
                                             />
                                         </div>
+                                        <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+                                            Credit costs vary by model. Use Haiku for quick tasks, Opus for complex analysis.
+                                        </p>
                                     </div>
                                 </div>
 
