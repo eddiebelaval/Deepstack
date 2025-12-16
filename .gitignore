@@ -132,3 +132,4 @@ web/out/
 !data/
 data/paper_trading.db
 .env*.local
+web/supabase/.temp/
