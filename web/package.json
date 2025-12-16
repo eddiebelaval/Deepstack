@@ -72,6 +72,8 @@
     "@tiptap/starter-kit": "^3.13.0",
     "@types/dompurify": "^3.0.5",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.35.8",
     "@vercel/analytics": "^1.6.1",
     "ai": "^5.0.106",
     "class-variance-authority": "^0.7.1",
