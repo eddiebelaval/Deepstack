@@ -5,13 +5,18 @@ import { ChatInput } from '../ChatInput';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { useFirewallGlow } from '@/components/emotional-firewall';
 
 // Mock dependencies
 vi.mock('@/lib/stores/chat-store');
 vi.mock('@/components/providers/AuthProvider');
 vi.mock('@/hooks/useIsMobile');
-vi.mock('@/components/emotional-firewall');
+vi.mock('@/components/emotional-firewall', () => ({
+  FirewallStatusDot: ({ size }: any) => (
+    <div data-testid="firewall-status-dot" data-size={size}>
+      Status Dot
+    </div>
+  ),
+}));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -79,11 +84,6 @@ describe('ChatInput', () => {
       isTablet: false,
       isDesktop: true,
       width: 1024,
-    });
-
-    (useFirewallGlow as any).mockReturnValue({
-      glowClass: '',
-      status: 'secure',
     });
 
     // Mock fetch for command execution
@@ -417,41 +417,33 @@ describe('ChatInput', () => {
     });
   });
 
-  describe('Firewall glow effect', () => {
-    it('applies firewall glow class', () => {
-      (useFirewallGlow as any).mockReturnValue({
-        glowClass: 'ring-2 ring-green-500',
-        status: 'secure',
-      });
+  describe('Firewall status dot', () => {
+    it('renders firewall status dot on desktop', () => {
+      render(<ChatInput onSend={mockOnSend} />);
 
-      const { container } = render(<ChatInput onSend={mockOnSend} />);
-
-      const inputContainer = container.querySelector('.ring-2.ring-green-500');
-      expect(inputContainer).toBeInTheDocument();
+      expect(screen.getByTestId('firewall-status-dot')).toBeInTheDocument();
     });
 
-    it('applies pulse animation for caution status', () => {
-      (useFirewallGlow as any).mockReturnValue({
-        glowClass: 'ring-2 ring-yellow-500',
-        status: 'caution',
-      });
+    it('renders keyboard shortcuts hint', () => {
+      render(<ChatInput onSend={mockOnSend} />);
 
-      const { container } = render(<ChatInput onSend={mockOnSend} />);
-
-      const inputContainer = container.querySelector('.animate-firewall-pulse');
-      expect(inputContainer).toBeInTheDocument();
+      expect(screen.getByText(/Enter to send/)).toBeInTheDocument();
+      expect(screen.getByText(/Shift\+Enter for new line/)).toBeInTheDocument();
+      expect(screen.getByText(/Shift\+Tab for commands/)).toBeInTheDocument();
     });
 
-    it('applies pulse animation for compromised status', () => {
-      (useFirewallGlow as any).mockReturnValue({
-        glowClass: 'ring-2 ring-red-500',
-        status: 'compromised',
+    it('does not render footer hint on mobile', () => {
+      (useIsMobile as any).mockReturnValue({
+        isMobile: true,
+        isTablet: false,
+        isDesktop: false,
+        width: 375,
       });
 
-      const { container } = render(<ChatInput onSend={mockOnSend} />);
+      render(<ChatInput onSend={mockOnSend} />);
 
-      const inputContainer = container.querySelector('.animate-firewall-pulse');
-      expect(inputContainer).toBeInTheDocument();
+      expect(screen.queryByTestId('firewall-status-dot')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Enter to send/)).not.toBeInTheDocument();
     });
   });
 

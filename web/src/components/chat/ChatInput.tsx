@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { CommandPalette } from './CommandPalette';
 import { cn } from '@/lib/utils';
-import { useFirewallGlow } from '@/components/emotional-firewall';
+import { FirewallStatusDot } from '@/components/emotional-firewall';
 
 type ChatInputProps = {
   onSend: (message: string) => void;
@@ -28,7 +28,6 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { isMobile } = useIsMobile();
-  const { glowClass, status } = useFirewallGlow();
 
   const handleCommand = useCallback(async (command: string) => {
     // Populate input for visual feedback
@@ -119,18 +118,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   return (
     <div ref={containerRef} className={cn("relative", isMobile ? "p-3" : "p-4")}>
-      {/* Single unified pill container with firewall glow */}
+      {/* Single unified pill container */}
       <div
         className={cn(
           // Base pill styling
           "flex items-end gap-1 rounded-2xl",
           "bg-background/80 backdrop-blur-sm",
           "border border-border/50",
-          "transition-all duration-500",
-          // Firewall glow effect
-          glowClass,
-          // Subtle pulse animation for caution/compromised states
-          (status === 'caution' || status === 'compromised') && "animate-firewall-pulse",
+          "transition-all duration-300",
           // Padding
           isMobile ? "p-2" : "p-2.5"
         )}
@@ -212,10 +207,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </div>
       </div>
 
-      {/* Footer hint - desktop only */}
+      {/* Footer hint with status dot - desktop only */}
       {!isMobile && (
-        <div className="text-[10px] text-muted-foreground/40 text-center mt-2">
-          Enter to send • Shift+Enter for new line
+        <div className="flex items-center justify-between mt-2 px-1">
+          <span className="text-[10px] text-muted-foreground/40">
+            Enter to send • Shift+Enter for new line • Shift+Tab for commands
+          </span>
+          <FirewallStatusDot size="sm" />
         </div>
       )}
 
