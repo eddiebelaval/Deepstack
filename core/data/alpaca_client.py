@@ -326,9 +326,91 @@ class AlpacaClient:
             logger.error(f"Error getting quote for {symbol}: {e}")
             return None
 
+    async def get_quotes_batch(self, symbols: List[str]) -> Dict[str, Optional[Dict]]:
+        """
+        Get latest quotes for multiple symbols using batch API request.
+
+        This is the preferred method to avoid rate limiting - makes 1 API call
+        for all symbols instead of N calls.
+
+        Args:
+            symbols: List of stock symbols (e.g., ['AAPL', 'GOOGL', 'MSFT'])
+
+        Returns:
+            Dictionary mapping symbol to quote data (None if quote unavailable)
+        """
+        if not symbols:
+            return {}
+
+        try:
+            await self._check_rate_limit()
+
+            # Check cache for all symbols first
+            results = {}
+            uncached_symbols = []
+
+            for symbol in symbols:
+                if symbol in self.quote_cache:
+                    data, timestamp = self.quote_cache[symbol]
+                    if datetime.now() - timestamp < timedelta(seconds=self.cache_ttl):
+                        logger.debug(f"Using cached quote for {symbol}")
+                        results[symbol] = data
+                        continue
+                uncached_symbols.append(symbol)
+
+            # If all symbols were cached, return early
+            if not uncached_symbols:
+                return results
+
+            # Fetch uncached symbols in batch
+            request = StockLatestQuoteRequest(symbol_or_symbols=uncached_symbols)
+            quotes_response = self.data_client.get_stock_latest_quote(request)
+
+            if not quotes_response:
+                logger.warning("No quote data received from batch request")
+                # Mark all uncached symbols as None
+                for symbol in uncached_symbols:
+                    results[symbol] = None
+                return results
+
+            # Process each symbol's quote
+            for symbol in uncached_symbols:
+                if symbol not in quotes_response:
+                    logger.warning(f"No quote data for {symbol} in batch response")
+                    results[symbol] = None
+                    continue
+
+                quote_data = quotes_response[symbol]
+
+                quote_dict = {
+                    "symbol": symbol,
+                    "bid": quote_data.bid_price,
+                    "ask": quote_data.ask_price,
+                    "last": quote_data.ask_price,  # Use ask as last price
+                    "bid_volume": quote_data.bid_size,
+                    "ask_volume": quote_data.ask_size,
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+                # Cache the result
+                self.quote_cache[symbol] = (quote_dict, datetime.now())
+                results[symbol] = quote_dict
+
+                bid, ask = quote_dict["bid"], quote_dict["ask"]
+                logger.debug(f"Batch quote for {symbol}: bid={bid}, ask={ask}")
+
+            return results
+
+        except Exception as e:
+            logger.error(f"Error getting batch quotes for {symbols}: {e}")
+            # Return None for all symbols on error
+            return {symbol: results.get(symbol) for symbol in symbols}
+
     async def get_quotes(self, symbols: List[str]) -> Dict[str, Optional[Dict]]:
         """
         Get latest quotes for multiple symbols.
+
+        Now uses batch API request internally to avoid rate limiting.
 
         Args:
             symbols: List of stock symbols
@@ -336,11 +418,8 @@ class AlpacaClient:
         Returns:
             Dictionary mapping symbol to quote data
         """
-        quotes = {}
-        for symbol in symbols:
-            quotes[symbol] = await self.get_quote(symbol)
-            await asyncio.sleep(0.01)  # Small delay between requests
-        return quotes
+        # Use batch method for efficiency
+        return await self.get_quotes_batch(symbols)
 
     async def get_bars(
         self,

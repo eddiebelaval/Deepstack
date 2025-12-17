@@ -538,6 +538,100 @@ class DeepStackAPIServer:
         _quote_cache_ttl = 10  # 10 seconds
 
         @self.app.get(
+            "/api/market/quotes",
+            dependencies=[Depends(require_action(ActionCost.QUOTE))],
+        )
+        async def get_quotes_batch(symbols: str):
+            """
+            Get current quotes for multiple symbols in a single batch request.
+
+            This endpoint reduces API calls from N to 1, avoiding rate limiting.
+
+            Args:
+                symbols: Comma-separated list of symbols (e.g., "AAPL,GOOGL,MSFT")
+
+            Returns:
+                Dictionary mapping symbols to quote data
+            """
+
+            # Parse symbols from comma-separated string
+            symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+
+            if not symbol_list:
+                raise ValidationError(
+                    message="At least one symbol is required", field="symbols"
+                )
+
+            # Validate symbol format
+            for symbol in symbol_list:
+                if (
+                    not symbol.replace("/", "")
+                    .replace("-", "")
+                    .replace(".", "")
+                    .isalnum()
+                ):
+                    raise ValidationError(
+                        message=f"Invalid symbol format: {symbol}",
+                        field="symbols",
+                        value=symbol,
+                    )
+
+            quotes_result = {}
+
+            try:
+                # Try Alpaca first (batch request - most efficient)
+                if self.alpaca_client:
+                    try:
+                        alpaca_quotes = await self.alpaca_client.get_quotes_batch(
+                            symbol_list
+                        )
+                        for symbol, quote in alpaca_quotes.items():
+                            if quote and quote.get("last"):
+                                quotes_result[symbol] = {
+                                    "symbol": symbol,
+                                    "bid": quote.get("bid", quote["last"] - 0.02),
+                                    "ask": quote.get("ask", quote["last"] + 0.02),
+                                    "last": quote["last"],
+                                    "volume": quote.get("bid_volume", 0),
+                                    "timestamp": quote.get("timestamp"),
+                                    "source": "alpaca",
+                                }
+                        logger.info(
+                            f"Batch quotes from Alpaca: "
+                            f"{len(quotes_result)}/{len(symbol_list)}"
+                        )
+                    except Exception as e:
+                        logger.warning(f"Alpaca batch quotes failed: {e}")
+
+                # Fallback to IBKR for missing symbols (if connected)
+                missing_symbols = [s for s in symbol_list if s not in quotes_result]
+                if missing_symbols and self.ibkr_client and self.ibkr_client.connected:
+                    for symbol in missing_symbols:
+                        try:
+                            quote = await self.ibkr_client.get_quote(symbol)
+                            if quote:
+                                quotes_result[symbol] = {
+                                    **quote,
+                                    "source": "ibkr",
+                                }
+                        except Exception as e:
+                            logger.warning(f"IBKR quote failed for {symbol}: {e}")
+
+                # Return results
+                return {
+                    "quotes": quotes_result,
+                    "requested": len(symbol_list),
+                    "returned": len(quotes_result),
+                    "mock": False,
+                }
+
+            except DeepStackError:
+                raise
+            except Exception as e:
+                logger.error(f"Unexpected error in batch quotes: {e}", exc_info=True)
+                raise DataError(message="Unable to fetch batch quotes")
+
+        @self.app.get(
             "/quote/{symbol}",
             response_model=QuoteResponse,
             dependencies=[Depends(require_action(ActionCost.QUOTE))],

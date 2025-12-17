@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import withSerwistInit from "@serwist/next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
 import packageJson from "./package.json";
+
+const bundleAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
@@ -112,8 +117,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Wrap with Sentry for error monitoring
-const sentryConfig = withSentryConfig(withSerwist(nextConfig), {
+// Wrap with Sentry for error monitoring and bundle analyzer
+const sentryConfig = withSentryConfig(bundleAnalyzer(withSerwist(nextConfig)), {
   // Suppresses source map upload logs during build
   silent: true,
   // Upload source maps to Sentry for better stack traces

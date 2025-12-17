@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ToolUseCard } from './ToolUseCard';
-import { CodeBlock } from './CodeBlock';
+import { LazyCodeBlock } from '@/components/lazy';
 import { ThinkingBlock } from './ThinkingBlock';
 import { CalloutBlock, extractAlertType } from './CalloutBlock';
 import { cn } from '@/lib/utils';
@@ -108,7 +108,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               code({ inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');
                 return !inline && match ? (
-                  <CodeBlock
+                  <LazyCodeBlock
                     language={match[1]}
                     value={String(children).replace(/\n$/, '')}
                     className="not-prose"

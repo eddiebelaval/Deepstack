@@ -1,10 +1,10 @@
 import { DeepStackLayout } from '@/components/layout/DeepStackLayout';
-import { ConversationView } from '@/components/chat/ConversationView';
+import { LazyConversationView } from '@/components/lazy';
 
 export default function ChatPage() {
   return (
     <DeepStackLayout>
-      <ConversationView />
+      <LazyConversationView />
     </DeepStackLayout>
   );
 }

@@ -7,9 +7,12 @@ trading data, configurations, and analytics.
 
 import logging
 import sqlite3
+import threading
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from queue import Empty, Queue
+from typing import Any, Dict, Generator, List, Optional
 
 import pandas as pd
 
@@ -17,6 +20,182 @@ from ..config import Config
 from ..exceptions import DatabaseInitializationError
 
 logger = logging.getLogger(__name__)
+
+
+class SQLiteConnectionPool:
+    """
+    Thread-safe SQLite connection pool.
+
+    Provides connection pooling for SQLite databases to avoid the overhead
+    of creating new connections for each operation. Uses a thread-safe queue
+    to manage connections and supports proper cleanup on shutdown.
+
+    Features:
+    - Thread-safe connection management
+    - Configurable pool size
+    - Automatic connection recycling
+    - Proper cleanup on shutdown
+    - WAL mode for better concurrent access
+
+    Example:
+        >>> pool = SQLiteConnectionPool("data/trading.db", pool_size=5)
+        >>> with pool.get_connection() as conn:
+        ...     cursor = conn.execute("SELECT * FROM trades")
+        ...     results = cursor.fetchall()
+        >>> pool.close_all()
+    """
+
+    def __init__(
+        self,
+        database_path: str,
+        pool_size: int = 5,
+        timeout: float = 30.0,
+    ):
+        """
+        Initialize the connection pool.
+
+        Args:
+            database_path: Path to the SQLite database file
+            pool_size: Maximum number of connections in the pool
+            timeout: Connection timeout in seconds
+        """
+        self.database_path = database_path
+        self.pool_size = pool_size
+        self.timeout = timeout
+
+        self._pool: Queue[sqlite3.Connection] = Queue(maxsize=pool_size)
+        self._lock = threading.Lock()
+        self._initialized = False
+        self._closed = False
+
+        # Track all connections for cleanup
+        self._all_connections: List[sqlite3.Connection] = []
+
+        logger.debug(
+            f"SQLiteConnectionPool created for {database_path} "
+            f"with pool_size={pool_size}"
+        )
+
+    def _create_connection(self) -> sqlite3.Connection:
+        """
+        Create a new database connection with optimized settings.
+
+        Returns:
+            New SQLite connection
+        """
+        conn = sqlite3.connect(
+            self.database_path,
+            timeout=self.timeout,
+            check_same_thread=False,  # Allow cross-thread access
+            isolation_level=None,  # Autocommit mode for explicit transaction control
+        )
+
+        # Enable optimizations
+        conn.execute("PRAGMA journal_mode=WAL")  # Write-Ahead Logging
+        conn.execute("PRAGMA synchronous=NORMAL")  # Balance safety/performance
+        conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
+        conn.execute("PRAGMA temp_store=MEMORY")  # Store temp tables in memory
+        conn.execute("PRAGMA mmap_size=268435456")  # 256MB memory-mapped I/O
+
+        # Reset to deferred transaction mode for explicit control
+        conn.isolation_level = "DEFERRED"
+
+        return conn
+
+    def _initialize_pool(self):
+        """Initialize the connection pool with connections."""
+        with self._lock:
+            if self._initialized:
+                return
+
+            # Pre-create connections up to pool_size
+            for _ in range(self.pool_size):
+                try:
+                    conn = self._create_connection()
+                    self._all_connections.append(conn)
+                    self._pool.put_nowait(conn)
+                except Exception as e:
+                    logger.error(f"Error creating pooled connection: {e}")
+                    break
+
+            self._initialized = True
+            logger.info(
+                f"Connection pool initialized with {self._pool.qsize()} connections"
+            )
+
+    @contextmanager
+    def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
+        """
+        Get a connection from the pool.
+
+        This is a context manager that automatically returns the connection
+        to the pool when done.
+
+        Yields:
+            SQLite connection from the pool
+
+        Raises:
+            RuntimeError: If the pool is closed
+        """
+        if self._closed:
+            raise RuntimeError("Connection pool is closed")
+
+        if not self._initialized:
+            self._initialize_pool()
+
+        conn = None
+        try:
+            # Try to get a connection from the pool
+            try:
+                conn = self._pool.get(timeout=self.timeout)
+            except Empty:
+                # Pool exhausted, create a new connection
+                logger.warning("Connection pool exhausted, creating new connection")
+                conn = self._create_connection()
+                with self._lock:
+                    self._all_connections.append(conn)
+
+            yield conn
+
+        finally:
+            if conn is not None:
+                try:
+                    # Rollback any uncommitted changes before returning to pool
+                    conn.rollback()
+                    # Return connection to pool if there's room
+                    try:
+                        self._pool.put_nowait(conn)
+                    except Exception:
+                        # Pool is full, close this connection
+                        conn.close()
+                        with self._lock:
+                            if conn in self._all_connections:
+                                self._all_connections.remove(conn)
+                except Exception as e:
+                    logger.error(f"Error returning connection to pool: {e}")
+
+    def close_all(self):
+        """Close all connections in the pool."""
+        with self._lock:
+            self._closed = True
+
+            # Close all tracked connections
+            for conn in self._all_connections:
+                try:
+                    conn.close()
+                except Exception as e:
+                    logger.error(f"Error closing connection: {e}")
+
+            self._all_connections.clear()
+
+            # Clear the queue
+            while not self._pool.empty():
+                try:
+                    self._pool.get_nowait()
+                except Empty:
+                    break
+
+            logger.info(f"Connection pool closed for {self.database_path}")
 
 
 class DataStorage:
@@ -30,12 +209,13 @@ class DataStorage:
     - Data backup and recovery
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, pool_size: int = 5):
         """
         Initialize data storage.
 
         Args:
             config: DeepStack configuration
+            pool_size: Number of connections per database pool
         """
         self.config = config
         self.data_dir = Path("data")
@@ -46,10 +226,43 @@ class DataStorage:
         self.paper_trading_db = self.data_dir / "paper_trading.db"
         self.analytics_db = self.data_dir / "analytics.db"
 
+        # Connection pools for each database
+        self._main_pool: Optional[SQLiteConnectionPool] = None
+        self._paper_trading_pool: Optional[SQLiteConnectionPool] = None
+        self._analytics_pool: Optional[SQLiteConnectionPool] = None
+        self._pool_size = pool_size
+
         # Initialize databases
         self._init_databases()
 
-        logger.info("DataStorage initialized")
+        # Initialize connection pools after database setup
+        self._init_connection_pools()
+
+        logger.info(
+            f"DataStorage initialized with connection pooling (pool_size={pool_size})"
+        )
+
+    def _init_connection_pools(self):
+        """Initialize connection pools for all databases."""
+        self._main_pool = SQLiteConnectionPool(
+            str(self.main_db), pool_size=self._pool_size
+        )
+        self._paper_trading_pool = SQLiteConnectionPool(
+            str(self.paper_trading_db), pool_size=self._pool_size
+        )
+        self._analytics_pool = SQLiteConnectionPool(
+            str(self.analytics_db), pool_size=self._pool_size
+        )
+
+    def close(self):
+        """Close all connection pools. Call this on shutdown."""
+        if self._main_pool:
+            self._main_pool.close_all()
+        if self._paper_trading_pool:
+            self._paper_trading_pool.close_all()
+        if self._analytics_pool:
+            self._analytics_pool.close_all()
+        logger.info("All database connection pools closed")
 
     def _init_databases(self):
         """Initialize all databases."""
@@ -188,16 +401,69 @@ class DataStorage:
                 """
                 )
 
+                # Create indexes for common query patterns
+                # Index for trades: queries by symbol and timestamp (most common)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_trades_symbol_timestamp
+                    ON trades(symbol, timestamp DESC)
+                """
+                )
+
+                # Index for trades: queries by timestamp only (for recent trades)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_trades_timestamp
+                    ON trades(timestamp DESC)
+                """
+                )
+
+                # Index for orders: queries by status (pending orders lookup)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_status
+                    ON orders(status)
+                """
+                )
+
+                # Index for orders: queries by symbol (symbol-specific order history)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_symbol
+                    ON orders(symbol)
+                """
+                )
+
+                # Index for orders: queries by created_at (recent orders)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_created_at
+                    ON orders(created_at DESC)
+                """
+                )
+
+                # Composite index for orders: status + symbol (common filter combo)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_status_symbol
+                    ON orders(status, symbol)
+                """
+                )
+
                 conn.commit()
 
             logger.info(
-                f"Paper trading database initialized at {self.paper_trading_db}"
+                f"Paper trading database initialized at {self.paper_trading_db} "
+                f"(with performance indexes)"
             )
 
         except sqlite3.DatabaseError as e:
             logger.critical(f"Paper trading database initialization failed: {e}")
             raise DatabaseInitializationError(
-                message=f"Failed to initialize paper trading database at {self.paper_trading_db}",
+                message=(
+                    f"Failed to initialize paper trading database "
+                    f"at {self.paper_trading_db}"
+                ),
                 database=str(self.paper_trading_db),
                 original_error=str(e),
             )
@@ -265,7 +531,9 @@ class DataStorage:
         except sqlite3.DatabaseError as e:
             logger.critical(f"Analytics database initialization failed: {e}")
             raise DatabaseInitializationError(
-                message=f"Failed to initialize analytics database at {self.analytics_db}",
+                message=(
+                    f"Failed to initialize analytics database at {self.analytics_db}"
+                ),
                 database=str(self.analytics_db),
                 original_error=str(e),
             )
@@ -290,7 +558,7 @@ class DataStorage:
             value: Configuration value
         """
         try:
-            with sqlite3.connect(self.main_db) as conn:
+            with self._main_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO system_config (key, value, updated_at)
@@ -315,7 +583,7 @@ class DataStorage:
             Configuration value or None
         """
         try:
-            with sqlite3.connect(self.main_db) as conn:
+            with self._main_pool.get_connection() as conn:
                 cursor = conn.execute(
                     "SELECT value FROM system_config WHERE key = ?", (key,)
                 )
@@ -349,11 +617,12 @@ class DataStorage:
             realized_pnl: Realized P&L
         """
         try:
-            with sqlite3.connect(self.paper_trading_db) as conn:
+            with self._paper_trading_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO positions
-                    (symbol, quantity, avg_cost, market_value, unrealized_pnl, realized_pnl, updated_at)
+                    (symbol, quantity, avg_cost, market_value, unrealized_pnl,
+                     realized_pnl, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
@@ -380,7 +649,7 @@ class DataStorage:
             List of position dictionaries
         """
         try:
-            with sqlite3.connect(self.paper_trading_db) as conn:
+            with self._paper_trading_pool.get_connection() as conn:
                 cursor = conn.execute("SELECT * FROM positions")
                 rows = cursor.fetchall()
 
@@ -431,11 +700,12 @@ class DataStorage:
             notes: Additional notes
         """
         try:
-            with sqlite3.connect(self.paper_trading_db) as conn:
+            with self._paper_trading_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT INTO trades
-                    (trade_id, symbol, action, quantity, price, slippage, timestamp, order_id, strategy, notes)
+                    (trade_id, symbol, action, quantity, price, slippage,
+                     timestamp, order_id, strategy, notes)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
@@ -471,15 +741,17 @@ class DataStorage:
             List of trade dictionaries
         """
         try:
-            with sqlite3.connect(self.paper_trading_db) as conn:
+            with self._paper_trading_pool.get_connection() as conn:
                 if symbol:
                     cursor = conn.execute(
-                        "SELECT * FROM trades WHERE symbol = ? ORDER BY timestamp DESC LIMIT ?",
+                        "SELECT * FROM trades WHERE symbol = ? "
+                        "ORDER BY timestamp DESC LIMIT ?",
                         (symbol, limit),
                     )
                 else:
                     cursor = conn.execute(
-                        "SELECT * FROM trades ORDER BY timestamp DESC LIMIT ?", (limit,)
+                        "SELECT * FROM trades ORDER BY timestamp DESC LIMIT ?",
+                        (limit,),
                     )
 
                 rows = cursor.fetchall()
@@ -519,7 +791,7 @@ class DataStorage:
             period: Time period (e.g., 'daily', 'weekly', 'monthly')
         """
         try:
-            with sqlite3.connect(self.analytics_db) as conn:
+            with self._analytics_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO performance_metrics
@@ -545,9 +817,10 @@ class DataStorage:
             Dictionary of metric names to values
         """
         try:
-            with sqlite3.connect(self.analytics_db) as conn:
+            with self._analytics_pool.get_connection() as conn:
                 cursor = conn.execute(
-                    "SELECT metric_name, value FROM performance_metrics WHERE period = ?",
+                    "SELECT metric_name, value FROM performance_metrics "
+                    "WHERE period = ?",
                     (period,),
                 )
                 rows = cursor.fetchall()

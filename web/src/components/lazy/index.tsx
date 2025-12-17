@@ -94,3 +94,59 @@ export const LazyInsightsPanel = dynamic(
         ),
     }
 );
+
+// CodeBlock - react-syntax-highlighter is ~500kb with all languages
+export const LazyCodeBlock = dynamic(
+    () => import('@/components/chat/CodeBlock').then(mod => ({ default: mod.CodeBlock })),
+    {
+        loading: () => (
+            <div className="relative group rounded-md overflow-hidden my-4 border border-border/50 animate-pulse">
+                <div className="flex items-center justify-between px-4 py-2 bg-muted/80 border-b border-border/50 h-10" />
+                <div className="px-4 py-6 bg-muted/20 min-h-[120px]" />
+            </div>
+        ),
+        ssr: false, // Syntax highlighter doesn't need SSR
+    }
+);
+
+// Conversation View - chat interface with heavy markdown rendering
+export const LazyConversationView = dynamic(
+    () => import('@/components/chat/ConversationView').then(mod => ({ default: mod.ConversationView })),
+    {
+        loading: () => (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-pulse text-muted-foreground">Loading chat...</div>
+            </div>
+        ),
+    }
+);
+
+// Journal List - rich text editor
+export const LazyJournalList = dynamic(
+    () => import('@/components/journal/JournalList').then(mod => ({ default: mod.JournalList })),
+    {
+        loading: () => (
+            <div className="space-y-4">
+                <div className="h-12 bg-muted rounded animate-pulse" />
+                <div className="h-32 bg-muted rounded animate-pulse" />
+                <div className="h-32 bg-muted rounded animate-pulse" />
+            </div>
+        ),
+    }
+);
+
+// Prediction Markets Widget - external data fetching
+export const LazyPredictionMarketsWidget = dynamic(
+    () => import('@/components/prediction-markets/PredictionMarketsWidget').then(mod => ({ default: mod.PredictionMarketsWidget })),
+    {
+        loading: () => (
+            <div className="border border-border rounded-lg p-4">
+                <div className="h-6 bg-muted rounded w-1/3 mb-4 animate-pulse" />
+                <div className="space-y-2">
+                    <div className="h-16 bg-muted rounded animate-pulse" />
+                    <div className="h-16 bg-muted rounded animate-pulse" />
+                </div>
+            </div>
+        ),
+    }
+);
