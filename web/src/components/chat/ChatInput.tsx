@@ -178,10 +178,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               "w-full resize-none bg-transparent",
               "border-0 outline-none focus:ring-0",
               "text-foreground placeholder:text-muted-foreground/50",
-              "scrollbar-hide whitespace-pre-wrap break-words leading-6",
+              "scrollbar-hide whitespace-pre-wrap break-words",
               isMobile
-                ? "min-h-[36px] max-h-[120px] py-2 text-base"
-                : "min-h-[44px] max-h-[200px] py-2.5 text-sm"
+                ? "min-h-[36px] max-h-[120px] py-2 text-base leading-5"
+                : "min-h-[44px] max-h-[200px] py-2.5 text-sm leading-6"
             )}
           />
         </div>
