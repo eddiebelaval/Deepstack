@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDeepResearch } from '@/lib/stores/perplexity-finance-store';
+import { ResearchMarkdown } from '@/components/research/ResearchMarkdown';
 
 /**
  * DeepResearchPanel - Generate comprehensive AI research reports
@@ -332,11 +333,7 @@ ${research.citations?.map((c, i) => `${i + 1}. ${c}`).join('\n') || 'No citation
             <Separator />
 
             <ScrollArea className="flex-1 p-3">
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {research.content}
-                </p>
-              </div>
+              <ResearchMarkdown content={research.content} />
 
               {/* Citations */}
               {research.citations && research.citations.length > 0 && (

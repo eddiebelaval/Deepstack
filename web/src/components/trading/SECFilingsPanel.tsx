@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSECFilings } from '@/lib/stores/perplexity-finance-store';
+import { ResearchMarkdown } from '@/components/research/ResearchMarkdown';
 
 /**
  * SECFilingsPanel - Search and analyze SEC filings
@@ -248,14 +249,7 @@ export function SECFilingsPanel({
             <Separator />
 
             <ScrollArea className="flex-1 p-3">
-              {parseContentSections(secFilings.content).map((section, idx) => (
-                <div key={idx} className="mb-4">
-                  <h3 className="text-sm font-medium mb-2">{section.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {section.content}
-                  </p>
-                </div>
-              ))}
+              <ResearchMarkdown content={secFilings.content} />
 
               {/* Citations */}
               {secFilings.citations && secFilings.citations.length > 0 && (

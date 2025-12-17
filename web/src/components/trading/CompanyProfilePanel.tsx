@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCompanyProfile } from '@/lib/stores/perplexity-finance-store';
+import { ResearchMarkdown } from '@/components/research/ResearchMarkdown';
 
 /**
  * CompanyProfilePanel - AI-powered company deep-dives
@@ -186,18 +187,14 @@ export function CompanyProfilePanel({
                     className="flex-1 mt-0 data-[state=active]:flex flex-col min-h-0"
                   >
                     <ScrollArea className="flex-1 p-3">
-                      <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                        {section.content}
-                      </p>
+                      <ResearchMarkdown content={section.content} />
                     </ScrollArea>
                   </TabsContent>
                 ))}
               </Tabs>
             ) : (
               <ScrollArea className="flex-1 p-3">
-                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {profile.content}
-                </p>
+                <ResearchMarkdown content={profile.content} />
               </ScrollArea>
             )}
 
