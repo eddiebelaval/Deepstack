@@ -131,6 +131,12 @@ Stay informed on market events.
 - Ticker-specific news
 - Sentiment indicators
 
+**Discover Feed (NEW):**
+- Perplexity-style article discovery
+- Category filtering (Macro, Tech, Commodities, etc.)
+- Text-only card variants for articles without images
+- Client-side category filtering
+
 **Calendar:**
 - Earnings dates
 - Economic events
@@ -138,7 +144,21 @@ Stay informed on market events.
 
 ---
 
-### 9. Emotional Firewall
+### 10. Prediction Markets (NEW)
+
+Track sentiment on market events through prediction platforms.
+
+**Features:**
+- Kalshi prediction market integration
+- Real-time odds display
+- Market URL linking for easy navigation
+- Event categories: Economics, Politics, Markets
+
+**Widget:** Available in Market Watcher panel
+
+---
+
+### 11. Emotional Firewall
 
 AI-powered pause before impulsive trades.
 
@@ -147,6 +167,28 @@ AI-powered pause before impulsive trades.
 2. AI analyzes your emotional state
 3. Get feedback on potential biases
 4. Make more disciplined decisions
+
+**UI (Updated Dec 2025):**
+- Subtle status dot indicator (replaced prominent glow)
+- Non-intrusive design for focused trading
+- Quick access when needed
+
+---
+
+### 12. Credit System (NEW Dec 2025)
+
+Unified token-based usage system for AI features.
+
+**Key Features:**
+- Usage Panel showing credit balance
+- Model-based multipliers (Opus costs more than Sonnet)
+- Loss leader strategy: Market data endpoints are FREE
+- Credit tracking across AI queries
+
+**Pricing Strategy:**
+- Free tier: Limited AI credits
+- Pro tier: Expanded credits with premium model access
+- Data endpoints: Always free to drive engagement
 
 ---
 

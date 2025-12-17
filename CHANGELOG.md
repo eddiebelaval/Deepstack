@@ -2,6 +2,48 @@
 
 All notable changes to DeepStack are documented here.
 
+## [2.1.0] - 2025-12-16
+
+### 🔐 Security Hardening
+- Fix CORS misconfiguration vulnerability (#26)
+- Fix critical XSS vulnerability in JournalList (#25)
+- Add distributed rate limiting with Redis (#27)
+- Add comprehensive database security migrations (#28)
+- Resolve React hydration error #418 (#29)
+
+### 💰 Credit System
+- Unified token-based usage tracking with Usage Panel
+- Model-based credit multipliers (Claude Opus > Sonnet > Haiku)
+- Loss leader strategy: Market data endpoints now free
+- Updated pricing, settings, and help documentation
+
+### 📊 New Features
+- **Prediction Markets**: Kalshi integration with real-time odds
+- **Discover Feed**: Perplexity-style news discovery in NewsPanel
+- **Alpha Vantage**: Real market data integration for fundamentals
+- **Mobile Market Watcher**: Three-state collapsible panel
+
+### 🎨 UI/UX Improvements
+- TradingView-style chart polish with OHLCV legend
+- Emotional Firewall: Replaced glow with subtle status dot
+- Market Watcher: Auto-collapse on tool select
+- Discover: Text-only card variant for articles without images
+- Improved chevron visibility in collapsible panels
+
+### 🧪 Testing & Quality
+- 262+ unit tests for thesis and options components
+- E2E testing infrastructure with advanced utilities
+- Load testing infrastructure with k6
+- Multi-layer caching for server data performance
+
+### 🐛 Bug Fixes
+- Corrected Kalshi market URL generation
+- Improved news article image extraction
+- Fixed Discover tabs client-side category filtering
+- Backend .env file loading for API keys
+
+---
+
 ## [2.0.0] - 2024-12-07
 
 ### 🚀 Major Features

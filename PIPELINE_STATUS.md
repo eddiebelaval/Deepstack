@@ -1,7 +1,7 @@
 # Pipeline Status: DeepStack
 
 > Created: 2025-12-05
-> Last Updated: 2025-12-08
+> Last Updated: 2025-12-16
 
 ---
 
@@ -388,14 +388,54 @@
 
 ## Stage 9: Ship
 
-- [ ] Deployed to production
+- [x] Deployed to production (Vercel + Railway)
+- [x] Domain configured (deepstack.trade)
+- [x] Security hardening complete (Dec 8-12)
+- [x] Credit system launched (Dec 14-15)
 - [ ] Announced / shared
-- [ ] Monitoring active
+- [x] Monitoring active (Vercel Analytics)
 
-**Launch date:**
-**URL:**
+### Stage 9 Progress Log
 
-**Cleared:** [ ] Yes / Date: ___
+#### 9.1 Production Deployment ✅ COMPLETE
+- [x] Frontend deployed to Vercel (deepstack.trade)
+- [x] Backend deployed to Railway (deepstack-api-production.up.railway.app)
+- [x] Domain DNS configured and verified
+- [x] SSL certificates active
+
+#### 9.2 Security Hardening ✅ COMPLETE (Dec 8-12)
+- [x] Fix CORS misconfiguration (#26)
+- [x] Fix critical XSS vulnerability in JournalList (#25)
+- [x] Add distributed rate limiting (#27)
+- [x] Add database security migrations (#28)
+- [x] Resolve React hydration error (#29)
+
+#### 9.3 Credit/Token System ✅ COMPLETE (Dec 14-16)
+- [x] Unified token system with Usage Panel (#6a058f7)
+- [x] Loss leader strategy - data endpoints now public (#3585492)
+- [x] Model-based credit multipliers (#aa22aff)
+- [x] Updated pricing, settings, help docs (#325ccef)
+
+#### 9.4 Feature Enhancements (Dec 8-16)
+- [x] Prediction Markets integration with Kalshi API (#5b8510e, #e4f861a)
+- [x] TradingView-style chart polish with OHLCV legend (#b805978)
+- [x] Market Watcher consolidation and streamlining (#418dac7, #5a936a5)
+- [x] Perplexity-style Discover feed in NewsPanel (#1bb0388)
+- [x] Alpha Vantage real market data integration (#80fcbee)
+- [x] Mobile Market Watcher three-state panel (#d855b98)
+- [x] Emotional Firewall UI refinement - subtle status dot (#2aa533f, #b821291)
+
+#### 9.5 Testing & Quality ✅ COMPLETE
+- [x] E2E testing infrastructure enhancements (#192f3b5, #3a151d2)
+- [x] Comprehensive unit test coverage - 262+ tests (#cfd7437)
+- [x] Load testing infrastructure (#2cbc885)
+- [x] Test failures resolved and coverage expanded (#0ee2632)
+- [x] Multi-layer caching for performance (#ae41e0b)
+
+**Launch date:** December 2025
+**URL:** https://deepstack.trade
+
+**Cleared:** [ ] Yes / Date: ___ (awaiting announcement)
 
 ---
 
@@ -442,3 +482,10 @@
 | 2025-12-08 | API response standardization | Created api-response.ts with apiSuccess/apiError helpers; updated bars route | 6 |
 | 2025-12-08 | Stage 7 cleared - error boundaries + lazy loading | Created error-boundary.tsx, global-error.tsx; Created /components/lazy/ with 7 lazy components; Most edge cases already existed | 7 |
 | 2025-12-08 | Stage 8 cleared - launch prep complete | Created /terms, /privacy, /help pages; Added WelcomeModal onboarding; Created /landing marketing page; Integrated Vercel Analytics | 8 |
+| 2025-12-08 | Security hardening sprint | Fixed CORS, XSS, added rate limiting, database security migrations (#25-28) | 9 |
+| 2025-12-09 | Alpha Vantage integration | Integrated real market data from Alpha Vantage to complement Alpaca (#30) | 9 |
+| 2025-12-09 | Perplexity-style Discover feed | Added news discovery interface similar to Perplexity.ai (#31) | 9 |
+| 2025-12-14 | Unified credit system | Implemented loss leader strategy - free data endpoints to drive AI engagement | 9 |
+| 2025-12-15 | Model-based credit multipliers | Different AI models cost different credits (Claude Opus > Claude Sonnet) | 9 |
+| 2025-12-16 | Prediction Markets URL fix | Corrected Kalshi market URL generation for proper linking | 9 |
+| 2025-12-16 | Emotional Firewall UI refinement | Replaced prominent glow with subtle status dot for less distraction | 9 |
