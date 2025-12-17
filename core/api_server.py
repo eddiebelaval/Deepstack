@@ -29,6 +29,7 @@ from pydantic import BaseModel
 from .api.auth import AuthenticatedUser, get_current_user
 from .api.credits import ActionCost, require_action
 from .api.options_router import router as options_router
+from .api.perplexity_finance_router import router as perplexity_finance_router
 from .api.prediction_markets_router import router as prediction_markets_router
 from .broker.ibkr_client import IBKRClient
 from .broker.order_manager import OrderManager
@@ -758,6 +759,41 @@ class DeepStackAPIServer:
                 )
                 raise DataError(message=f"Unable to fetch market bars for {symbol}")
 
+        @self.app.get("/api/market/assets")
+        async def search_assets(
+            search: str = "",
+            limit: int = 20,
+            asset_class: Optional[str] = None,
+        ):
+            """
+            Search for tradeable assets by symbol or company name.
+
+            Args:
+                search: Search query (matches symbol or name)
+                limit: Maximum results (default 20)
+                asset_class: Filter by 'us_equity' or 'crypto'
+
+            Returns:
+                List of matching assets with symbol, name, class, exchange
+            """
+            try:
+                if not self.alpaca_client:
+                    logger.warning("Alpaca client not available for assets search")
+                    raise DataError(message="Market data service not available")
+
+                assets = await self.alpaca_client.search_assets(
+                    search=search,
+                    asset_class=asset_class,
+                    limit=limit,
+                )
+
+                return {"assets": assets}
+            except DataError:
+                raise
+            except Exception as e:
+                logger.error(f"Error searching assets: {e}", exc_info=True)
+                raise DataError(message="Unable to search assets")
+
         async def get_positions():
             """Get current positions."""
             try:
@@ -1226,6 +1262,9 @@ class DeepStackAPIServer:
 
         # Include prediction markets router
         self.app.include_router(prediction_markets_router)
+
+        # Include Perplexity Finance router
+        self.app.include_router(perplexity_finance_router)
 
     async def _handle_checkout_completed(self, session: Dict[str, Any]):
         """

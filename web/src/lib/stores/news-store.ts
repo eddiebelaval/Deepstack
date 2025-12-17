@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type NewsSourceProvider = 'finnhub' | 'newsapi' | 'alphavantage' | 'alpaca' | 'rss' | 'stocktwits';
-export type NewsSourceFilter = 'all' | 'api' | 'rss' | 'social';
+export type NewsSourceProvider = 'perplexity' | 'finnhub' | 'newsapi' | 'alphavantage' | 'alpaca' | 'rss' | 'stocktwits';
+export type NewsSourceFilter = 'all' | 'perplexity' | 'api' | 'rss' | 'social';
 export type NewsSentiment = 'positive' | 'negative' | 'neutral' | 'bullish' | 'bearish';
 
 // Category filter for client-side keyword-based filtering
@@ -41,6 +41,12 @@ export type NewsArticle = {
     likes?: number;
     comments?: number;
   };
+  // Perplexity-specific
+  citations?: string[];
+  ai_generated?: boolean;
+  source_type?: 'ai_intelligence' | 'sec' | 'earnings' | string;
+  full_content?: string;
+  mock?: boolean;
 };
 
 export type SourceHealthStatus = {
@@ -316,6 +322,7 @@ export function useNewsAutoRefresh() {
 // Helper to get display name for source provider
 export function getSourceProviderDisplay(provider?: NewsSourceProvider): string {
   const displayNames: Record<NewsSourceProvider, string> = {
+    perplexity: 'AI Intelligence',
     finnhub: 'Finnhub',
     newsapi: 'NewsAPI',
     alphavantage: 'Alpha Vantage',
@@ -327,9 +334,15 @@ export function getSourceProviderDisplay(provider?: NewsSourceProvider): string 
 }
 
 // Helper to get provider category
-export function getSourceProviderCategory(provider?: NewsSourceProvider): 'api' | 'rss' | 'social' {
+export function getSourceProviderCategory(provider?: NewsSourceProvider): 'perplexity' | 'api' | 'rss' | 'social' {
   if (!provider) return 'api';
+  if (provider === 'perplexity') return 'perplexity';
   if (provider === 'stocktwits') return 'social';
   if (provider === 'rss') return 'rss';
   return 'api';
+}
+
+// Helper to check if article is AI-generated
+export function isAIGeneratedArticle(article: NewsArticle): boolean {
+  return article.ai_generated === true || article.source_provider === 'perplexity';
 }
