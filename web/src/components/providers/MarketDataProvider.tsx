@@ -7,7 +7,9 @@ import { useTradingStore } from "@/lib/stores/trading-store";
 import { usePrefetchBars } from "@/hooks/useBarData";
 
 // Default ticker symbols for the LED ticker
-const TICKER_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIX', 'NVDA', 'AAPL', 'TSLA', 'AMD', 'MSFT'];
+// Note: VIX is an index (not tradable), use VIXY (VIX ETF) for real-time data
+// Removed AMD - focus on major indices and top tech names
+const TICKER_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIXY', 'NVDA', 'AAPL', 'TSLA', 'MSFT', 'GOOGL'];
 
 // Default symbols to prefetch for Market Watch (warms up React Query cache)
 const DEFAULT_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIXY', 'VTI'];

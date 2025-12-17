@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
-import { Clock, Wifi, WifiOff } from 'lucide-react';
+import { Clock, Wifi, WifiOff, CloudOff, RefreshCw } from 'lucide-react';
 
 /**
  * Get accurate Eastern Time using Intl.DateTimeFormat
@@ -51,11 +51,14 @@ function isMarketCurrentlyOpen(): boolean {
 }
 
 export function MarketStatusWidget() {
-  const { wsConnected } = useMarketDataStore();
+  const { wsConnected, wsReconnecting, lastError } = useMarketDataStore();
 
   // Use state to avoid hydration mismatch (server vs client time)
   const [isMarketOpen, setIsMarketOpen] = useState(false);
   const [isWeekday, setIsWeekday] = useState(true);
+
+  // Determine if we're in frontend-only mode (backend unavailable)
+  const isFrontendOnlyMode = lastError?.includes('Backend unavailable') || lastError?.includes('cached/REST');
 
   useEffect(() => {
     const updateMarketStatus = () => {
@@ -69,6 +72,41 @@ export function MarketStatusWidget() {
     const interval = setInterval(updateMarketStatus, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Determine connection status display
+  const getConnectionStatus = () => {
+    if (wsConnected) {
+      return {
+        icon: <Wifi className="h-3.5 w-3.5 text-profit" />,
+        label: 'Live Data',
+        dotColor: 'bg-profit',
+      };
+    }
+
+    if (wsReconnecting) {
+      return {
+        icon: <RefreshCw className="h-3.5 w-3.5 text-yellow-500 animate-spin" />,
+        label: 'Reconnecting...',
+        dotColor: 'bg-yellow-500',
+      };
+    }
+
+    if (isFrontendOnlyMode) {
+      return {
+        icon: <CloudOff className="h-3.5 w-3.5 text-muted-foreground" />,
+        label: 'REST API Mode',
+        dotColor: 'bg-muted-foreground',
+      };
+    }
+
+    return {
+      icon: <WifiOff className="h-3.5 w-3.5 text-loss" />,
+      label: 'Disconnected',
+      dotColor: 'bg-loss',
+    };
+  };
+
+  const connectionStatus = getConnectionStatus();
 
   return (
     <div className="space-y-3">
@@ -88,22 +126,18 @@ export function MarketStatusWidget() {
         </div>
       </div>
 
-      {/* WebSocket Connection */}
+      {/* Connection Status */}
       <div className="flex items-center gap-2.5">
         <div
           className={cn(
             'h-2.5 w-2.5 rounded-full shrink-0',
-            wsConnected ? 'bg-profit' : 'bg-loss'
+            connectionStatus.dotColor
           )}
         />
         <div className="flex items-center gap-1.5 flex-1">
-          {wsConnected ? (
-            <Wifi className="h-3.5 w-3.5 text-profit" />
-          ) : (
-            <WifiOff className="h-3.5 w-3.5 text-loss" />
-          )}
+          {connectionStatus.icon}
           <span className="text-sm text-muted-foreground">
-            {wsConnected ? 'Live Data' : 'Disconnected'}
+            {connectionStatus.label}
           </span>
         </div>
       </div>
@@ -115,6 +149,15 @@ export function MarketStatusWidget() {
             {isWeekday
               ? 'Regular hours: 9:30 AM - 4:00 PM ET'
               : 'Markets open Monday - Friday'}
+          </p>
+        </div>
+      )}
+
+      {/* Frontend-only mode info */}
+      {isFrontendOnlyMode && (
+        <div className="pt-2 border-t border-border/50">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Using REST API for data. Real-time updates unavailable.
           </p>
         </div>
       )}

@@ -16,7 +16,8 @@ const RIGHT_SIDEBAR_EXPANDED = 336; // 21rem = 336px
 const RIGHT_SIDEBAR_COLLAPSED = 0;  // Hidden when collapsed
 
 // Core indices - curated essentials (reduced from 5)
-const DEFAULT_INDICES = ["SPY", "QQQ", "VIX"];
+// Note: VIX is an index, not tradable. Use VIXY (VIX ETF) for real-time data.
+const DEFAULT_INDICES = ["SPY", "QQQ", "VIXY"];
 
 // Top movers - key tech names (reduced from 5)
 const TOP_MOVERS = ["NVDA", "TSLA"];
