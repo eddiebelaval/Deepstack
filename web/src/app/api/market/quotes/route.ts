@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
-import { fetchAlpacaQuotesBatch } from '@/lib/alpaca-client';
+import { fetchAlpacaQuotesBatch, fetchAlpacaBars } from '@/lib/alpaca-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -143,13 +143,15 @@ export async function GET(request: NextRequest) {
 
   // 2. If backend failed for some symbols, try direct Alpaca (BATCH request)
   // This makes at most 2 API calls (stocks + crypto) instead of N individual calls
+  const symbolsNeedingBarsFallback: string[] = [];
+
   if (stillUncached.length > 0) {
     try {
       const batchQuotes = await fetchAlpacaQuotesBatch(stillUncached);
 
       for (const symbol of stillUncached) {
         const quote = batchQuotes[symbol];
-        if (quote) {
+        if (quote && quote.last && quote.last > 0) {
           const quoteData: QuoteData = {
             symbol,
             last: quote.last,
@@ -163,13 +165,58 @@ export async function GET(request: NextRequest) {
           const cacheKey = marketCacheKey('quote', { symbol });
           serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
         } else {
-          failedSymbols.push(symbol);
+          // Quote returned $0 or no data - need to try bars fallback
+          // This is common for symbols like SPY/MSFT on IEX feed
+          symbolsNeedingBarsFallback.push(symbol);
         }
       }
     } catch (error) {
       console.error('Error fetching batch quotes from Alpaca:', error);
-      // Mark all as failed if batch request fails
-      failedSymbols.push(...stillUncached);
+      // Mark all as needing bars fallback
+      symbolsNeedingBarsFallback.push(...stillUncached);
+    }
+  }
+
+  // 3. Fallback: For symbols with $0 quotes, fetch last bar's close price
+  // This handles IEX feed limitations where some symbols (SPY, MSFT) have no quote data
+  if (symbolsNeedingBarsFallback.length > 0) {
+    // Fetch bars in parallel for all symbols needing fallback
+    const barsPromises = symbolsNeedingBarsFallback.map(async (symbol) => {
+      try {
+        const bars = await fetchAlpacaBars(symbol, '1d', 1);
+        if (bars && bars.length > 0) {
+          const lastBar = bars[bars.length - 1];
+          const quoteData: QuoteData = {
+            symbol,
+            last: lastBar.c, // Use close price
+            open: lastBar.o,
+            high: lastBar.h,
+            low: lastBar.l,
+            close: lastBar.c,
+            volume: lastBar.v,
+            timestamp: lastBar.t,
+          };
+          return { symbol, quoteData };
+        }
+        return { symbol, quoteData: null };
+      } catch (error) {
+        console.warn(`Failed to fetch bars fallback for ${symbol}:`, error);
+        return { symbol, quoteData: null };
+      }
+    });
+
+    const barsResults = await Promise.all(barsPromises);
+
+    for (const result of barsResults) {
+      if (result.quoteData) {
+        quotes[result.symbol] = result.quoteData;
+
+        // Cache the quote
+        const cacheKey = marketCacheKey('quote', { symbol: result.symbol });
+        serverCache.set(cacheKey, result.quoteData, CACHE_TTL.QUOTES);
+      } else {
+        failedSymbols.push(result.symbol);
+      }
     }
   }
 

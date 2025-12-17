@@ -10,8 +10,10 @@ const STOCK_DATA_URL = 'https://data.alpaca.markets/v2';
 const CRYPTO_DATA_URL = 'https://data.alpaca.markets/v1beta3/crypto/us';
 
 // Feed type: 'iex' for free/paper accounts, 'sip' for paid subscriptions
-// Free and paper trading accounts only have access to IEX feed
+// Free and paper trading accounts only have access to IEX feed for real-time
+// But SIP historical data (15+ min delay) is available on free tier
 const STOCK_FEED = 'iex';
+const SIP_FEED = 'sip';
 
 // Type definitions
 export interface AlpacaBar {
@@ -84,8 +86,69 @@ function calculateStartDate(timeframe: string, limit: number): Date {
 }
 
 /**
+ * Internal helper to fetch bars with a specific feed
+ */
+async function fetchBarsWithFeed(
+  symbol: string,
+  alpacaTimeframe: string,
+  start: Date,
+  end: Date,
+  limit: number,
+  feed: string,
+  credentials: { apiKey: string; secretKey: string }
+): Promise<AlpacaBar[] | null> {
+  const isCrypto = isCryptoSymbol(symbol);
+
+  let url: string;
+  if (isCrypto) {
+    // Crypto API endpoint (no feed parameter needed for crypto)
+    url = `${CRYPTO_DATA_URL}/bars?symbols=${encodeURIComponent(symbol)}&timeframe=${alpacaTimeframe}&start=${start.toISOString()}&end=${end.toISOString()}&limit=${limit}`;
+  } else {
+    // Stock API endpoint
+    url = `${STOCK_DATA_URL}/stocks/${encodeURIComponent(symbol)}/bars?timeframe=${alpacaTimeframe}&start=${start.toISOString()}&end=${end.toISOString()}&limit=${limit}&feed=${feed}`;
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      'APCA-API-KEY-ID': credentials.apiKey,
+      'APCA-API-SECRET-KEY': credentials.secretKey,
+    },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.json();
+
+  // Handle different response structures for stocks vs crypto
+  let bars: AlpacaBar[];
+  if (isCrypto) {
+    bars = data.bars?.[symbol] || [];
+  } else {
+    bars = data.bars || [];
+  }
+
+  return bars.map((bar: AlpacaBar) => ({
+    t: bar.t,
+    o: bar.o,
+    h: bar.h,
+    l: bar.l,
+    c: bar.c,
+    v: bar.v,
+    n: bar.n,
+    vw: bar.vw,
+  }));
+}
+
+/**
  * Fetch historical bars directly from Alpaca Data API
  * Works for both stocks and crypto
+ *
+ * Data Source Hierarchy:
+ * 1. IEX feed (real-time, but limited symbols)
+ * 2. SIP feed with 20-min delay (historical data, all symbols, free tier allowed)
  */
 export async function fetchAlpacaBars(
   symbol: string,
@@ -107,56 +170,30 @@ export async function fetchAlpacaBars(
   const start = startDate || calculateStartDate(timeframe, limit);
 
   try {
-    let url: string;
-    let headers: Record<string, string>;
+    // 1. Try IEX feed first (free, real-time, but limited symbols like SPY/MSFT may not have data)
+    const iexBars = await fetchBarsWithFeed(symbol, alpacaTimeframe, start, end, limit, STOCK_FEED, credentials);
 
-    if (isCrypto) {
-      // Crypto API endpoint (no feed parameter needed for crypto)
-      url = `${CRYPTO_DATA_URL}/bars?symbols=${encodeURIComponent(symbol)}&timeframe=${alpacaTimeframe}&start=${start.toISOString()}&end=${end.toISOString()}&limit=${limit}`;
-    } else {
-      // Stock API endpoint - use IEX feed for free/paper accounts
-      url = `${STOCK_DATA_URL}/stocks/${encodeURIComponent(symbol)}/bars?timeframe=${alpacaTimeframe}&start=${start.toISOString()}&end=${end.toISOString()}&limit=${limit}&feed=${STOCK_FEED}`;
+    if (iexBars && iexBars.length > 0) {
+      return iexBars;
     }
 
-    headers = {
-      'APCA-API-KEY-ID': credentials.apiKey,
-      'APCA-API-SECRET-KEY': credentials.secretKey,
-    };
+    // 2. Fallback to SIP feed with delayed end time (free tier allows SIP data 15+ min old)
+    // Use 20 minutes ago to be safe
+    if (!isCrypto) {
+      const delayedEnd = new Date(Date.now() - 20 * 60 * 1000); // 20 minutes ago
 
-    const response = await fetch(url, {
-      headers,
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    });
+      // Only use delayed end if it's after the start date
+      if (delayedEnd > start) {
+        console.log(`IEX returned no data for ${symbol}, trying SIP feed with 20-min delay`);
+        const sipBars = await fetchBarsWithFeed(symbol, alpacaTimeframe, start, delayedEnd, limit, SIP_FEED, credentials);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Alpaca API error (${response.status}): ${errorText}`);
-      return null;
+        if (sipBars && sipBars.length > 0) {
+          return sipBars;
+        }
+      }
     }
 
-    const data = await response.json();
-
-    // Handle different response structures for stocks vs crypto
-    let bars: AlpacaBar[];
-    if (isCrypto) {
-      // Crypto response: { bars: { "BTC/USD": [...] } }
-      bars = data.bars?.[symbol] || [];
-    } else {
-      // Stock response: { bars: [...] }
-      bars = data.bars || [];
-    }
-
-    // Map to our standard format
-    return bars.map((bar: AlpacaBar) => ({
-      t: bar.t,
-      o: bar.o,
-      h: bar.h,
-      l: bar.l,
-      c: bar.c,
-      v: bar.v,
-      n: bar.n,
-      vw: bar.vw,
-    }));
+    return null;
 
   } catch (error) {
     console.error(`Error fetching bars from Alpaca for ${symbol}:`, error);
