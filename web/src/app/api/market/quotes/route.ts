@@ -89,7 +89,33 @@ export async function GET(request: NextRequest) {
 
   const symbolList = validation.data.symbols.split(',');
 
-  // Check cache for each symbol first
+  // First, check if backend is available before trusting cache
+  // This prevents returning stale cached data when backend goes down
+  let backendAvailable = false;
+  try {
+    const testResponse = await fetch(
+      `${API_BASE_URL}/health`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(2000), // 2 second timeout
+      }
+    );
+    backendAvailable = testResponse.ok;
+  } catch {
+    backendAvailable = false;
+  }
+
+  // If backend is unavailable, return fresh mock data (don't trust stale cache)
+  if (!backendAvailable) {
+    console.warn('Backend unavailable, returning fresh mock quotes with realistic prices');
+    return NextResponse.json({
+      quotes: generateMockQuotes(symbolList),
+      mock: true,
+      warning: 'Using simulated data - backend unavailable'
+    });
+  }
+
+  // Backend is available - now we can use cache safely
   const cachedQuotes: Record<string, QuoteData> = {};
   const uncachedSymbols: string[] = [];
 
@@ -103,7 +129,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If all symbols were cached, return immediately
+  // If all symbols were cached and backend is available, return cached data
   if (uncachedSymbols.length === 0) {
     return NextResponse.json({
       quotes: cachedQuotes,
