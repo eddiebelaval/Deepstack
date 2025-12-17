@@ -1,8 +1,9 @@
 """
 Enhanced Paper Trader - Production-ready simulation for DeepStack testing
 
-Provides realistic order simulation using live market data with full risk system integration.
-Tracks virtual portfolio, simulates slippage, commissions, and maintains comprehensive analytics.
+Provides realistic order simulation using live market data with full risk
+system integration. Tracks virtual portfolio, simulates slippage,
+commissions, and maintains comprehensive analytics.
 
 Key Features:
     - Real market data via Alpaca API (no mocks!)
@@ -30,6 +31,7 @@ import pytz
 
 from ..config import Config
 from ..data.alpaca_client import AlpacaClient
+from ..data.data_storage import SQLiteConnectionPool
 from ..exceptions import DatabaseInitializationError
 from ..risk.circuit_breaker import CircuitBreaker
 from ..risk.kelly_position_sizer import KellyPositionSizer
@@ -121,6 +123,9 @@ class PaperTrader:
         # Database for persistence
         self.db_path = "data/paper_trading.db"
         self._init_db()
+
+        # Initialize connection pool for thread-safe database access
+        self._db_pool = SQLiteConnectionPool(self.db_path, pool_size=5)
 
         # Initialize risk systems
         if enable_risk_systems:
@@ -292,9 +297,61 @@ class PaperTrader:
                 """
                 )
 
+                # Create indexes for common query patterns
+                # Index for trades: queries by symbol and timestamp (most common)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_trades_symbol_timestamp
+                    ON trades(symbol, timestamp DESC)
+                """
+                )
+
+                # Index for trades: queries by timestamp only (for recent trades)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_trades_timestamp
+                    ON trades(timestamp DESC)
+                """
+                )
+
+                # Index for orders: queries by status (pending orders lookup)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_status
+                    ON orders(status)
+                """
+                )
+
+                # Index for orders: queries by symbol (symbol-specific order history)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_symbol
+                    ON orders(symbol)
+                """
+                )
+
+                # Index for orders: queries by created_at (recent orders)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_created_at
+                    ON orders(created_at DESC)
+                """
+                )
+
+                # Composite index for orders: status + symbol (common filter combo)
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_orders_status_symbol
+                    ON orders(status, symbol)
+                """
+                )
+
                 conn.commit()
 
-            logger.info(f"Paper trading database initialized at {self.db_path}")
+            logger.info(
+                f"Paper trading database initialized at {self.db_path} "
+                f"(with performance indexes)"
+            )
 
         except sqlite3.DatabaseError as e:
             logger.critical(f"Paper trading database initialization failed: {e}")
@@ -460,11 +517,12 @@ class PaperTrader:
     def _save_position(self, position: Dict[str, Any]):
         """Save position to database."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO positions
-                    (symbol, quantity, avg_cost, market_value, unrealized_pnl, realized_pnl, updated_at)
+                    (symbol, quantity, avg_cost, market_value, unrealized_pnl,
+                     realized_pnl, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
@@ -627,7 +685,9 @@ class PaperTrader:
             return None
 
         # nosec B311 - random used for order ID uniqueness, not security
-        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"  # nosec B311
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        rand_suffix = random.randint(1000, 9999)  # nosec B311
+        order_id = f"paper_{timestamp}_{rand_suffix}"
 
         try:
             # Step 3: Get current market price
@@ -900,9 +960,10 @@ class PaperTrader:
             bool: True if cancelled
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 conn.execute(
-                    "UPDATE orders SET status = 'CANCELLED', updated_at = ? WHERE order_id = ?",
+                    "UPDATE orders SET status = 'CANCELLED', updated_at = ? "
+                    "WHERE order_id = ?",
                     (datetime.now(), order_id),
                 )
                 conn.commit()
@@ -1167,7 +1228,7 @@ class PaperTrader:
                 self.peak_portfolio_value = portfolio_value
 
             # Save snapshot
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT INTO performance_snapshots
@@ -1194,12 +1255,13 @@ class PaperTrader:
     def _save_order(self, order: Dict[str, Any]):
         """Save order to database."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO orders
-                    (order_id, symbol, action, quantity, order_type, limit_price, stop_price,
-                     status, filled_quantity, filled_avg_price, commission, slippage, created_at, updated_at)
+                    (order_id, symbol, action, quantity, order_type, limit_price,
+                     stop_price, status, filled_quantity, filled_avg_price,
+                     commission, slippage, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
@@ -1226,11 +1288,12 @@ class PaperTrader:
     def _save_trade(self, trade: Dict[str, Any]):
         """Save trade to database."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 conn.execute(
                     """
                     INSERT INTO trades
-                    (trade_id, symbol, action, quantity, price, slippage, commission, pnl, timestamp, order_id)
+                    (trade_id, symbol, action, quantity, price, slippage,
+                     commission, pnl, timestamp, order_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
@@ -1253,7 +1316,7 @@ class PaperTrader:
     def _save_positions(self):
         """Save positions to database."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 # Clear existing positions
                 conn.execute("DELETE FROM positions")
 
@@ -1262,7 +1325,8 @@ class PaperTrader:
                     conn.execute(
                         """
                         INSERT INTO positions
-                        (symbol, quantity, avg_cost, market_value, unrealized_pnl, realized_pnl, updated_at)
+                        (symbol, quantity, avg_cost, market_value, unrealized_pnl,
+                         realized_pnl, updated_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                         (
@@ -1282,7 +1346,7 @@ class PaperTrader:
     def _load_positions(self):
         """Load positions from database."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 rows = conn.execute("SELECT * FROM positions").fetchall()
                 for row in rows:
                     symbol = row[0]
@@ -1558,7 +1622,7 @@ class PaperTrader:
 
         # Clear database
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._db_pool.get_connection() as conn:
                 conn.execute("DELETE FROM positions")
                 conn.execute("DELETE FROM orders")
                 conn.execute("DELETE FROM trades")

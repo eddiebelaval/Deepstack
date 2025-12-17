@@ -108,7 +108,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               code({ inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');
                 return !inline && match ? (
-                  <CodeBlock
+                  <LazyCodeBlock
                     language={match[1]}
                     value={String(children).replace(/\n$/, '')}
                     className="not-prose"
