@@ -33,6 +33,8 @@ import { PredictionMarketsPanel } from '@/components/prediction-markets';
 import { JournalList } from '@/components/journal/JournalList';
 import { ThesisList } from '@/components/thesis/ThesisList';
 import { InsightsPanel } from '@/components/insights/InsightsPanel';
+import { ResearchHubPanel } from '@/components/research/ResearchHubPanel';
+import { DeepResearchPanel } from '@/components/trading/DeepResearchPanel';
 import { PresetGrid } from './PresetGrid';
 // HomeWidgets moved to global MarketWatchPanel in DeepStackLayout
 import { cn } from '@/lib/utils';
@@ -424,6 +426,20 @@ export function ConversationView() {
                 </div>
             );
         }
+        if (activeContent === 'research-hub') {
+            return (
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
+                    <ResearchHubPanel />
+                </div>
+            );
+        }
+        if (activeContent === 'deep-research') {
+            return (
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
+                    <DeepResearchPanel />
+                </div>
+            );
+        }
         return null;
     };
 
@@ -531,6 +547,8 @@ export function ConversationView() {
                             {activeContent === 'thesis' && 'Thesis'}
                             {activeContent === 'journal' && 'Journal'}
                             {activeContent === 'insights' && 'Insights'}
+                            {activeContent === 'research-hub' && 'Research Hub'}
+                            {activeContent === 'deep-research' && 'Deep Research'}
                         </span>
                         <Button
                             variant="ghost"
@@ -570,6 +588,8 @@ export function ConversationView() {
                                     {activeContent === 'thesis' && 'Thesis Engine'}
                                     {activeContent === 'journal' && 'Trade Journal'}
                                     {activeContent === 'insights' && 'AI Insights'}
+                                    {activeContent === 'research-hub' && 'Research Hub'}
+                                    {activeContent === 'deep-research' && 'Deep Research'}
                                 </span>
                                 <Button
                                     variant="ghost"

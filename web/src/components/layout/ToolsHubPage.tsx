@@ -60,6 +60,8 @@ export function ToolsHubPage({ onSelectConversation, onNewChat }: ToolsHubPagePr
       analysis: 'Analysis',
       positions: 'Positions',
       insights: 'Insights',
+      'research-hub': 'Research Hub',
+      'deep-research': 'Deep Research',
       none: 'Tools Hub',
     };
     return toolNames[toolId] || 'Tools Hub';
