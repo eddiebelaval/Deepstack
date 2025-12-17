@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Brain, LogIn } from 'lucide-react';
+import { Send, Loader2, Brain, LogIn, Mic } from 'lucide-react';
 import { PersonaSelector } from './PersonaSelector';
 import { ModelSelector } from './ModelSelector';
 import { OverflowMenu } from './OverflowMenu';
@@ -118,31 +118,87 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   return (
     <div ref={containerRef} className={cn("relative", isMobile ? "p-3" : "p-4")}>
-      {/* Single unified pill container */}
-      <div
-        className={cn(
-          // Base pill styling
-          "flex items-end gap-1 rounded-2xl",
-          "bg-background/80 backdrop-blur-sm",
-          "border border-border/50",
-          "transition-all duration-300",
-          // Padding
-          isMobile ? "p-2" : "p-2.5"
-        )}
-      >
-        {/* LEFT SECTION: Tool icons */}
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Overflow menu (+) */}
-          <OverflowMenu
-            onOpenCommandPalette={() => setShowCommandPalette(true)}
-            disabled={isStreaming}
-          />
+      {/* Mobile: Stacked two-row layout */}
+      {isMobile ? (
+        <div
+          className={cn(
+            "flex flex-col rounded-3xl",
+            "bg-background/90 backdrop-blur-sm",
+            "border border-border/40",
+            "transition-all duration-300",
+            "p-3"
+          )}
+        >
+          {/* Top: Full-width textarea */}
+          <div className="flex-1 min-w-0 mb-2">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask anything..."
+              disabled={disabled || isStreaming}
+              inputMode="text"
+              enterKeyHint="send"
+              rows={1}
+              className={cn(
+                "w-full resize-none bg-transparent",
+                "border-0 outline-none focus:ring-0",
+                "text-foreground placeholder:text-muted-foreground/40",
+                "scrollbar-hide whitespace-pre-wrap break-words",
+                "min-h-[32px] max-h-[100px] text-base leading-normal"
+              )}
+            />
+          </div>
 
-          {/* Persona selector */}
-          <PersonaSelector disabled={isStreaming} />
+          {/* Bottom: Tool row */}
+          <div className="flex items-center justify-between">
+            {/* Left: + and persona/history */}
+            <div className="flex items-center gap-0.5">
+              <OverflowMenu
+                onOpenCommandPalette={() => setShowCommandPalette(true)}
+                disabled={isStreaming}
+              />
+              <PersonaSelector disabled={isStreaming} />
+            </div>
 
-          {/* Extended thinking toggle - desktop only */}
-          {!isMobile && (
+            {/* Right: Mic only (Enter to send) */}
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full text-muted-foreground"
+                disabled={isStreaming}
+                title="Voice input (coming soon)"
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+              {isStreaming && (
+                <div className="h-10 w-10 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Desktop: Original horizontal layout */
+        <div
+          className={cn(
+            "flex items-end gap-1 rounded-2xl",
+            "bg-background/80 backdrop-blur-sm",
+            "border border-border/50",
+            "transition-all duration-300",
+            "p-2.5"
+          )}
+        >
+          {/* LEFT SECTION: Tool icons */}
+          <div className="flex items-center gap-1 shrink-0">
+            <OverflowMenu
+              onOpenCommandPalette={() => setShowCommandPalette(true)}
+              disabled={isStreaming}
+            />
+            <PersonaSelector disabled={isStreaming} />
             <Button
               onClick={() => setUseExtendedThinking(!useExtendedThinking)}
               variant="ghost"
@@ -159,53 +215,48 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
                 <div className="absolute top-1 right-1 h-2 w-2 bg-purple-500 rounded-full animate-pulse" />
               )}
             </Button>
-          )}
-        </div>
+          </div>
 
-        {/* CENTER SECTION: Expanding textarea */}
-        <div className="flex-1 min-w-0">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isMobile ? "Ask anything..." : "Message DeepStack..."}
-            disabled={disabled || isStreaming}
-            inputMode="text"
-            enterKeyHint="send"
-            rows={1}
-            className={cn(
-              "w-full resize-none bg-transparent",
-              "border-0 outline-none focus:ring-0",
-              "text-foreground placeholder:text-muted-foreground/50",
-              "scrollbar-hide whitespace-pre-wrap break-words",
-              isMobile
-                ? "min-h-[36px] max-h-[120px] py-2 text-base leading-5"
-                : "min-h-[44px] max-h-[200px] py-2.5 text-sm leading-6"
-            )}
-          />
-        </div>
+          {/* CENTER SECTION: Expanding textarea */}
+          <div className="flex-1 min-w-0">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message DeepStack..."
+              disabled={disabled || isStreaming}
+              inputMode="text"
+              enterKeyHint="send"
+              rows={1}
+              className={cn(
+                "w-full resize-none bg-transparent",
+                "border-0 outline-none focus:ring-0",
+                "text-foreground placeholder:text-muted-foreground/50",
+                "scrollbar-hide whitespace-pre-wrap break-words",
+                "min-h-[44px] max-h-[200px] py-2.5 text-sm leading-6"
+              )}
+            />
+          </div>
 
-        {/* RIGHT SECTION: Model selector + Send button */}
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Model selector */}
-          <ModelSelector disabled={isStreaming} />
-
-          {/* Send button */}
-          <Button
-            onClick={handleSubmit}
-            disabled={!input.trim() || disabled || isStreaming}
-            size="icon"
-            className="h-11 w-11 rounded-xl shrink-0"
-          >
-            {isStreaming ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+          {/* RIGHT SECTION: Model selector + Send button */}
+          <div className="flex items-center gap-1 shrink-0">
+            <ModelSelector disabled={isStreaming} />
+            <Button
+              onClick={handleSubmit}
+              disabled={!input.trim() || disabled || isStreaming}
+              size="icon"
+              className="h-11 w-11 rounded-xl shrink-0"
+            >
+              {isStreaming ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Footer hint with status dot - desktop only */}
       {!isMobile && (
