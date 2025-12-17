@@ -52,6 +52,61 @@ const MOCK_TRANSCRIPTS: Record<string, object> = {
   },
 };
 
+// Shared handler logic
+async function handleEarningsSearch(
+  symbol: string | null,
+  quarter: string | null,
+  query: string | null
+) {
+  if (!symbol) {
+    return NextResponse.json(
+      { error: 'Symbol parameter is required' },
+      { status: 400 }
+    );
+  }
+
+  const upperSymbol = symbol.toUpperCase();
+
+  // Try Perplexity API first
+  const client = getPerplexityClient();
+
+  if (client.isConfigured()) {
+    try {
+      const result = await client.searchEarningsTranscripts({
+        symbol: upperSymbol,
+        quarter: quarter || undefined,
+        query: query || undefined,
+      });
+
+      return NextResponse.json({
+        content: result.content,
+        citations: result.citations,
+        symbol: upperSymbol,
+        quarter: quarter || 'Most Recent',
+        mock: result.mock,
+      });
+    } catch (error) {
+      console.warn('Perplexity API failed, falling back to mock data:', error);
+    }
+  }
+
+  // Fallback to mock data
+  const mockTranscript = MOCK_TRANSCRIPTS[upperSymbol] as Record<string, unknown> | undefined;
+
+  const mockContent = mockTranscript
+    ? `${mockTranscript.companyName} - ${mockTranscript.quarter}\n\nKey Takeaways:\n${(mockTranscript.keyTakeaways as string[])?.map((t: string) => `• ${t}`).join('\n')}\n\nManagement Tone: ${mockTranscript.managementTone}`
+    : `Earnings transcript for ${upperSymbol} would appear here with Perplexity API integration.`;
+
+  return NextResponse.json({
+    content: mockContent,
+    citations: [],
+    symbol: upperSymbol,
+    quarter: quarter || 'Latest',
+    mock: true,
+    note: 'Using mock data. Configure PERPLEXITY_API_KEY for live results.',
+  });
+}
+
 export async function GET(request: NextRequest) {
   // Rate limiting: 20 requests per minute for earnings
   const rateLimit = checkRateLimit(request, { limit: 20, windowMs: 60000 });
@@ -59,65 +114,33 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const symbol = searchParams.get('symbol')?.toUpperCase();
+    const symbol = searchParams.get('symbol');
     const quarter = searchParams.get('quarter');
     const query = searchParams.get('q');
 
-    if (!symbol) {
-      return NextResponse.json(
-        { error: 'Symbol parameter is required' },
-        { status: 400 }
-      );
-    }
+    return handleEarningsSearch(symbol, quarter, query);
+  } catch (error) {
+    console.error('Earnings search error:', error);
+    return NextResponse.json(
+      { error: 'Failed to search earnings transcripts' },
+      { status: 500 }
+    );
+  }
+}
 
-    // Try Perplexity API first
-    const client = getPerplexityClient();
+export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute for earnings
+  const rateLimit = checkRateLimit(request, { limit: 20, windowMs: 60000 });
+  if (!rateLimit.success) return rateLimitResponse(rateLimit.resetTime);
 
-    if (client.isConfigured()) {
-      try {
-        const result = await client.searchEarningsTranscripts({
-          symbol,
-          quarter: quarter || undefined,
-          query: query || undefined,
-        });
+  try {
+    const body = await request.json();
+    const { symbol, quarter, year, query } = body;
 
-        return NextResponse.json({
-          transcripts: [{
-            symbol,
-            quarter: quarter || 'Most Recent',
-            content: result.content,
-            citations: result.citations,
-          }],
-          symbol,
-          query,
-          count: 1,
-          mock: result.mock,
-        });
-      } catch (error) {
-        console.warn('Perplexity API failed, falling back to mock data:', error);
-      }
-    }
+    // Combine quarter and year if both provided
+    const quarterStr = quarter && year ? `${quarter} ${year}` : quarter || null;
 
-    // Fallback to mock data
-    const mockTranscript = MOCK_TRANSCRIPTS[symbol];
-
-    return NextResponse.json({
-      transcripts: mockTranscript ? [mockTranscript] : [{
-        symbol,
-        companyName: symbol,
-        quarter: quarter || 'Latest',
-        date: new Date().toISOString().split('T')[0],
-        keyTakeaways: ['Configure PERPLEXITY_API_KEY for live earnings transcript search'],
-        guidanceHighlights: [],
-        managementTone: 'neutral',
-        qaHighlights: [],
-      }],
-      symbol,
-      query,
-      count: mockTranscript ? 1 : 0,
-      mock: true,
-      note: 'Using mock data. Configure PERPLEXITY_API_KEY for live results.',
-    });
+    return handleEarningsSearch(symbol, quarterStr, query);
   } catch (error) {
     console.error('Earnings search error:', error);
     return NextResponse.json(

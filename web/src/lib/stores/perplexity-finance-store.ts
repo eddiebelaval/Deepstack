@@ -335,13 +335,17 @@ export const usePerplexityFinanceStore = create<PerplexityFinanceState>((set, ge
 
       const data = await response.json();
 
+      // Profile route returns { profile: { content, citations, ... }, mock }
+      const profileData = data.profile || data;
+      const content = profileData.content || '';
+
       // Parse sections from content if not provided
-      const sections = data.sections || parseProfileSections(data.content);
+      const sections = profileData.sections || parseProfileSections(content);
 
       set({
         profile: {
-          content: data.content,
-          citations: data.citations || [],
+          content,
+          citations: profileData.citations || [],
           entity,
           sections,
           mock: data.mock ?? false,
@@ -374,7 +378,7 @@ export const usePerplexityFinanceStore = create<PerplexityFinanceState>((set, ge
       const response = await fetch('/api/perplexity/deep-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, focusAreas }),
+        body: JSON.stringify({ topic, focus_areas: focusAreas }),
       });
 
       clearInterval(progressInterval);
@@ -385,10 +389,14 @@ export const usePerplexityFinanceStore = create<PerplexityFinanceState>((set, ge
 
       const data = await response.json();
 
+      // Deep research route returns { report: { content, citations, ... }, mock }
+      const reportData = data.report || data;
+      const content = reportData.content || '';
+
       set({
         research: {
-          content: data.content,
-          citations: data.citations || [],
+          content,
+          citations: reportData.citations || [],
           topic,
           focusAreas,
           generatedAt: new Date().toISOString(),
