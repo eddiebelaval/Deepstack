@@ -733,8 +733,8 @@ describe('useWebSocket', () => {
         result.current.connect();
       });
 
-      // Should connect to default URL
-      expect(wsInstances[0].url).toContain('ws://localhost:8000/ws');
+      // Should connect to default URL (127.0.0.1 to avoid IPv6 issues)
+      expect(wsInstances[0].url).toContain('ws://127.0.0.1:8000/ws');
     });
 
     it('allows partial option overrides', () => {
