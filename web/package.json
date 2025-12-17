@@ -28,7 +28,11 @@
     "load:stress": "k6 run tests/load/stress.js",
     "load:spike": "k6 run tests/load/spike.js",
     "load:soak": "k6 run tests/load/soak.js",
-    "load:ci": "k6 run tests/load/ci.js"
+    "load:ci": "k6 run tests/load/ci.js",
+    "build:ios": "next build && npx cap sync ios",
+    "sync:ios": "npx cap sync ios",
+    "open:ios": "npx cap open ios",
+    "run:ios": "npx cap run ios"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.53",
