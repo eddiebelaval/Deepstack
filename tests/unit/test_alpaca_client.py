@@ -263,9 +263,9 @@ class TestBarData:
             mock_bar.trade_count = 5000
             mock_bar.vwap = 150.5
 
-            mock_data_client.return_value.get_stock_bars.return_value = {
-                "AAPL": [mock_bar]
-            }
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": [mock_bar]}
+            mock_data_client.return_value.get_stock_bars.return_value = mock_bar_set
             client.data_client = mock_data_client.return_value
 
             result = await client.get_bars("AAPL", TimeFrameEnum.DAY_1)
@@ -296,9 +296,9 @@ class TestBarData:
             mock_bar.close = 151.0
             mock_bar.volume = 1000000
 
-            mock_data_client.return_value.get_stock_bars.return_value = {
-                "AAPL": [mock_bar]
-            }
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": [mock_bar]}
+            mock_data_client.return_value.get_stock_bars.return_value = mock_bar_set
             client.data_client = mock_data_client.return_value
 
             start = datetime(2024, 1, 1)
@@ -334,9 +334,9 @@ class TestBarData:
             mock_bar.close = 151.0
             mock_bar.volume = 100000
 
-            mock_data_client.return_value.get_stock_bars.return_value = {
-                "AAPL": [mock_bar]
-            }
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": [mock_bar]}
+            mock_data_client.return_value.get_stock_bars.return_value = mock_bar_set
             client.data_client = mock_data_client.return_value
 
             for timeframe in [
@@ -1168,8 +1168,8 @@ class TestNewsAPI:
                 )
                 result = await client.get_news(limit=10)
 
-            assert len(result) == 1
-            assert result[0]["headline"] == "Test Headline"
+            assert len(result["articles"]) == 1
+            assert result["articles"][0]["headline"] == "Test Headline"
 
     @pytest.mark.asyncio
     async def test_get_news_by_symbol(self):
@@ -1204,8 +1204,8 @@ class TestNewsAPI:
                 )
                 result = await client.get_news(symbol="AAPL", limit=10)
 
-            assert len(result) == 1
-            assert "AAPL" in result[0]["symbols"]
+            assert len(result["articles"]) == 1
+            assert "AAPL" in result["articles"][0]["symbols"]
 
     @pytest.mark.asyncio
     async def test_get_news_with_limit(self):
@@ -1243,7 +1243,7 @@ class TestNewsAPI:
                 )
                 result = await client.get_news(limit=5)
 
-            assert len(result) == 5
+            assert len(result["articles"]) == 5
 
     @pytest.mark.asyncio
     async def test_get_news_empty_response(self):
@@ -1263,7 +1263,7 @@ class TestNewsAPI:
 
             result = await client.get_news(limit=10)
 
-            assert len(result) == 0
+            assert len(result["articles"]) == 0
 
     @pytest.mark.asyncio
     async def test_get_news_api_error(self):
@@ -1280,7 +1280,7 @@ class TestNewsAPI:
 
             result = await client.get_news(limit=10)
 
-            assert result == []
+            assert result["articles"] == []
 
     @pytest.mark.asyncio
     async def test_news_article_parsing(self):
@@ -1315,10 +1315,10 @@ class TestNewsAPI:
                 )
                 result = await client.get_news(limit=1)
 
-            assert result[0]["id"] == "12345"
-            assert result[0]["headline"] == "Important News"
-            assert result[0]["author"] == "John Doe"
-            assert result[0]["source"] == "Reuters"
+            assert result["articles"][0]["id"] == "12345"
+            assert result["articles"][0]["headline"] == "Important News"
+            assert result["articles"][0]["author"] == "John Doe"
+            assert result["articles"][0]["source"] == "Reuters"
 
     @pytest.mark.asyncio
     async def test_news_date_filtering(self):
@@ -1355,7 +1355,7 @@ class TestNewsAPI:
                 )
                 result = await client.get_news(start_date=start_date, limit=10)
 
-            assert len(result) == 1
+            assert len(result["articles"]) == 1
 
 
 class TestHistoricalDataAdvanced:
@@ -1376,7 +1376,9 @@ class TestHistoricalDataAdvanced:
             mock_bar.close = 151.0
             mock_bar.volume = 1000000
 
-            mock_data.return_value.get_stock_bars.return_value = {"AAPL": [mock_bar]}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": [mock_bar]}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
@@ -1402,7 +1404,9 @@ class TestHistoricalDataAdvanced:
             mock_bar.close = 150.25
             mock_bar.volume = 100000
 
-            mock_data.return_value.get_stock_bars.return_value = {"AAPL": [mock_bar]}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": [mock_bar]}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
@@ -1427,7 +1431,9 @@ class TestHistoricalDataAdvanced:
             mock_bar.close = 150.05
             mock_bar.volume = 1000
 
-            mock_data.return_value.get_stock_bars.return_value = {"AAPL": [mock_bar]}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": [mock_bar]}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
@@ -1452,7 +1458,9 @@ class TestHistoricalDataAdvanced:
             mock_bar.close = 151.0
             mock_bar.volume = 5000000
 
-            mock_data.return_value.get_stock_bars.return_value = {"AAPL": [mock_bar]}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": [mock_bar]}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
@@ -1480,7 +1488,9 @@ class TestHistoricalDataAdvanced:
                 mock_bar.volume = 1000000
                 bars.append(mock_bar)
 
-            mock_data.return_value.get_stock_bars.return_value = {"AAPL": bars}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": bars}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
@@ -1500,7 +1510,9 @@ class TestHistoricalDataAdvanced:
             patch("core.data.alpaca_client.TradingClient"),
             patch("core.data.alpaca_client.StockHistoricalDataClient") as mock_data,
         ):
-            mock_data.return_value.get_stock_bars.return_value = {}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
@@ -1527,7 +1539,9 @@ class TestHistoricalDataAdvanced:
                 mock_bar.volume = 1000000
                 bars.append(mock_bar)
 
-            mock_data.return_value.get_stock_bars.return_value = {"AAPL": bars}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": bars}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
@@ -1545,7 +1559,9 @@ class TestHistoricalDataAdvanced:
             patch("core.data.alpaca_client.StockHistoricalDataClient") as mock_data,
         ):
             # Weekend - no bars
-            mock_data.return_value.get_stock_bars.return_value = {"AAPL": []}
+            mock_bar_set = MagicMock()
+            mock_bar_set.data = {"AAPL": []}
+            mock_data.return_value.get_stock_bars.return_value = mock_bar_set
 
             client = AlpacaClient(api_key="test_key", secret_key="test_secret")
             client.data_client = mock_data.return_value
