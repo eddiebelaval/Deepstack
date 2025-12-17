@@ -2,6 +2,25 @@
 
 All notable changes to DeepStack are documented here.
 
+## [2.1.1] - 2025-12-17
+
+### 🐛 Bug Fixes
+- Fix stale market data when backend unavailable (#38)
+  - Added backend health check before trusting cached quotes
+  - Returns fresh mock data with realistic prices when backend is down
+  - Prevents showing outdated cached prices as "real" data
+
+### 🧪 Testing & Quality
+- Comprehensive test coverage for high-risk modules (#35)
+  - `test_psychology_integration.py` - Psychology/emotional state integration
+  - `test_emotional_firewall_panic.py` - Panic mode and circuit breakers
+  - `test_paper_trader_concurrency.py` - Concurrent trading safety
+  - `test_paper_trader_database.py` - Database persistence edge cases
+  - **+76 new tests**, **+2,141 lines** of test code
+  - Coverage improved from 0% to 62-80% on critical trading modules
+
+---
+
 ## [2.1.0] - 2025-12-16
 
 ### 🔐 Security Hardening
