@@ -1,11 +1,11 @@
 'use client';
 
-import { JournalList } from '@/components/journal/JournalList';
+import { LazyJournalList } from '@/components/lazy';
 
 export default function JournalPage() {
     return (
         <div className="container max-w-4xl mx-auto py-8 px-4">
-            <JournalList />
+            <LazyJournalList />
         </div>
     );
 }

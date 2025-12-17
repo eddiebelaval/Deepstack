@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ToolUseCard } from './ToolUseCard';
-import { CodeBlock } from './CodeBlock';
+import { LazyCodeBlock } from '@/components/lazy';
 import { ThinkingBlock } from './ThinkingBlock';
 import { CalloutBlock, extractAlertType } from './CalloutBlock';
 import { cn } from '@/lib/utils';

@@ -87,57 +87,58 @@ export async function GET(request: NextRequest) {
   const quotes: Record<string, QuoteData> = { ...cachedQuotes };
   const failedSymbols: string[] = [];
 
-  // 1. Try Python backend first
-  const backendResults = await Promise.all(
-    uncachedSymbols.map(async (symbol) => {
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/quote/${encodeURIComponent(symbol)}`,
-          {
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(5000),
-            next: { revalidate: CACHE_TTL.QUOTES },
-          }
-        );
+  // 1. Try Python backend BATCH endpoint (single request for all symbols)
+  let stillUncached: string[] = [...uncachedSymbols];
 
-        if (!response.ok) {
-          return { symbol, error: true };
-        }
-
-        const data = await response.json();
-        return { symbol, data, source: 'backend' };
-      } catch {
-        return { symbol, error: true };
+  try {
+    const symbolsParam = uncachedSymbols.join(',');
+    const response = await fetch(
+      `${API_BASE_URL}/api/market/quotes?symbols=${encodeURIComponent(symbolsParam)}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000),
+        next: { revalidate: CACHE_TTL.QUOTES },
       }
-    })
-  );
+    );
 
-  // Process backend results
-  const stillUncached: string[] = [];
-  for (const result of backendResults) {
-    if (result.error || !result.data) {
-      stillUncached.push(result.symbol);
+    if (response.ok) {
+      const data = await response.json();
+      const backendQuotes = data.quotes || {};
+
+      // Process batch results
+      for (const symbol of uncachedSymbols) {
+        const quote = backendQuotes[symbol];
+        if (quote) {
+          const quoteData: QuoteData = {
+            symbol,
+            last: quote.last,
+            open: quote.open,
+            high: quote.high,
+            low: quote.low,
+            close: quote.close,
+            volume: quote.volume,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            bid: quote.bid,
+            ask: quote.ask,
+            timestamp: quote.timestamp || new Date().toISOString(),
+          };
+          quotes[symbol] = quoteData;
+
+          // Cache the quote
+          const cacheKey = marketCacheKey('quote', { symbol });
+          serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
+
+          // Remove from uncached list
+          stillUncached = stillUncached.filter(s => s !== symbol);
+        }
+      }
     } else {
-      const quoteData: QuoteData = {
-        symbol: result.symbol,
-        last: result.data.price ?? result.data.last ?? result.data.close,
-        open: result.data.open,
-        high: result.data.high,
-        low: result.data.low,
-        close: result.data.close,
-        volume: result.data.volume,
-        change: result.data.change,
-        changePercent: result.data.change_percent ?? result.data.changePercent,
-        bid: result.data.bid,
-        ask: result.data.ask,
-        timestamp: result.data.timestamp || new Date().toISOString(),
-      };
-      quotes[result.symbol] = quoteData;
-
-      // Cache the quote
-      const cacheKey = marketCacheKey('quote', { symbol: result.symbol });
-      serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
+      console.warn(`Backend batch quotes failed (${response.status}), falling back to Alpaca`);
     }
+  } catch (error) {
+    console.error('Error fetching batch quotes from backend:', error);
+    // Continue to Alpaca fallback
   }
 
   // 2. If backend failed for some symbols, try direct Alpaca (BATCH request)

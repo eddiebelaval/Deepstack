@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api, AccountSummary } from '@/lib/api'
-import { PredictionMarketsWidget } from '@/components/prediction-markets/PredictionMarketsWidget'
+import { LazyPredictionMarketsWidget } from '@/components/lazy'
 
 export default function HomePage() {
   const [account, setAccount] = useState<AccountSummary | null>(null)
@@ -82,7 +82,7 @@ export default function HomePage() {
 
       {/* Widgets Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PredictionMarketsWidget />
+        <LazyPredictionMarketsWidget />
         {/* Add more widgets here */}
       </div>
     </div>
