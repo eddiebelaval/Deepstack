@@ -65,7 +65,7 @@ export function EarningsTranscriptViewer({
   initialSymbol,
 }: EarningsTranscriptViewerProps) {
   const [symbol, setSymbol] = useState(initialSymbol || '');
-  const [quarter, setQuarter] = useState<string>('');
+  const [quarter, setQuarter] = useState<string>('any');
   const [year, setYear] = useState<string>(String(currentYear));
 
   const {
@@ -80,7 +80,7 @@ export function EarningsTranscriptViewer({
     if (!symbol.trim()) return;
     getEarningsTranscript(
       symbol.trim().toUpperCase(),
-      quarter || undefined,
+      quarter && quarter !== 'any' ? quarter : undefined,
       year ? parseInt(year) : undefined
     );
   };
@@ -197,7 +197,7 @@ export function EarningsTranscriptViewer({
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any Quarter</SelectItem>
+                  <SelectItem value="any">Any Quarter</SelectItem>
                   {QUARTERS.map((q) => (
                     <SelectItem key={q.value} value={q.value}>
                       {q.label}
