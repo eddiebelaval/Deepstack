@@ -15,6 +15,7 @@ Features:
 
 import asyncio
 import logging
+import re
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional
@@ -445,6 +446,11 @@ class KalshiClient:
             except (ValueError, TypeError):
                 logger.debug(f"Failed to parse close_time: {raw.get('close_time')}")
 
+        # Extract series ticker for URL by removing numeric suffix
+        # (e.g., KXNEWPOPE-70 -> KXNEWPOPE)
+        event_ticker = raw.get("event_ticker", raw.get("ticker", ""))
+        series_ticker = re.sub(r"-\d+$", "", event_ticker)
+
         return PredictionMarket(
             id=raw.get("ticker", ""),
             platform=Platform.KALSHI,
@@ -457,7 +463,7 @@ class KalshiClient:
             open_interest=float(raw.get("open_interest", 0)),
             end_date=end_date,
             status=raw.get("status", "active"),
-            url=f"https://kalshi.com/markets/{raw.get('ticker', '')}",
+            url=f"https://kalshi.com/markets/{series_ticker}",
             description=raw.get("subtitle"),
         )
 
