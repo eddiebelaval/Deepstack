@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { api } from '@/lib/api-extended';
 import { createTradeEntry } from '@/lib/supabase/trades';
 import { predictionMarketTools } from './prediction-market-tools';
+import { perplexityFinanceTools } from './perplexity-finance-tools';
 
 // Get the base URL for API calls - needed for edge runtime
 const getBaseUrl = () => {
@@ -802,6 +803,9 @@ export const tradingTools = {
 
   // Prediction Market Tools
   ...predictionMarketTools,
+
+  // Perplexity Finance Tools (SEC filings, earnings transcripts, market summaries, deep research)
+  ...perplexityFinanceTools,
 };
 
 // Export all tools combined (for convenience)

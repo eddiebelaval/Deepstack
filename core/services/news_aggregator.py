@@ -31,6 +31,9 @@ class NewsAggregator:
 
     Combines news from multiple APIs and RSS feeds into a unified stream
     with deduplication and sorting.
+
+    Supports Perplexity Intelligence as the primary AI-powered source,
+    with traditional sources as fallback.
     """
 
     # Similarity threshold for headline deduplication (0.0 - 1.0)
@@ -45,6 +48,7 @@ class NewsAggregator:
         rss_aggregator=None,
         stocktwits_client=None,
         stocktwits_scraper=None,
+        perplexity_intelligence=None,
         cache_ttl: int = 300,
     ):
         """
@@ -58,6 +62,7 @@ class NewsAggregator:
             rss_aggregator: RSSAggregator instance (optional)
             stocktwits_client: StockTwitsClient instance (optional)
             stocktwits_scraper: StockTwitsScraper instance for hybrid mode (optional)
+            perplexity_intelligence: PerplexityIntelligence instance (optional)
             cache_ttl: Cache time-to-live in seconds (default: 5 minutes)
         """
         self.finnhub_client = finnhub_client
@@ -67,6 +72,7 @@ class NewsAggregator:
         self.rss_aggregator = rss_aggregator
         self.stocktwits_client = stocktwits_client
         self.stocktwits_scraper = stocktwits_scraper
+        self.perplexity_intelligence = perplexity_intelligence
         self.cache_ttl = cache_ttl
 
         # Cache storage: {cache_key: (data, timestamp)}
@@ -88,13 +94,15 @@ class NewsAggregator:
                 self.rss_aggregator is not None,
                 self.stocktwits_client is not None
                 or self.stocktwits_scraper is not None,
+                self.perplexity_intelligence is not None,
             ]
         )
 
         logger.info(
             f"NewsAggregator initialized with {active_sources} sources, "
             f"cache_ttl={cache_ttl}s, "
-            f"hybrid_stocktwits={self.stocktwits_scraper is not None}"
+            f"hybrid_stocktwits={self.stocktwits_scraper is not None}, "
+            f"perplexity={self.perplexity_intelligence is not None}"
         )
 
     def _get_cache_key(
@@ -331,6 +339,30 @@ class NewsAggregator:
 
         return []
 
+    async def _fetch_from_perplexity(
+        self, symbol: Optional[str], limit: int
+    ) -> List[Dict]:
+        """
+        Fetch AI-synthesized news from Perplexity Intelligence.
+
+        This is the primary/preferred source when configured.
+        """
+        if not self.perplexity_intelligence:
+            return []
+        try:
+            result = await self.perplexity_intelligence.get_market_intelligence(
+                symbol=symbol, limit=limit
+            )
+            articles = result.get("articles", [])
+            self.source_health["perplexity"] = len(articles) > 0 and not result.get(
+                "mock", True
+            )
+            return articles
+        except Exception as e:
+            logger.warning(f"Perplexity fetch failed: {e}")
+            self.source_health["perplexity"] = False
+            return []
+
     def get_pending_scrapes(self) -> Dict[str, Dict]:
         """
         Get pending browser scrapes that need execution.
@@ -390,6 +422,7 @@ class NewsAggregator:
         Args:
             symbol: Optional ticker symbol to filter by (e.g., 'AAPL')
             source_filter: Optional source type filter:
+                - 'perplexity': Only Perplexity AI Intelligence (primary)
                 - 'api': Only API sources (Finnhub, NewsAPI, Alpha Vantage, Alpaca)
                 - 'rss': Only RSS feeds
                 - 'social': Only StockTwits
@@ -424,6 +457,13 @@ class NewsAggregator:
 
             # Fetch more articles for caching (up to 200 per source)
             per_source_limit = 100
+
+            # Perplexity AI Intelligence (primary source when available)
+            if source_filter in (None, "perplexity"):
+                fetch_tasks.append(
+                    self._fetch_from_perplexity(symbol, per_source_limit)
+                )
+                source_names.append("perplexity")
 
             if source_filter in (None, "api"):
                 # API sources
@@ -528,8 +568,9 @@ class NewsAggregator:
             "pending_scrapes": list(self.pending_scrapes.keys()),
         }
 
-        # Check each source
+        # Check each source (Perplexity first as primary)
         sources = [
+            ("perplexity", self.perplexity_intelligence),
             ("finnhub", self.finnhub_client),
             ("newsapi", self.newsapi_client),
             ("alphavantage", self.alphavantage_client),
@@ -583,6 +624,7 @@ class NewsAggregator:
     async def close(self) -> None:
         """Close all client connections."""
         clients = [
+            self.perplexity_intelligence,
             self.finnhub_client,
             self.newsapi_client,
             self.alphavantage_client,

@@ -71,6 +71,20 @@ class ActionCost(Enum):
     # Prediction Markets AI Analysis
     PREDICTION_MARKETS_ANALYZE = 20
 
+    # === PERPLEXITY FINANCE (AI-powered research) ===
+    # SEC Filing Search (moderate - useful data)
+    SEC_SEARCH = 10
+    # Earnings Transcript Search (premium data)
+    EARNINGS_TRANSCRIPT = 15
+    # Market Summary (light - encourage frequent use)
+    MARKET_SUMMARY = 5
+    # Natural Language Screener (AI-powered)
+    NL_SCREENER = 20
+    # Company Profile Builder (deep research)
+    COMPANY_PROFILE = 15
+    # Deep Research Report (expensive - comprehensive)
+    DEEP_RESEARCH = 50
+
 
 class ActionCategory(Enum):
     """Categories for usage tracking."""
@@ -106,6 +120,13 @@ ACTION_CATEGORIES: Dict[ActionCost, ActionCategory] = {
     ActionCost.ANALYZE: ActionCategory.ANALYSIS,
     ActionCost.DEEP_VALUE_SCREEN: ActionCategory.ANALYSIS,
     ActionCost.EMBEDDINGS: ActionCategory.AI_CHAT,
+    # Perplexity Finance
+    ActionCost.SEC_SEARCH: ActionCategory.ANALYSIS,
+    ActionCost.EARNINGS_TRANSCRIPT: ActionCategory.ANALYSIS,
+    ActionCost.MARKET_SUMMARY: ActionCategory.DATA_API,
+    ActionCost.NL_SCREENER: ActionCategory.ANALYSIS,
+    ActionCost.COMPANY_PROFILE: ActionCategory.ANALYSIS,
+    ActionCost.DEEP_RESEARCH: ActionCategory.ANALYSIS,
 }
 
 
