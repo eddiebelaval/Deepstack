@@ -9,6 +9,10 @@
 const STOCK_DATA_URL = 'https://data.alpaca.markets/v2';
 const CRYPTO_DATA_URL = 'https://data.alpaca.markets/v1beta3/crypto/us';
 
+// Feed type: 'iex' for free/paper accounts, 'sip' for paid subscriptions
+// Free and paper trading accounts only have access to IEX feed
+const STOCK_FEED = 'iex';
+
 // Type definitions
 export interface AlpacaBar {
   t: string;  // ISO timestamp
@@ -107,11 +111,11 @@ export async function fetchAlpacaBars(
     let headers: Record<string, string>;
 
     if (isCrypto) {
-      // Crypto API endpoint
+      // Crypto API endpoint (no feed parameter needed for crypto)
       url = `${CRYPTO_DATA_URL}/bars?symbols=${encodeURIComponent(symbol)}&timeframe=${alpacaTimeframe}&start=${start.toISOString()}&end=${end.toISOString()}&limit=${limit}`;
     } else {
-      // Stock API endpoint
-      url = `${STOCK_DATA_URL}/stocks/${encodeURIComponent(symbol)}/bars?timeframe=${alpacaTimeframe}&start=${start.toISOString()}&end=${end.toISOString()}&limit=${limit}`;
+      // Stock API endpoint - use IEX feed for free/paper accounts
+      url = `${STOCK_DATA_URL}/stocks/${encodeURIComponent(symbol)}/bars?timeframe=${alpacaTimeframe}&start=${start.toISOString()}&end=${end.toISOString()}&limit=${limit}&feed=${STOCK_FEED}`;
     }
 
     headers = {
@@ -180,9 +184,11 @@ export async function fetchAlpacaQuote(symbol: string): Promise<{
     let url: string;
 
     if (isCrypto) {
+      // Crypto quotes (no feed parameter needed)
       url = `${CRYPTO_DATA_URL}/latest/quotes?symbols=${encodeURIComponent(symbol)}`;
     } else {
-      url = `${STOCK_DATA_URL}/stocks/${encodeURIComponent(symbol)}/quotes/latest`;
+      // Stock quotes - use IEX feed for free/paper accounts
+      url = `${STOCK_DATA_URL}/stocks/${encodeURIComponent(symbol)}/quotes/latest?feed=${STOCK_FEED}`;
     }
 
     const response = await fetch(url, {
@@ -236,7 +242,8 @@ export async function isAlpacaAvailable(): Promise<boolean> {
 
   try {
     // Simple test request to check credentials and connectivity
-    const response = await fetch(`${STOCK_DATA_URL}/stocks/SPY/quotes/latest`, {
+    // Use IEX feed for free/paper accounts to avoid 403 errors
+    const response = await fetch(`${STOCK_DATA_URL}/stocks/SPY/quotes/latest?feed=${STOCK_FEED}`, {
       headers: {
         'APCA-API-KEY-ID': credentials.apiKey,
         'APCA-API-SECRET-KEY': credentials.secretKey,

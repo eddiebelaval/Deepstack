@@ -11,13 +11,14 @@ export function WatchlistWidget() {
   const { getActiveWatchlist } = useWatchlistStore();
   const watchlist = getActiveWatchlist();
 
+  // Fallback symbols when no watchlist is loaded
   const symbols = watchlist?.items ?? [
     { symbol: 'SPY' },
     { symbol: 'QQQ' },
     { symbol: 'AAPL' },
     { symbol: 'NVDA' },
     { symbol: 'TSLA' },
-    { symbol: 'AMD' },
+    { symbol: 'GOOGL' },
   ];
 
   return (

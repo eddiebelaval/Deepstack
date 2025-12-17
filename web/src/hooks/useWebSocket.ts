@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useMarketDataStore, type QuoteData, type OHLCVBar } from "@/lib/stores/market-data-store";
 
 // WebSocket message types from backend
@@ -44,17 +44,72 @@ type UseWebSocketOptions = {
   baseReconnectDelay?: number;
   maxReconnectDelay?: number;
   heartbeatInterval?: number;
+  /** If true, will check backend availability before attempting to connect */
+  checkBackendFirst?: boolean;
+  /** Suppress console errors after initial connection failure (for frontend-only mode) */
+  silentMode?: boolean;
 };
 
 const DEFAULT_OPTIONS: Required<UseWebSocketOptions> = {
   url: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws",
   autoConnect: true,
   reconnectOnError: true,
-  maxReconnectAttempts: 10,
-  baseReconnectDelay: 1000,
+  maxReconnectAttempts: 3, // Reduced from 10 to avoid spam when backend is down
+  baseReconnectDelay: 2000, // Increased from 1000
   maxReconnectDelay: 30000,
   heartbeatInterval: 30000,
+  checkBackendFirst: true,
+  silentMode: false,
 };
+
+// Backend availability check cache
+let backendAvailable: boolean | null = null;
+let lastBackendCheck: number = 0;
+const BACKEND_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
+
+/**
+ * Check if the WebSocket backend is available
+ * Uses a simple HTTP health check before attempting WebSocket connection
+ */
+async function checkBackendAvailability(wsUrl: string): Promise<boolean> {
+  const now = Date.now();
+
+  // Return cached result if recent
+  if (backendAvailable !== null && now - lastBackendCheck < BACKEND_CHECK_INTERVAL) {
+    return backendAvailable;
+  }
+
+  try {
+    // Extract host from WebSocket URL and check via HTTP
+    const httpUrl = wsUrl
+      .replace(/^ws:/, 'http:')
+      .replace(/^wss:/, 'https:')
+      .replace(/\/ws$/, '/health');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch(httpUrl, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    backendAvailable = response.ok;
+    lastBackendCheck = now;
+    return backendAvailable;
+  } catch {
+    backendAvailable = false;
+    lastBackendCheck = now;
+    return false;
+  }
+}
+
+/** Reset backend availability cache (useful for manual retry) */
+export function resetBackendAvailabilityCache() {
+  backendAvailable = null;
+  lastBackendCheck = 0;
+}
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   // Filter out undefined values to ensure defaults are used properly
@@ -68,6 +123,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isManuallyClosedRef = useRef(false);
+  const isBackendUnavailableRef = useRef(false);
+  const hasLoggedUnavailableRef = useRef(false);
+
+  // Track if we're in "frontend-only mode" (backend unavailable)
+  const [isFrontendOnlyMode, setIsFrontendOnlyMode] = useState(false);
 
   const {
     setWsConnected,
@@ -174,7 +234,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, []);
 
   // Connect to WebSocket
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (process.env.NODE_ENV === 'test') {
       console.log('[useWebSocket connect()] called, creating WebSocket to:', opts.url);
     }
@@ -190,7 +250,35 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       return;
     }
 
+    // Don't attempt connection if we know backend is unavailable
+    if (isBackendUnavailableRef.current) {
+      return;
+    }
+
     isManuallyClosedRef.current = false;
+
+    // Check backend availability first (if enabled)
+    if (opts.checkBackendFirst) {
+      const isAvailable = await checkBackendAvailability(opts.url);
+      if (!isAvailable) {
+        // Backend is unavailable - enter frontend-only mode
+        isBackendUnavailableRef.current = true;
+        setIsFrontendOnlyMode(true);
+
+        // Only log once to avoid console spam
+        if (!hasLoggedUnavailableRef.current) {
+          hasLoggedUnavailableRef.current = true;
+          if (process.env.NODE_ENV === 'development') {
+            console.log("[WS] Backend unavailable - running in frontend-only mode. Real-time data disabled.");
+          }
+        }
+
+        setWsConnected(false);
+        setWsReconnecting(false);
+        setLastError("Backend unavailable - using cached/REST data");
+        return;
+      }
+    }
 
     try {
       const ws = new WebSocket(opts.url);
@@ -205,6 +293,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         setWsConnected(true);
         setWsReconnecting(false);
         setLastError(null);
+        setIsFrontendOnlyMode(false);
+        isBackendUnavailableRef.current = false;
+        hasLoggedUnavailableRef.current = false;
         reconnectAttemptsRef.current = 0;
 
         // Start heartbeat
@@ -224,14 +315,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       ws.onmessage = handleMessage;
 
-      ws.onerror = (error) => {
-        console.error("[WS] Error:", error);
+      ws.onerror = () => {
+        // Suppress error logging in silent mode or after we know backend is unavailable
+        if (!opts.silentMode && !isBackendUnavailableRef.current) {
+          // Only log in development, and only if this is a fresh attempt
+          if (process.env.NODE_ENV === 'development' && reconnectAttemptsRef.current === 0) {
+            console.log("[WS] Connection failed - backend may be unavailable");
+          }
+        }
         setLastError("WebSocket connection error");
       };
 
       ws.onclose = (event) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log("[WS] Disconnected:", event.code, event.reason);
+        // Only log if not in silent mode and backend was previously available
+        if (process.env.NODE_ENV === 'development' && !isBackendUnavailableRef.current) {
+          console.log("[WS] Disconnected:", event.code, event.reason || "");
         }
         setWsConnected(false);
         stopHeartbeat();
@@ -240,7 +338,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         if (!isManuallyClosedRef.current && opts.reconnectOnError) {
           if (reconnectAttemptsRef.current < opts.maxReconnectAttempts) {
             const delay = getReconnectDelay();
-            if (process.env.NODE_ENV === 'development') {
+
+            // Only log reconnect attempts in development
+            if (process.env.NODE_ENV === 'development' && !isBackendUnavailableRef.current) {
               console.log(
                 `[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${
                   reconnectAttemptsRef.current + 1
@@ -255,8 +355,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
               connect();
             }, delay);
           } else {
-            console.error("[WS] Max reconnect attempts reached");
-            setLastError("Connection lost. Please refresh the page.");
+            // Max attempts reached - enter frontend-only mode silently
+            isBackendUnavailableRef.current = true;
+            setIsFrontendOnlyMode(true);
+
+            if (!hasLoggedUnavailableRef.current) {
+              hasLoggedUnavailableRef.current = true;
+              if (process.env.NODE_ENV === 'development') {
+                console.log("[WS] Max reconnect attempts reached - running in frontend-only mode");
+              }
+            }
+
+            setLastError("Backend unavailable - using cached/REST data");
             setWsReconnecting(false);
           }
         }
@@ -264,13 +374,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       wsRef.current = ws;
     } catch (error) {
-      console.error("[WS] Failed to create WebSocket:", error);
-      setLastError("Failed to connect to server");
+      // Suppress error logging after first failure
+      if (!hasLoggedUnavailableRef.current && process.env.NODE_ENV === 'development') {
+        hasLoggedUnavailableRef.current = true;
+        console.log("[WS] Failed to create WebSocket - running in frontend-only mode");
+      }
+      isBackendUnavailableRef.current = true;
+      setIsFrontendOnlyMode(true);
+      setLastError("Backend unavailable - using cached/REST data");
     }
   }, [
     opts.url,
     opts.reconnectOnError,
     opts.maxReconnectAttempts,
+    opts.checkBackendFirst,
+    opts.silentMode,
     setWsConnected,
     setWsReconnecting,
     setLastError,
@@ -307,7 +425,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       wsRef.current.send(JSON.stringify(data));
       return true;
     }
-    console.warn("[WS] Cannot send message: not connected");
+    // Only warn if not in frontend-only mode
+    if (!isBackendUnavailableRef.current && process.env.NODE_ENV === 'development') {
+      console.log("[WS] Cannot send message: not connected");
+    }
     return false;
   }, []);
 
@@ -327,6 +448,20 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     [send]
   );
 
+  // Retry connection (resets the backend unavailable state)
+  const retryConnection = useCallback(() => {
+    // Reset all state to allow fresh connection attempt
+    isBackendUnavailableRef.current = false;
+    hasLoggedUnavailableRef.current = false;
+    reconnectAttemptsRef.current = 0;
+    resetBackendAvailabilityCache();
+    setIsFrontendOnlyMode(false);
+    setLastError(null);
+
+    // Attempt connection
+    connect();
+  }, [connect, setLastError]);
+
   // Auto-connect on mount
   useEffect(() => {
     if (opts.autoConnect) {
@@ -341,10 +476,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   return {
     connect,
     disconnect,
+    retryConnection,
     send,
     subscribeSymbols,
     unsubscribeSymbols,
     isConnected: wsRef.current?.readyState === WebSocket.OPEN,
+    isFrontendOnlyMode,
   };
 }
 

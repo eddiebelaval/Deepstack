@@ -10,17 +10,20 @@ export type MarketWatcherState = 'collapsed' | 'mini' | 'full';
 /**
  * Default symbols to display in the market watcher
  * Curated to show essential market indicators without overwhelming the UI
- * - 3 major indices (S&P, Nasdaq, Volatility)
+ * - 3 major indices (S&P, Nasdaq, Volatility ETF)
  * - 2 macro indicators (Gold, Bonds)
  * - 1 crypto (Bitcoin)
+ *
+ * Note: VIX is an index, not tradable. Use VIXY (VIX ETF) for real-time data.
+ * Note: Crypto symbols use Alpaca format with slash (BTC/USD, not BTC-USD).
  */
 export const DEFAULT_MARKET_SYMBOLS = [
   'SPY',     // S&P 500 - primary market benchmark
   'QQQ',     // Nasdaq 100 - tech sector proxy
-  'VIX',     // Volatility Index - fear gauge
+  'VIXY',    // Volatility ETF - fear gauge (VIX is not tradable)
   'GLD',     // Gold - safe haven / inflation hedge
   'TLT',     // Treasury Bonds - rate sensitivity
-  'BTC-USD', // Bitcoin - crypto sentiment
+  'BTC/USD', // Bitcoin - crypto sentiment (Alpaca format)
 ] as const;
 
 interface UseMobileMarketWatcherReturn {

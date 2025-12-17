@@ -9,13 +9,14 @@
  * - Updates Zustand store with live prices
  * - Connection status indicator
  * - Falls back to polling if WebSocket unavailable
+ * - Graceful degradation when backend is unavailable
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePredictionMarketsStore } from '@/lib/stores/prediction-markets-store';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
 
-type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error' | 'unavailable';
 
 interface WebSocketMessage {
     type: string;
@@ -28,17 +29,51 @@ interface WebSocketMessage {
 }
 
 // Polling fallback interval in milliseconds
-const POLLING_INTERVAL = 30000;
+const POLLING_INTERVAL = 60000; // Increased from 30s to reduce load
 
-// Reconnect settings
-const MAX_RECONNECT_ATTEMPTS = 5;
-const INITIAL_RECONNECT_DELAY = 1000;
+// Reconnect settings - reduced to avoid console spam
+const MAX_RECONNECT_ATTEMPTS = 2;
+const INITIAL_RECONNECT_DELAY = 3000;
+
+// Backend availability check cache
+let backendChecked = false;
+let backendAvailable = false;
+
+/**
+ * Check if backend WebSocket is available
+ */
+async function checkBackendAvailable(): Promise<boolean> {
+    if (backendChecked) return backendAvailable;
+
+    try {
+        const wsHost = process.env.NEXT_PUBLIC_API_URL?.replace(/^https?:\/\//, '') || 'localhost:8000';
+        const httpUrl = `http://${wsHost.replace(/\/ws$/, '')}/health`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        const response = await fetch(httpUrl, {
+            method: 'GET',
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+        backendChecked = true;
+        backendAvailable = response.ok;
+        return backendAvailable;
+    } catch {
+        backendChecked = true;
+        backendAvailable = false;
+        return false;
+    }
+}
 
 export function usePredictionMarketsWebSocket() {
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectAttemptRef = useRef(0);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const hasLoggedUnavailable = useRef(false);
 
     const [status, setStatus] = useState<ConnectionStatus>('disconnected');
     const [isUsingPolling, setIsUsingPolling] = useState(false);
@@ -50,8 +85,12 @@ export function usePredictionMarketsWebSocket() {
         if (pollingIntervalRef.current) return;
 
         setIsUsingPolling(true);
-        if (process.env.NODE_ENV === 'development') {
-            console.log('Starting polling fallback for prediction markets');
+        setStatus('unavailable');
+
+        // Only log once
+        if (!hasLoggedUnavailable.current && process.env.NODE_ENV === 'development') {
+            hasLoggedUnavailable.current = true;
+            console.log('[Prediction Markets] Backend unavailable - using polling fallback');
         }
 
         const poll = async () => {
@@ -61,8 +100,8 @@ export function usePredictionMarketsWebSocket() {
                     const data = await res.json();
                     setMarkets(data.markets || data);
                 }
-            } catch (err) {
-                console.error('Polling error:', err);
+            } catch {
+                // Silently handle polling errors - don't spam console
             }
         };
 
@@ -103,8 +142,16 @@ export function usePredictionMarketsWebSocket() {
     // Connect to WebSocket - using ref for reconnect to avoid circular dependency
     const connectRef = useRef<(() => void) | undefined>(undefined);
 
-    const connect = useCallback(() => {
+    const connect = useCallback(async () => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
+            return;
+        }
+
+        // Check backend availability first
+        const isAvailable = await checkBackendAvailable();
+        if (!isAvailable) {
+            // Backend unavailable - skip WebSocket, go straight to polling
+            startPollingFallback();
             return;
         }
 
@@ -122,6 +169,7 @@ export function usePredictionMarketsWebSocket() {
             ws.onopen = () => {
                 setStatus('connected');
                 setIsUsingPolling(false);
+                hasLoggedUnavailable.current = false;
                 reconnectAttemptRef.current = 0;
 
                 // Subscribe to prediction market updates
@@ -145,9 +193,7 @@ export function usePredictionMarketsWebSocket() {
 
                 // Attempt reconnection with exponential backoff
                 if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.log('Max reconnect attempts reached, falling back to polling');
-                    }
+                    // Silently fall back to polling
                     startPollingFallback();
                     return;
                 }
@@ -155,8 +201,9 @@ export function usePredictionMarketsWebSocket() {
                 const delay = INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttemptRef.current);
                 reconnectAttemptRef.current += 1;
 
-                if (process.env.NODE_ENV === 'development') {
-                    console.log(`Attempting WebSocket reconnect in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
+                // Only log in development, and only first attempt
+                if (process.env.NODE_ENV === 'development' && reconnectAttemptRef.current === 1) {
+                    console.log(`[Prediction Markets] WebSocket disconnected, reconnecting...`);
                 }
 
                 reconnectTimeoutRef.current = setTimeout(() => {
@@ -164,14 +211,13 @@ export function usePredictionMarketsWebSocket() {
                 }, delay);
             };
 
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
+            ws.onerror = () => {
+                // Suppress error logging - the onclose handler will manage fallback
                 setStatus('error');
-                ws.close();
+                // Close will trigger onclose handler which handles reconnection
             };
-        } catch (err) {
-            console.error('Failed to create WebSocket:', err);
-            setStatus('error');
+        } catch {
+            // Silently fall back to polling on any error
             startPollingFallback();
         }
     }, [handleMessage, startPollingFallback]);

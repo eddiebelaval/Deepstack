@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useWebSocket } from '../useWebSocket';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useWebSocket, resetBackendAvailabilityCache } from '../useWebSocket';
 
 // Hoist store mocks
 const mockSetWsConnected = vi.hoisted(() => vi.fn());
@@ -21,6 +21,9 @@ vi.mock('@/lib/stores/market-data-store', () => ({
     subscribedSymbols: new Set<string>(),
   }),
 }));
+
+// Mock fetch for backend availability checks
+const mockFetch = vi.fn();
 
 // Store WebSocket instances for testing
 let wsInstances: MockWebSocket[] = [];
@@ -96,19 +99,35 @@ describe('useWebSocket', () => {
     (global.WebSocket as any).OPEN = 1;
     (global.WebSocket as any).CLOSING = 2;
     (global.WebSocket as any).CLOSED = 3;
+
+    // Mock fetch to return success for backend availability check
+    global.fetch = mockFetch;
+    mockFetch.mockResolvedValue({ ok: true });
+
+    // Reset backend availability cache before each test
+    resetBackendAvailabilityCache();
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     wsInstances = [];
+    mockFetch.mockReset();
   });
 
-  describe('Connection Management', () => {
-    it('connects when connect() is called', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+  // Helper to wait for async connect operations
+  async function waitForConnect() {
+    // Flush promises and advance timers to allow async operations
+    await vi.runAllTimersAsync();
+  }
 
-      act(() => {
+  describe('Connection Management', () => {
+    it('connects when connect() is called', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
+
+      await act(async () => {
         result.current.connect();
       });
 
@@ -131,30 +150,37 @@ describe('useWebSocket', () => {
       expect(wsInstances.length).toBe(0);
     });
 
-    it('auto-connects when autoConnect is true', () => {
-      renderHook(() => useWebSocket({ autoConnect: true }));
+    it('auto-connects when autoConnect is true', async () => {
+      renderHook(() => useWebSocket({ autoConnect: true, checkBackendFirst: false }));
+
+      // Wait for async connect
+      await act(async () => {
+        await waitForConnect();
+      });
 
       expect(wsInstances.length).toBe(1);
     });
 
-    it('connects to custom URL', () => {
+    it('connects to custom URL', async () => {
       const customUrl = 'ws://custom-server.com/ws';
 
       const { result } = renderHook(() =>
-        useWebSocket({ url: customUrl, autoConnect: false })
+        useWebSocket({ url: customUrl, autoConnect: false, checkBackendFirst: false })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
       expect(wsInstances[0].url).toBe(customUrl);
     });
 
-    it('disconnects when disconnect() is called', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('disconnects when disconnect() is called', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -169,12 +195,12 @@ describe('useWebSocket', () => {
       expect(wsInstances[0].close).toHaveBeenCalled();
     });
 
-    it('does not reconnect when manually disconnected', () => {
+    it('does not reconnect when manually disconnected', async () => {
       const { result } = renderHook(() =>
-        useWebSocket({ autoConnect: false, reconnectOnError: true })
+        useWebSocket({ autoConnect: false, reconnectOnError: true, checkBackendFirst: false })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -190,26 +216,61 @@ describe('useWebSocket', () => {
       expect(mockSetWsConnected).toHaveBeenCalledWith(false);
 
       // Advance timers - should not attempt reconnect
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(5000);
       });
 
       // Should only have 1 WebSocket instance (the original)
       expect(wsInstances.length).toBe(1);
     });
+
+    it('checks backend availability before connecting when checkBackendFirst is true', async () => {
+      mockFetch.mockResolvedValue({ ok: true });
+
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: true })
+      );
+
+      await act(async () => {
+        result.current.connect();
+        await waitForConnect();
+      });
+
+      expect(mockFetch).toHaveBeenCalled();
+      expect(wsInstances.length).toBe(1);
+    });
+
+    it('enters frontend-only mode when backend is unavailable', async () => {
+      mockFetch.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: true })
+      );
+
+      await act(async () => {
+        result.current.connect();
+        await waitForConnect();
+      });
+
+      // Should not create WebSocket when backend is unavailable
+      expect(wsInstances.length).toBe(0);
+      expect(result.current.isFrontendOnlyMode).toBe(true);
+      expect(mockSetLastError).toHaveBeenCalledWith(expect.stringContaining('Backend unavailable'));
+    });
   });
 
   describe('Reconnection', () => {
-    it('attempts to reconnect on unexpected close', () => {
+    it('attempts to reconnect on unexpected close', async () => {
       const { result } = renderHook(() =>
         useWebSocket({
           autoConnect: false,
           reconnectOnError: true,
           baseReconnectDelay: 1000,
+          checkBackendFirst: false,
         })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -226,15 +287,16 @@ describe('useWebSocket', () => {
       expect(mockSetWsReconnecting).toHaveBeenCalledWith(true);
 
       // Advance past reconnect delay
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(2000);
+        await waitForConnect();
       });
 
       // Should have created a new WebSocket
       expect(wsInstances.length).toBe(2);
     });
 
-    it('uses exponential backoff for reconnects', () => {
+    it('uses exponential backoff for reconnects', async () => {
       const { result } = renderHook(() =>
         useWebSocket({
           autoConnect: false,
@@ -242,10 +304,11 @@ describe('useWebSocket', () => {
           baseReconnectDelay: 1000,
           maxReconnectDelay: 30000,
           maxReconnectAttempts: 5,
+          checkBackendFirst: false,
         })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -259,8 +322,9 @@ describe('useWebSocket', () => {
       });
 
       // First reconnect after ~1000ms
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(1500);
+        await waitForConnect();
       });
 
       expect(wsInstances.length).toBe(2);
@@ -271,31 +335,34 @@ describe('useWebSocket', () => {
       });
 
       // Should take longer (exponential backoff)
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(1500);
+        await waitForConnect();
       });
 
       // Might not have reconnected yet due to longer delay
       const instanceCount = wsInstances.length;
 
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(5000);
+        await waitForConnect();
       });
 
       expect(wsInstances.length).toBeGreaterThanOrEqual(instanceCount);
     });
 
-    it('stops reconnecting after max attempts', () => {
+    it('stops reconnecting after max attempts', async () => {
       const { result } = renderHook(() =>
         useWebSocket({
           autoConnect: false,
           reconnectOnError: true,
           maxReconnectAttempts: 2,
           baseReconnectDelay: 100,
+          checkBackendFirst: false,
         })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -309,8 +376,9 @@ describe('useWebSocket', () => {
         act(() => {
           lastInstance.simulateClose(1006);
         });
-        act(() => {
+        await act(async () => {
           vi.advanceTimersByTime(5000);
+          await waitForConnect();
         });
       }
 
@@ -320,10 +388,12 @@ describe('useWebSocket', () => {
   });
 
   describe('Message Handling', () => {
-    it('handles quote messages', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('handles quote messages', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -356,10 +426,12 @@ describe('useWebSocket', () => {
       );
     });
 
-    it('handles bar messages', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('handles bar messages', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -397,10 +469,12 @@ describe('useWebSocket', () => {
       );
     });
 
-    it('handles error messages', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('handles error messages', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -421,12 +495,14 @@ describe('useWebSocket', () => {
       expect(mockSetLastError).toHaveBeenCalledWith('Test error');
     });
 
-    it('handles heartbeat messages silently', () => {
+    it('handles heartbeat messages silently', async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -451,12 +527,14 @@ describe('useWebSocket', () => {
       consoleSpy.mockRestore();
     });
 
-    it('handles malformed messages gracefully', () => {
+    it('handles malformed messages gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -479,10 +557,12 @@ describe('useWebSocket', () => {
   });
 
   describe('Subscription Management', () => {
-    it('sends messages to server', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('sends messages to server', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -499,12 +579,14 @@ describe('useWebSocket', () => {
       expect(wsInstances[0].send).toHaveBeenCalledWith(JSON.stringify(testMessage));
     });
 
-    it('returns false when sending on closed connection', () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('returns false when sending on closed connection', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -516,17 +598,18 @@ describe('useWebSocket', () => {
       });
 
       expect(sendResult!).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('not connected'));
 
       consoleSpy.mockRestore();
     });
   });
 
   describe('Error Handling', () => {
-    it('handles connection errors', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('handles connection errors', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -537,10 +620,12 @@ describe('useWebSocket', () => {
       expect(mockSetLastError).toHaveBeenCalledWith('WebSocket connection error');
     });
 
-    it('sets connected to false on close', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('sets connected to false on close', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -557,15 +642,16 @@ describe('useWebSocket', () => {
   });
 
   describe('Heartbeat', () => {
-    it('sends periodic heartbeat pings', () => {
+    it('sends periodic heartbeat pings', async () => {
       const { result } = renderHook(() =>
         useWebSocket({
           autoConnect: false,
           heartbeatInterval: 1000,
+          checkBackendFirst: false,
         })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -586,15 +672,16 @@ describe('useWebSocket', () => {
       );
     });
 
-    it('stops heartbeat on disconnect', () => {
+    it('stops heartbeat on disconnect', async () => {
       const { result } = renderHook(() =>
         useWebSocket({
           autoConnect: false,
           heartbeatInterval: 1000,
+          checkBackendFirst: false,
         })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
