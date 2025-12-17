@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEarningsTranscripts } from '@/lib/stores/perplexity-finance-store';
+import { ResearchMarkdown } from '@/components/research/ResearchMarkdown';
 
 /**
  * EarningsTranscriptViewer - View and analyze S&P 500 earnings call transcripts
@@ -315,10 +316,7 @@ export function EarningsTranscriptViewer({
 
               {/* Full Summary */}
               <div className="mb-4">
-                <h3 className="text-sm font-medium mb-2">Summary</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {earnings.content}
-                </p>
+                <ResearchMarkdown content={earnings.content} />
               </div>
 
               {/* Citations */}
