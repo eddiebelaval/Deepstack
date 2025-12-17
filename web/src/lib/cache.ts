@@ -119,8 +119,8 @@ export const serverCache = new MemoryCache();
  * - Assets: Longest TTL since asset lists rarely change
  */
 export const CACHE_TTL = {
-  /** Real-time quote data - 10 seconds */
-  QUOTES: 10,
+  /** Real-time quote data - 30 seconds (aligns with StreamingTicker refresh) */
+  QUOTES: 30,
   /** Historical bar data - 5 minutes */
   BARS: 300,
   /** Asset/symbol lists - 1 hour */

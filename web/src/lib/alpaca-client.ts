@@ -232,6 +232,115 @@ export async function fetchAlpacaQuote(symbol: string): Promise<{
 }
 
 /**
+ * Quote result type for batch fetching
+ */
+export interface AlpacaQuoteResult {
+  bid: number;
+  ask: number;
+  last: number;
+  timestamp: string;
+}
+
+/**
+ * Fetch latest quotes for MULTIPLE symbols in batch (reduces API calls from N to 2)
+ * This is the preferred method to avoid rate limiting.
+ *
+ * Makes at most 2 API calls: one for stocks, one for crypto.
+ * Alpaca supports batch quotes: GET /v2/stocks/quotes/latest?symbols=AAPL,MSFT,GOOGL
+ */
+export async function fetchAlpacaQuotesBatch(
+  symbols: string[]
+): Promise<Record<string, AlpacaQuoteResult>> {
+  const credentials = getCredentials();
+  if (!credentials) {
+    return {};
+  }
+
+  const results: Record<string, AlpacaQuoteResult> = {};
+
+  // Separate stocks and crypto
+  const stockSymbols = symbols.filter(s => !isCryptoSymbol(s));
+  const cryptoSymbols = symbols.filter(s => isCryptoSymbol(s));
+
+  const headers = {
+    'APCA-API-KEY-ID': credentials.apiKey,
+    'APCA-API-SECRET-KEY': credentials.secretKey,
+  };
+
+  // Fetch stock quotes in batch (single API call for all stocks)
+  if (stockSymbols.length > 0) {
+    try {
+      const symbolsParam = stockSymbols.join(',');
+      const url = `${STOCK_DATA_URL}/stocks/quotes/latest?symbols=${encodeURIComponent(symbolsParam)}&feed=${STOCK_FEED}`;
+
+      const response = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Response format: { quotes: { "AAPL": {...}, "MSFT": {...} } }
+        const quotes = data.quotes || {};
+
+        for (const symbol of stockSymbols) {
+          const quote = quotes[symbol];
+          if (quote) {
+            results[symbol] = {
+              bid: quote.bp || quote.bid_price || 0,
+              ask: quote.ap || quote.ask_price || 0,
+              last: quote.ap || quote.ask_price || 0,
+              timestamp: quote.t || new Date().toISOString(),
+            };
+          }
+        }
+      } else {
+        console.error(`Alpaca batch stock quotes error (${response.status})`);
+      }
+    } catch (error) {
+      console.error('Error fetching batch stock quotes from Alpaca:', error);
+    }
+  }
+
+  // Fetch crypto quotes in batch (single API call for all crypto)
+  if (cryptoSymbols.length > 0) {
+    try {
+      const symbolsParam = cryptoSymbols.join(',');
+      const url = `${CRYPTO_DATA_URL}/latest/quotes?symbols=${encodeURIComponent(symbolsParam)}`;
+
+      const response = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Response format: { quotes: { "BTC/USD": {...}, "ETH/USD": {...} } }
+        const quotes = data.quotes || {};
+
+        for (const symbol of cryptoSymbols) {
+          const quote = quotes[symbol];
+          if (quote) {
+            results[symbol] = {
+              bid: quote.bp || quote.bid_price || 0,
+              ask: quote.ap || quote.ask_price || 0,
+              last: quote.ap || quote.ask_price || 0,
+              timestamp: quote.t || new Date().toISOString(),
+            };
+          }
+        }
+      } else {
+        console.error(`Alpaca batch crypto quotes error (${response.status})`);
+      }
+    } catch (error) {
+      console.error('Error fetching batch crypto quotes from Alpaca:', error);
+    }
+  }
+
+  return results;
+}
+
+/**
  * Check if Alpaca API is accessible
  */
 export async function isAlpacaAvailable(): Promise<boolean> {

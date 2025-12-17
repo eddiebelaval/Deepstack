@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
-import { fetchAlpacaQuote } from '@/lib/alpaca-client';
+import { fetchAlpacaQuotesBatch } from '@/lib/alpaca-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -140,39 +140,35 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 2. If backend failed for some symbols, try direct Alpaca
+  // 2. If backend failed for some symbols, try direct Alpaca (BATCH request)
+  // This makes at most 2 API calls (stocks + crypto) instead of N individual calls
   if (stillUncached.length > 0) {
-    const alpacaResults = await Promise.all(
-      stillUncached.map(async (symbol) => {
-        try {
-          const quote = await fetchAlpacaQuote(symbol);
-          if (quote) {
-            return { symbol, data: quote, source: 'alpaca_direct' };
-          }
-          return { symbol, error: true };
-        } catch {
-          return { symbol, error: true };
+    try {
+      const batchQuotes = await fetchAlpacaQuotesBatch(stillUncached);
+
+      for (const symbol of stillUncached) {
+        const quote = batchQuotes[symbol];
+        if (quote) {
+          const quoteData: QuoteData = {
+            symbol,
+            last: quote.last,
+            bid: quote.bid,
+            ask: quote.ask,
+            timestamp: quote.timestamp,
+          };
+          quotes[symbol] = quoteData;
+
+          // Cache the quote
+          const cacheKey = marketCacheKey('quote', { symbol });
+          serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
+        } else {
+          failedSymbols.push(symbol);
         }
-      })
-    );
-
-    for (const result of alpacaResults) {
-      if (result.error || !result.data) {
-        failedSymbols.push(result.symbol);
-      } else {
-        const quoteData: QuoteData = {
-          symbol: result.symbol,
-          last: result.data.last,
-          bid: result.data.bid,
-          ask: result.data.ask,
-          timestamp: result.data.timestamp,
-        };
-        quotes[result.symbol] = quoteData;
-
-        // Cache the quote
-        const cacheKey = marketCacheKey('quote', { symbol: result.symbol });
-        serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
       }
+    } catch (error) {
+      console.error('Error fetching batch quotes from Alpaca:', error);
+      // Mark all as failed if batch request fails
+      failedSymbols.push(...stillUncached);
     }
   }
 
