@@ -25,6 +25,8 @@ import {
     Brain,
     ListChecks,
     Coins,
+    Sparkles,
+    FileSearch,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -267,6 +269,46 @@ export function LeftSidebar() {
                             </Button>
                         </TooltipTrigger>
                         {!showExpanded && <TooltipContent side="right">AI Insights</TooltipContent>}
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={activeContent === 'research-hub' ? "secondary" : "ghost"}
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2",
+                                    activeContent === 'research-hub' && "bg-primary/20 text-primary"
+                                )}
+                                onClick={() => {
+                                    setActiveContent(activeContent === 'research-hub' ? 'none' : 'research-hub');
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <FileSearch className="h-4 w-4 shrink-0 text-cyan-500" />
+                                {showExpanded && <span className="ml-2">Research Hub</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">Research Hub (SEC, Earnings, Profiles)</TooltipContent>}
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={activeContent === 'deep-research' ? "secondary" : "ghost"}
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2",
+                                    activeContent === 'deep-research' && "bg-primary/20 text-primary"
+                                )}
+                                onClick={() => {
+                                    setActiveContent(activeContent === 'deep-research' ? 'none' : 'deep-research');
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <Sparkles className="h-4 w-4 shrink-0 text-violet-500" />
+                                {showExpanded && <span className="ml-2">Deep Research</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">Deep Research (Premium)</TooltipContent>}
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
