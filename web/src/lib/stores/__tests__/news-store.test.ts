@@ -15,7 +15,14 @@ describe('useNewsStore', () => {
         isLoading: false,
         error: null,
         filterSymbol: null,
-        nextPageToken: null,
+        sourceFilter: 'all',
+        includeSocial: true,
+        sourceCounts: {},
+        totalFetched: 0,
+        totalReturned: 0,
+        totalAvailable: 0,
+        sourcesHealth: null,
+        currentOffset: 0,
         hasMore: true,
         isLoadingMore: false,
         lastFetchTime: null,
@@ -48,9 +55,9 @@ describe('useNewsStore', () => {
       expect(state.filterSymbol).toBeNull();
     });
 
-    it('has no next page token initially', () => {
+    it('has zero current offset initially', () => {
       const state = useNewsStore.getState();
-      expect(state.nextPageToken).toBeNull();
+      expect(state.currentOffset).toBe(0);
     });
 
     it('has more pages initially', () => {
@@ -175,27 +182,28 @@ describe('useNewsStore', () => {
       expect(lastFetchTime!).toBeGreaterThanOrEqual(beforeTime);
     });
 
-    it('resets nextPageToken on fetch', async () => {
+    it('resets currentOffset on fetch', async () => {
       act(() => {
-        useNewsStore.setState({ nextPageToken: 'old-token' });
+        useNewsStore.setState({ currentOffset: 30 });
       });
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: mockArticles, next_page_token: 'new-token' }),
+        json: async () => ({ articles: mockArticles, has_more: true }),
       });
 
       await act(async () => {
         await useNewsStore.getState().fetchNews();
       });
 
-      expect(useNewsStore.getState().nextPageToken).toBe('new-token');
+      // After fetch, currentOffset is set to PAGE_SIZE (30)
+      expect(useNewsStore.getState().currentOffset).toBe(30);
     });
 
-    it('sets hasMore to true when next_page_token returned', async () => {
+    it('sets hasMore to true when has_more is true', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: mockArticles, next_page_token: 'abc123' }),
+        json: async () => ({ articles: mockArticles, has_more: true }),
       });
 
       await act(async () => {
@@ -203,13 +211,12 @@ describe('useNewsStore', () => {
       });
 
       expect(useNewsStore.getState().hasMore).toBe(true);
-      expect(useNewsStore.getState().nextPageToken).toBe('abc123');
     });
 
-    it('sets hasMore to false when no next_page_token', async () => {
+    it('sets hasMore to false when has_more is false', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: mockArticles, next_page_token: null }),
+        json: async () => ({ articles: mockArticles, has_more: false }),
       });
 
       await act(async () => {
@@ -217,7 +224,6 @@ describe('useNewsStore', () => {
       });
 
       expect(useNewsStore.getState().hasMore).toBe(false);
-      expect(useNewsStore.getState().nextPageToken).toBeNull();
     });
 
     it('handles fetch errors', async () => {
@@ -324,7 +330,7 @@ describe('useNewsStore', () => {
       act(() => {
         useNewsStore.setState({
           articles: mockArticles,
-          nextPageToken: 'initial-token',
+          currentOffset: 30,
           hasMore: true,
         });
       });
@@ -333,7 +339,7 @@ describe('useNewsStore', () => {
     it('loads more articles', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: moreArticles, next_page_token: 'next-token' }),
+        json: async () => ({ articles: moreArticles, has_more: true }),
       });
 
       await act(async () => {
@@ -342,7 +348,7 @@ describe('useNewsStore', () => {
 
       const state = useNewsStore.getState();
       expect(state.articles).toHaveLength(30);
-      expect(state.nextPageToken).toBe('next-token');
+      expect(state.hasMore).toBe(true);
     });
 
     it('sets loading more state', async () => {
@@ -352,7 +358,7 @@ describe('useNewsStore', () => {
             setTimeout(() => {
               resolve({
                 ok: true,
-                json: async () => ({ articles: moreArticles, next_page_token: 'next' }),
+                json: async () => ({ articles: moreArticles, has_more: true }),
               });
             }, 100);
           })
@@ -383,19 +389,7 @@ describe('useNewsStore', () => {
 
     it('does not load if no more pages', async () => {
       act(() => {
-        useNewsStore.setState({ hasMore: false, nextPageToken: null });
-      });
-
-      await act(async () => {
-        await useNewsStore.getState().loadMore();
-      });
-
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
-
-    it('does not load if no nextPageToken', async () => {
-      act(() => {
-        useNewsStore.setState({ hasMore: true, nextPageToken: null });
+        useNewsStore.setState({ hasMore: false });
       });
 
       await act(async () => {
@@ -413,7 +407,7 @@ describe('useNewsStore', () => {
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: duplicateArticles, next_page_token: 'next' }),
+        json: async () => ({ articles: duplicateArticles, has_more: true }),
       });
 
       await act(async () => {
@@ -428,12 +422,12 @@ describe('useNewsStore', () => {
 
     it('includes symbol filter in request', async () => {
       act(() => {
-        useNewsStore.setState({ filterSymbol: 'AAPL', nextPageToken: 'token' });
+        useNewsStore.setState({ filterSymbol: 'AAPL', currentOffset: 30, hasMore: true });
       });
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ articles: moreArticles, next_page_token: 'next' }),
+        json: async () => ({ articles: moreArticles, has_more: true }),
       });
 
       await act(async () => {
@@ -467,13 +461,13 @@ describe('useNewsStore', () => {
       expect(useNewsStore.getState().filterSymbol).toBe('AAPL');
     });
 
-    it('resets nextPageToken on filter change', () => {
+    it('resets currentOffset on filter change', () => {
       act(() => {
-        useNewsStore.setState({ nextPageToken: 'old-token' });
+        useNewsStore.setState({ currentOffset: 60 });
         useNewsStore.getState().setFilterSymbol('TSLA');
       });
 
-      expect(useNewsStore.getState().nextPageToken).toBeNull();
+      expect(useNewsStore.getState().currentOffset).toBe(0);
     });
 
     it('sets hasMore to true', () => {
@@ -514,13 +508,13 @@ describe('useNewsStore', () => {
       expect(useNewsStore.getState().filterSymbol).toBeNull();
     });
 
-    it('resets nextPageToken on clear', () => {
+    it('resets currentOffset on clear', () => {
       act(() => {
-        useNewsStore.setState({ nextPageToken: 'token', filterSymbol: 'AAPL' });
+        useNewsStore.setState({ currentOffset: 60, filterSymbol: 'AAPL' });
         useNewsStore.getState().clearFilter();
       });
 
-      expect(useNewsStore.getState().nextPageToken).toBeNull();
+      expect(useNewsStore.getState().currentOffset).toBe(0);
     });
 
     it('fetches all news', async () => {

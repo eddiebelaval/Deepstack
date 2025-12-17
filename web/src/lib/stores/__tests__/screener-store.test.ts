@@ -199,12 +199,12 @@ describe('useScreenerStore', () => {
   describe('runScreener', () => {
     it('sets loading state when starting', async () => {
       const mockFetch = vi.fn(() =>
-        new Promise(resolve => setTimeout(() => resolve({
+        new Promise<Response>(resolve => setTimeout(() => resolve({
           ok: true,
           json: async () => ({ results: [] }),
         } as Response), 100))
       );
-      global.fetch = mockFetch;
+      global.fetch = mockFetch as unknown as typeof fetch;
 
       const promise = act(async () => {
         await useScreenerStore.getState().runScreener();
@@ -232,10 +232,11 @@ describe('useScreenerStore', () => {
     });
 
     it('calls API with correct query parameters', async () => {
-      const mockFetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: async () => ({ results: [] }),
-      } as Response));
+      const mockFetch = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({ results: [] }),
+        } as Response);
       global.fetch = mockFetch;
 
       await act(async () => {
@@ -338,10 +339,11 @@ describe('useScreenerStore', () => {
     });
 
     it('includes all filter parameters when set', async () => {
-      const mockFetch = vi.fn(() => Promise.resolve({
-        ok: true,
-        json: async () => ({ results: [] }),
-      } as Response));
+      const mockFetch = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({ results: [] }),
+        } as Response);
       global.fetch = mockFetch;
 
       await act(async () => {
