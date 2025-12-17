@@ -18,10 +18,14 @@ interface MobileSwipeNavigationProps {
 // Default page IDs - can be overridden via props
 const DEFAULT_PAGE_IDS: MobilePageId[] = ['tools', 'chat', 'news', 'predictions'];
 
-// Swipe physics config
-const SWIPE_THRESHOLD = 50; // Min distance to trigger page change
-const SWIPE_VELOCITY_THRESHOLD = 500; // Min velocity to trigger page change
-const EDGE_PEEK_WIDTH = 12; // How much of adjacent page to show
+// Swipe physics config - tuned for smooth, responsive swiping
+const SWIPE_THRESHOLD = 40; // Min distance to trigger page change (lowered for responsiveness)
+const SWIPE_VELOCITY_THRESHOLD = 300; // Min velocity to trigger page change (lowered for easier triggering)
+const DRAG_ELASTIC = 0.2; // Elasticity during drag (higher = more responsive feel)
+const SPRING_STIFFNESS = 260; // Animation stiffness (lower = smoother)
+const SPRING_DAMPING = 26; // Animation damping (lower = more bounce)
+const BOUNCE_STIFFNESS = 260; // Bounce back stiffness
+const BOUNCE_DAMPING = 26; // Bounce back damping
 
 /**
  * Mobile Swipe Navigation Container
@@ -43,6 +47,7 @@ export function MobileSwipeNavigation({
 }: MobileSwipeNavigationProps) {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [isDragging, setIsDragging] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
   const { selection, light } = useHaptics();
@@ -50,6 +55,25 @@ export function MobileSwipeNavigation({
   const pageCount = children.length;
   // Use provided pageIds or generate defaults based on child count
   const effectivePageIds = pageIds.length === pageCount ? pageIds : DEFAULT_PAGE_IDS.slice(0, pageCount);
+
+  // Track container width for accurate drag constraints
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Initial measurement
+    setContainerWidth(container.offsetWidth);
+
+    // Use ResizeObserver to track size changes
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Navigate to a specific page
   // Calculate percentage offset - each page is (100/pageCount)% of the container
@@ -71,8 +95,9 @@ export function MobileSwipeNavigation({
         x: getPageOffset(clampedIndex),
         transition: {
           type: 'spring',
-          stiffness: 300,
-          damping: 30,
+          stiffness: SPRING_STIFFNESS,
+          damping: SPRING_DAMPING,
+          mass: 0.8, // Lighter mass for snappier feel
         },
       });
     } else {
@@ -175,7 +200,7 @@ export function MobileSwipeNavigation({
 
       {/* Swipeable Pages Container */}
       <motion.div
-        className="flex h-full touch-pan-y"
+        className="flex h-full"
         style={{
           width: `${pageCount * 100}%`,
           touchAction: 'pan-y', // Allow vertical scroll inside, but let horizontal swipe through
@@ -184,11 +209,18 @@ export function MobileSwipeNavigation({
         animate={controls}
         drag="x"
         dragConstraints={{
-          left: -(pageCount - 1) * (containerRef.current?.offsetWidth || window.innerWidth),
+          // Use pixel values calculated from tracked container width
+          left: -(pageCount - 1) * (containerWidth || window.innerWidth),
           right: 0,
         }}
-        dragElastic={0.1}
-        dragTransition={{ bounceStiffness: 300, bounceDamping: 30 }}
+        dragElastic={DRAG_ELASTIC}
+        dragMomentum={true} // Enable momentum for fluid swipes
+        dragTransition={{
+          bounceStiffness: BOUNCE_STIFFNESS,
+          bounceDamping: BOUNCE_DAMPING,
+          power: 0.3, // Controls momentum distance
+          timeConstant: 200, // How long momentum lasts
+        }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >

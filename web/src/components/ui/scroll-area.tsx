@@ -33,7 +33,8 @@ function ScrollArea({
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
           overflowY: 'scroll',
-          overflowX: 'hidden'
+          overflowX: 'hidden',
+          touchAction: 'pan-y', // Allow vertical scroll, let horizontal swipes bubble up for page navigation
         }}
       >
         {children}
