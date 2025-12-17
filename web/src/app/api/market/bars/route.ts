@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, MOCK_DATA_WARNING } from '@/lib/api-response';
 import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
+import { MOCK_PRICES, seededRandom, createDailySeed } from '@/lib/mock-data-constants';
 import { z } from 'zod';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -24,16 +25,6 @@ const barsRequestSchema = z.object({
       message: 'Limit must be between 1 and 1000',
     }),
 });
-
-// Realistic base prices for common symbols (as of late 2024)
-const SYMBOL_PRICES: Record<string, number> = {
-  // Market Indices ETFs
-  SPY: 595, QQQ: 520, DIA: 440, IWM: 225, VIX: 14,
-  // Crypto
-  'BTC/USD': 98500, 'ETH/USD': 3800, 'DOGE/USD': 0.42, 'XRP/USD': 2.45,
-  // Tech
-  NVDA: 142, AAPL: 238, TSLA: 355, AMD: 140, MSFT: 432, GOOGL: 175, META: 580, AMZN: 210,
-};
 
 // Get bar interval in seconds based on timeframe
 function getBarIntervalSeconds(timeframe: string): number {
@@ -88,20 +79,42 @@ interface BarData {
 }
 
 // Generate mock bars data when backend is unavailable
+// Uses deterministic random based on symbol + date for consistency
 function generateMockBars(symbol: string, limit: number, timeframe: string = '1d'): BarData[] {
   const bars: BarData[] = [];
   const now = Math.floor(Date.now() / 1000);
   const intervalSeconds = getBarIntervalSeconds(timeframe);
 
-  // Use realistic price for known symbols, otherwise random
-  let price = SYMBOL_PRICES[symbol.toUpperCase()] || (150 + Math.random() * 100);
+  // Use seeded random for consistent data across requests
+  const seed = createDailySeed(symbol.toUpperCase());
+  const random = seededRandom(seed);
 
+  // Target price is the current price (matches quotes API from shared constants)
+  const targetPrice = MOCK_PRICES[symbol.toUpperCase()] || (150 + random() * 100);
+
+  // Generate bars backwards from target price to ensure last bar = target
+  // First, generate random changes
+  const changes: number[] = [];
+  for (let i = 0; i < limit; i++) {
+    // Random change between -2% and +2%
+    changes.push(random() * 0.04 - 0.02);
+  }
+
+  // Calculate starting price by applying changes in reverse
+  let startPrice = targetPrice;
+  for (let i = changes.length - 1; i >= 0; i--) {
+    startPrice = startPrice / (1 + changes[i]);
+  }
+
+  // Now generate bars forward from start price
+  let price = startPrice;
   for (let i = limit; i > 0; i--) {
-    const change = price * (Math.random() * 0.04 - 0.02);
+    const changeIdx = limit - i;
+    const change = price * changes[changeIdx];
     const open = price;
     const close = price + change;
-    const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-    const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+    const high = Math.max(open, close) * (1 + random() * 0.01);
+    const low = Math.min(open, close) * (1 - random() * 0.01);
 
     bars.push({
       t: new Date((now - i * intervalSeconds) * 1000).toISOString(),
@@ -109,7 +122,7 @@ function generateMockBars(symbol: string, limit: number, timeframe: string = '1d
       h: Math.round(high * 100) / 100,
       l: Math.round(low * 100) / 100,
       c: Math.round(close * 100) / 100,
-      v: Math.floor(1000000 + Math.random() * 9000000),
+      v: Math.floor(1000000 + random() * 9000000),
     });
 
     price = close;

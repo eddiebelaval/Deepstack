@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
+import { MOCK_PRICES, seededRandom, createDailySeed } from '@/lib/mock-data-constants';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -16,22 +17,18 @@ const quotesRequestSchema = z.object({
 });
 
 // Generate mock quote data when backend is unavailable
+// Uses seeded random for consistency with bars API
 function generateMockQuotes(symbols: string[]): Record<string, object> {
-  const mockPrices: Record<string, number> = {
-    // Market Indices ETFs
-    SPY: 595.42, QQQ: 518.73, DIA: 437.21, IWM: 225.89, VIX: 13.45,
-    // Tech stocks
-    NVDA: 142.56, AAPL: 237.84, TSLA: 352.67, AMD: 138.92, MSFT: 432.15,
-    GOOGL: 175.50, META: 580.00, AMZN: 210.00,
-    // Crypto (Alpaca format with slash)
-    'BTC/USD': 98500, 'ETH/USD': 3800, 'SOL/USD': 225,
-    'DOGE/USD': 0.42, 'XRP/USD': 2.45,
-  };
-
   const quotes: Record<string, object> = {};
+
   for (const symbol of symbols) {
-    const basePrice = mockPrices[symbol] || 100 + Math.random() * 400;
-    const change = (Math.random() - 0.5) * 4;
+    // Use seeded random for consistent data across requests
+    const seed = createDailySeed(symbol.toUpperCase());
+    const random = seededRandom(seed);
+
+    const basePrice = MOCK_PRICES[symbol.toUpperCase()] || (100 + random() * 400);
+    // Small intraday change (seeded for consistency)
+    const change = basePrice * (random() - 0.5) * 0.02; // +/- 1%
     const changePercent = (change / basePrice) * 100;
 
     quotes[symbol] = {
@@ -41,7 +38,7 @@ function generateMockQuotes(symbols: string[]): Record<string, object> {
       high: basePrice + Math.abs(change) * 0.3,
       low: basePrice - Math.abs(change) * 0.3,
       close: basePrice,
-      volume: Math.floor(Math.random() * 10000000) + 1000000,
+      volume: Math.floor(1000000 + random() * 9000000),
       change: change,
       changePercent: changePercent,
       bid: basePrice - 0.01,
