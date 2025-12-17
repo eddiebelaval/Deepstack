@@ -30,6 +30,37 @@ const MOCK_MARKET_SUMMARY = {
   sources: ['Federal Reserve', 'Bureau of Labor Statistics', 'Company earnings'],
 };
 
+// Shared handler logic
+async function handleMarketSummary(focus?: string[], symbols?: string[]) {
+  // Try Perplexity API first
+  const client = getPerplexityClient();
+
+  if (client.isConfigured()) {
+    try {
+      const result = await client.getMarketSummary({ focus, symbols });
+
+      return NextResponse.json({
+        content: result.content,
+        citations: result.citations,
+        focus,
+        symbols,
+        mock: result.mock,
+      });
+    } catch (error) {
+      console.warn('Perplexity API failed, falling back to mock data:', error);
+    }
+  }
+
+  // Fallback to mock data
+  return NextResponse.json({
+    content: MOCK_MARKET_SUMMARY.overview,
+    citations: [],
+    sectors: MOCK_MARKET_SUMMARY.sectors,
+    mock: true,
+    note: 'Using mock data. Configure PERPLEXITY_API_KEY for live market intelligence.',
+  });
+}
+
 export async function GET(request: NextRequest) {
   // Rate limiting: 30 requests per minute for market summary (encourage frequent use)
   const rateLimit = checkRateLimit(request, { limit: 30, windowMs: 60000 });
@@ -43,34 +74,29 @@ export async function GET(request: NextRequest) {
     const focus = focusParam ? focusParam.split(',') : undefined;
     const symbols = symbolsParam ? symbolsParam.split(',').map(s => s.toUpperCase()) : undefined;
 
-    // Try Perplexity API first
-    const client = getPerplexityClient();
+    return handleMarketSummary(focus, symbols);
+  } catch (error) {
+    console.error('Market summary error:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate market summary' },
+      { status: 500 }
+    );
+  }
+}
 
-    if (client.isConfigured()) {
-      try {
-        const result = await client.getMarketSummary({ focus, symbols });
+export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute for market summary
+  const rateLimit = checkRateLimit(request, { limit: 30, windowMs: 60000 });
+  if (!rateLimit.success) return rateLimitResponse(rateLimit.resetTime);
 
-        return NextResponse.json({
-          summary: {
-            timestamp: new Date().toISOString(),
-            content: result.content,
-            citations: result.citations,
-            focus,
-            symbols,
-          },
-          mock: result.mock,
-        });
-      } catch (error) {
-        console.warn('Perplexity API failed, falling back to mock data:', error);
-      }
-    }
+  try {
+    const body = await request.json();
+    const { topics, focus, symbols } = body;
 
-    // Fallback to mock data
-    return NextResponse.json({
-      summary: MOCK_MARKET_SUMMARY,
-      mock: true,
-      note: 'Using mock data. Configure PERPLEXITY_API_KEY for live market intelligence.',
-    });
+    // Support both 'topics' (from store) and 'focus' (for compatibility)
+    const focusAreas = topics || focus;
+
+    return handleMarketSummary(focusAreas, symbols);
   } catch (error) {
     console.error('Market summary error:', error);
     return NextResponse.json(

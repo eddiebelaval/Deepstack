@@ -39,6 +39,68 @@ const MOCK_SEC_FILINGS = [
   },
 ];
 
+// Shared handler logic for both GET and POST
+async function handleSECSearch(
+  symbol: string | null,
+  filingType: string,
+  query: string | null,
+  dateAfter: string | null
+) {
+  if (!symbol) {
+    return NextResponse.json(
+      { error: 'Symbol parameter is required' },
+      { status: 400 }
+    );
+  }
+
+  const upperSymbol = symbol.toUpperCase();
+
+  // Try Perplexity API first
+  const client = getPerplexityClient();
+
+  if (client.isConfigured()) {
+    try {
+      const result = await client.searchSECFilings({
+        symbol: upperSymbol,
+        filingType: filingType !== 'all' ? filingType : undefined,
+        query: query || undefined,
+        dateAfter: dateAfter || undefined,
+      });
+
+      return NextResponse.json({
+        content: result.content,
+        citations: result.citations,
+        symbol: upperSymbol,
+        filingType,
+        query,
+        mock: result.mock,
+      });
+    } catch (error) {
+      console.warn('Perplexity API failed, falling back to mock data:', error);
+    }
+  }
+
+  // Fallback to mock data
+  const mockFilings = MOCK_SEC_FILINGS.filter(f =>
+    f.symbol === upperSymbol &&
+    (filingType === 'all' || f.filingType === filingType)
+  );
+
+  const mockContent = mockFilings.length > 0
+    ? mockFilings[0].summary + '\n\nKey Points:\n' + mockFilings[0].keyPoints.map(p => `• ${p}`).join('\n')
+    : `SEC filings for ${upperSymbol} would appear here with Perplexity API integration.`;
+
+  return NextResponse.json({
+    content: mockContent,
+    citations: [],
+    symbol: upperSymbol,
+    filingType,
+    query,
+    mock: true,
+    note: 'Using mock data. Configure PERPLEXITY_API_KEY for live results.',
+  });
+}
+
 export async function GET(request: NextRequest) {
   // Rate limiting: 20 requests per minute for SEC search
   const rateLimit = checkRateLimit(request, { limit: 20, windowMs: 60000 });
@@ -46,73 +108,31 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const symbol = searchParams.get('symbol')?.toUpperCase();
+    const symbol = searchParams.get('symbol');
     const filingType = searchParams.get('type') || 'all';
     const query = searchParams.get('q');
     const dateAfter = searchParams.get('after');
 
-    if (!symbol) {
-      return NextResponse.json(
-        { error: 'Symbol parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    // Try Perplexity API first
-    const client = getPerplexityClient();
-
-    if (client.isConfigured()) {
-      try {
-        const result = await client.searchSECFilings({
-          symbol,
-          filingType: filingType !== 'all' ? filingType : undefined,
-          query: query || undefined,
-          dateAfter: dateAfter || undefined,
-        });
-
-        // Parse the content into structured data
-        // For now, return the raw analysis with metadata
-        return NextResponse.json({
-          filings: [{
-            id: `${symbol}-${filingType}-${Date.now()}`,
-            symbol,
-            filingType,
-            summary: result.content,
-            citations: result.citations,
-          }],
-          symbol,
-          query,
-          count: 1,
-          mock: result.mock,
-        });
-      } catch (error) {
-        console.warn('Perplexity API failed, falling back to mock data:', error);
-      }
-    }
-
-    // Fallback to mock data
-    const mockFilings = MOCK_SEC_FILINGS.filter(f =>
-      f.symbol === symbol &&
-      (filingType === 'all' || f.filingType === filingType)
+    return handleSECSearch(symbol, filingType, query, dateAfter);
+  } catch (error) {
+    console.error('SEC search error:', error);
+    return NextResponse.json(
+      { error: 'Failed to search SEC filings' },
+      { status: 500 }
     );
+  }
+}
 
-    return NextResponse.json({
-      filings: mockFilings.length > 0 ? mockFilings : [{
-        id: `${symbol}-mock`,
-        symbol,
-        companyName: symbol,
-        filingType: filingType === 'all' ? '10-K' : filingType,
-        filingDate: new Date().toISOString().split('T')[0],
-        summary: `SEC filings for ${symbol} would appear here with Perplexity API integration.`,
-        keyPoints: ['Configure PERPLEXITY_API_KEY for live SEC filing search'],
-        edgarUrl: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${symbol}`,
-      }],
-      symbol,
-      query,
-      count: mockFilings.length || 1,
-      mock: true,
-      note: 'Using mock data. Configure PERPLEXITY_API_KEY for live results.',
-    });
+export async function POST(request: NextRequest) {
+  // Rate limiting: 20 requests per minute for SEC search
+  const rateLimit = checkRateLimit(request, { limit: 20, windowMs: 60000 });
+  if (!rateLimit.success) return rateLimitResponse(rateLimit.resetTime);
+
+  try {
+    const body = await request.json();
+    const { symbol, filingType = 'all', query, dateAfter } = body;
+
+    return handleSECSearch(symbol, filingType, query, dateAfter);
   } catch (error) {
     console.error('SEC search error:', error);
     return NextResponse.json(
