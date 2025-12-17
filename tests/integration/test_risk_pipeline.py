@@ -15,13 +15,10 @@ Test Coverage:
 - Risk override scenarios
 """
 
-from unittest.mock import Mock
-
 import pytest
 
 from core.risk.circuit_breaker import CircuitBreaker
 from core.risk.kelly_position_sizer import KellyPositionSizer
-from core.risk.portfolio_risk import PortfolioRisk
 from core.risk.stop_loss_manager import StopLossManager
 
 # ============================================================================
@@ -221,52 +218,55 @@ def test_circuit_breaker_resets_on_win(circuit_breaker_with_history):
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_portfolio_heat_calculation_with_multiple_positions():
-    """Test portfolio heat calculation with multiple positions."""
-    # Mock portfolio risk manager
-    risk_mgr = PortfolioRisk(
-        config=Mock(),
-        kelly_sizer=KellyPositionSizer(
-            account_balance=100000.0,
-            current_positions={"AAPL": 10000.0, "MSFT": 15000.0, "GOOGL": 5000.0},
-        ),
+def test_portfolio_heat_calculation_with_kelly_sizer():
+    """Test portfolio heat calculation via KellyPositionSizer."""
+    # Test using KellyPositionSizer directly (which tracks portfolio heat)
+    sizer = KellyPositionSizer(
+        account_balance=100000.0,
+        current_positions={"AAPL": 10000.0, "MSFT": 15000.0, "GOOGL": 5000.0},
     )
 
-    # Check portfolio heat
-    heat_result = await risk_mgr.check_portfolio_heat(
-        symbol="TSLA", quantity=100, action="BUY", current_price=200.0  # $20k position
+    # Calculate new position with 55% win rate, 1.5:1 reward/risk
+    result = sizer.calculate_position_size(
+        win_rate=0.55,
+        avg_win=150.0,
+        avg_loss=100.0,
+        kelly_fraction=0.5,
+        stock_price=200.0,
+        symbol="TSLA",
     )
 
     # Current heat: 30k / 100k = 30%
-    # New position: 20k
-    # Total would be: 50k / 100k = 50%
-    assert "current_heat" in heat_result or "approved" in heat_result
+    assert result["portfolio_heat"] == 0.30
+    # Should calculate a valid position
+    assert result["position_size"] > 0
 
 
-@pytest.mark.asyncio
-async def test_portfolio_heat_rejects_oversized_position():
-    """Test portfolio heat rejects position that would exceed limits."""
-    risk_mgr = PortfolioRisk(
-        config=Mock(),
-        kelly_sizer=KellyPositionSizer(
-            account_balance=100000.0,
-            max_total_exposure=1.0,
-            current_positions={"AAPL": 30000.0, "MSFT": 30000.0, "GOOGL": 30000.0},
-        ),
+def test_portfolio_heat_capped_at_max_exposure():
+    """Test portfolio heat is capped when approaching max exposure."""
+    # Portfolio at 90% capacity
+    sizer = KellyPositionSizer(
+        account_balance=100000.0,
+        max_total_exposure=1.0,
+        current_positions={"AAPL": 30000.0, "MSFT": 30000.0, "GOOGL": 30000.0},
     )
 
-    # Try to add large position (would exceed 100%)
-    heat_result = await risk_mgr.check_portfolio_heat(
+    # Current heat: 90k / 100k = 90%
+    # Max remaining capacity: 10%
+    result = sizer.calculate_position_size(
+        win_rate=0.60,
+        avg_win=200.0,
+        avg_loss=100.0,
+        kelly_fraction=0.5,
+        stock_price=100.0,
         symbol="TSLA",
-        quantity=200,
-        action="BUY",
-        current_price=200.0,  # $40k position (total would be 130%)
     )
 
-    # Should reject or warn
-    # Implementation may vary, but should not approve full size
-    assert heat_result.get("approved") is False or "warning" in str(heat_result).lower()
+    # Should have limited capacity
+    assert result["portfolio_heat"] == 0.90
+    # Position should be capped to not exceed 100%
+    max_allowed = 100000 * 0.10  # Only 10% remaining
+    assert result["position_size"] <= max_allowed
 
 
 # ============================================================================
@@ -357,19 +357,38 @@ def test_stop_loss_respects_max_risk_limit(stop_loss_manager):
     """Test stop loss enforces max risk per trade."""
     manager = stop_loss_manager
 
-    # Try very tight stop on large position
+    # Try very tight stop on large position that exceeds max risk
+    # Position: $50k, Stop: 10% = $5k risk
+    # Max risk: 2% of $100k = $2k
+    # Should raise ValueError
+    with pytest.raises(ValueError, match="exceeds max account risk"):
+        manager.calculate_stop_loss(
+            symbol="AAPL",
+            entry_price=150.0,
+            position_size=50000.0,  # $50k position (50% of portfolio)
+            position_side="long",
+            stop_type="fixed_pct",
+            stop_pct=0.10,  # 10% stop (would risk $5k = 5% of portfolio)
+        )
+
+
+def test_stop_loss_within_risk_limit(stop_loss_manager):
+    """Test stop loss succeeds when within risk limit."""
+    manager = stop_loss_manager
+
+    # Smaller position that stays within 2% risk limit
+    # Position: $10k, Stop: 10% = $1k risk (within 2% of $100k)
     stop_data = manager.calculate_stop_loss(
         symbol="AAPL",
         entry_price=150.0,
-        position_size=50000.0,  # $50k position (50% of portfolio)
+        position_size=10000.0,  # $10k position
         position_side="long",
         stop_type="fixed_pct",
-        stop_pct=0.10,  # 10% stop (would risk $5k = 5% of portfolio)
+        stop_pct=0.10,  # 10% stop = $1k risk
     )
 
-    # Risk should be capped at 2% of portfolio = $2000
-    # This means position size may need to be adjusted
-    assert stop_data["risk_amount"] <= 2000.0 or "warning" in stop_data
+    # Should succeed and show risk within limits
+    assert stop_data["risk_amount"] <= 2000.0
 
 
 # ============================================================================
