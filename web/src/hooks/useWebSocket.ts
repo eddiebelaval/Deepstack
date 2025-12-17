@@ -51,7 +51,9 @@ type UseWebSocketOptions = {
 };
 
 const DEFAULT_OPTIONS: Required<UseWebSocketOptions> = {
-  url: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws",
+  // Use 127.0.0.1 instead of localhost to avoid IPv6 resolution issues
+  // (Python server binds to IPv4 127.0.0.1, but localhost may resolve to IPv6 ::1 first)
+  url: process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws",
   autoConnect: true,
   reconnectOnError: true,
   maxReconnectAttempts: 3, // Reduced from 10 to avoid spam when backend is down
