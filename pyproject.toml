@@ -97,17 +97,26 @@ log_file_level = "DEBUG"
 
 [tool.coverage.run]
 source = ["core"]
+branch = true
 omit = [
     "*/tests/*",
     "*/venv/*",
     "*/__pycache__/*",
+    "core/cli/*",  # CLI dashboard is interactive, hard to test
 ]
 
 [tool.coverage.report]
 precision = 2
 show_missing = true
 skip_covered = false
-fail_under = 0
+fail_under = 70
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
 
 [tool.coverage.html]
 directory = "htmlcov"
