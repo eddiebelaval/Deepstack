@@ -13,12 +13,15 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'UNAUTHORIZED'
   | 'RATE_LIMITED'
-  | 'INTERNAL_ERROR';
+  | 'INTERNAL_ERROR'
+  | 'DATA_UNAVAILABLE';
 
 interface ApiMeta {
   isMock: boolean;
   timestamp: string;
   warning?: string;
+  source?: string;
+  lastUpdated?: string;
 }
 
 interface ApiSuccessResponse<T> {
@@ -50,9 +53,11 @@ export function apiSuccess<T>(
     isMock?: boolean;
     warning?: string;
     status?: number;
+    source?: string;
+    lastUpdated?: string;
   } = {}
 ): NextResponse<ApiSuccessResponse<T>> {
-  const { isMock = false, warning, status = 200 } = options;
+  const { isMock = false, warning, status = 200, source, lastUpdated } = options;
 
   const response: ApiSuccessResponse<T> = {
     success: true,
@@ -61,6 +66,8 @@ export function apiSuccess<T>(
       isMock,
       timestamp: new Date().toISOString(),
       ...(warning && { warning }),
+      ...(source && { source }),
+      ...(lastUpdated && { lastUpdated }),
     },
   };
 
@@ -88,6 +95,7 @@ export function apiError(
     UNAUTHORIZED: 401,
     RATE_LIMITED: 429,
     INTERNAL_ERROR: 500,
+    DATA_UNAVAILABLE: 503,
   };
 
   const response: ApiErrorResponse = {

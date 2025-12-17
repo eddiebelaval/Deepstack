@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverCache, CACHE_TTL, marketCacheKey } from '@/lib/cache';
+import { fetchAlpacaQuote } from '@/lib/alpaca-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -14,43 +15,6 @@ const quotesRequestSchema = z.object({
       'All symbols must contain only letters, numbers, dots, hyphens, and slashes'
     ),
 });
-
-// Generate mock quote data when backend is unavailable
-function generateMockQuotes(symbols: string[]): Record<string, object> {
-  const mockPrices: Record<string, number> = {
-    // Market Indices ETFs
-    SPY: 595.42, QQQ: 518.73, DIA: 437.21, IWM: 225.89, VIX: 13.45,
-    // Tech stocks
-    NVDA: 142.56, AAPL: 237.84, TSLA: 352.67, AMD: 138.92, MSFT: 432.15,
-    GOOGL: 175.50, META: 580.00, AMZN: 210.00,
-    // Crypto (Alpaca format with slash)
-    'BTC/USD': 98500, 'ETH/USD': 3800, 'SOL/USD': 225,
-    'DOGE/USD': 0.42, 'XRP/USD': 2.45,
-  };
-
-  const quotes: Record<string, object> = {};
-  for (const symbol of symbols) {
-    const basePrice = mockPrices[symbol] || 100 + Math.random() * 400;
-    const change = (Math.random() - 0.5) * 4;
-    const changePercent = (change / basePrice) * 100;
-
-    quotes[symbol] = {
-      symbol,
-      last: basePrice,
-      open: basePrice - change * 0.5,
-      high: basePrice + Math.abs(change) * 0.3,
-      low: basePrice - Math.abs(change) * 0.3,
-      close: basePrice,
-      volume: Math.floor(Math.random() * 10000000) + 1000000,
-      change: change,
-      changePercent: changePercent,
-      bid: basePrice - 0.01,
-      ask: basePrice + 0.01,
-      timestamp: new Date().toISOString(),
-    };
-  }
-  return quotes;
-}
 
 interface QuoteData {
   symbol: string;
@@ -67,15 +31,22 @@ interface QuoteData {
   timestamp: string;
 }
 
+/**
+ * Data Source Hierarchy for Quotes:
+ * 1. Memory cache (fastest, short TTL for real-time data)
+ * 2. Python backend (preferred live source)
+ * 3. Direct Alpaca API (fallback when backend down)
+ *
+ * We NEVER generate mock data. If all sources fail, we return an error.
+ */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const queryParams = {
     symbols: searchParams.get('symbols'),
   };
 
-  // Validate query parameters with Zod
+  // Validate query parameters
   const validation = quotesRequestSchema.safeParse(queryParams);
-
   if (!validation.success) {
     return NextResponse.json(
       {
@@ -89,33 +60,7 @@ export async function GET(request: NextRequest) {
 
   const symbolList = validation.data.symbols.split(',');
 
-  // First, check if backend is available before trusting cache
-  // This prevents returning stale cached data when backend goes down
-  let backendAvailable = false;
-  try {
-    const testResponse = await fetch(
-      `${API_BASE_URL}/health`,
-      {
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(2000), // 2 second timeout
-      }
-    );
-    backendAvailable = testResponse.ok;
-  } catch {
-    backendAvailable = false;
-  }
-
-  // If backend is unavailable, return fresh mock data (don't trust stale cache)
-  if (!backendAvailable) {
-    console.warn('Backend unavailable, returning fresh mock quotes with realistic prices');
-    return NextResponse.json({
-      quotes: generateMockQuotes(symbolList),
-      mock: true,
-      warning: 'Using simulated data - backend unavailable'
-    });
-  }
-
-  // Backend is available - now we can use cache safely
+  // Check cache first
   const cachedQuotes: Record<string, QuoteData> = {};
   const uncachedSymbols: string[] = [];
 
@@ -129,26 +74,28 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If all symbols were cached and backend is available, return cached data
+  // If all symbols were cached, return immediately
   if (uncachedSymbols.length === 0) {
     return NextResponse.json({
       quotes: cachedQuotes,
       mock: false,
-      cached: true,
+      source: 'cache',
     });
   }
 
-  try {
-    // Fetch uncached symbols in parallel from backend
-    const quotePromises = uncachedSymbols.map(async (symbol) => {
+  // Try to fetch uncached symbols
+  const quotes: Record<string, QuoteData> = { ...cachedQuotes };
+  const failedSymbols: string[] = [];
+
+  // 1. Try Python backend first
+  const backendResults = await Promise.all(
+    uncachedSymbols.map(async (symbol) => {
       try {
         const response = await fetch(
           `${API_BASE_URL}/quote/${encodeURIComponent(symbol)}`,
           {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            // Use next.js revalidation for edge caching
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(5000),
             next: { revalidate: CACHE_TTL.QUOTES },
           }
         );
@@ -158,55 +105,112 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
-        return { symbol, data };
+        return { symbol, data, source: 'backend' };
       } catch {
         return { symbol, error: true };
       }
-    });
+    })
+  );
 
-    const results = await Promise.all(quotePromises);
+  // Process backend results
+  const stillUncached: string[] = [];
+  for (const result of backendResults) {
+    if (result.error || !result.data) {
+      stillUncached.push(result.symbol);
+    } else {
+      const quoteData: QuoteData = {
+        symbol: result.symbol,
+        last: result.data.price ?? result.data.last ?? result.data.close,
+        open: result.data.open,
+        high: result.data.high,
+        low: result.data.low,
+        close: result.data.close,
+        volume: result.data.volume,
+        change: result.data.change,
+        changePercent: result.data.change_percent ?? result.data.changePercent,
+        bid: result.data.bid,
+        ask: result.data.ask,
+        timestamp: result.data.timestamp || new Date().toISOString(),
+      };
+      quotes[result.symbol] = quoteData;
 
-    // Build quotes object from results and cache them
-    const quotes: Record<string, QuoteData> = { ...cachedQuotes };
-    let hasRealData = Object.keys(cachedQuotes).length > 0;
+      // Cache the quote
+      const cacheKey = marketCacheKey('quote', { symbol: result.symbol });
+      serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
+    }
+  }
 
-    for (const result of results) {
-      if (!result.error && result.data) {
-        hasRealData = true;
+  // 2. If backend failed for some symbols, try direct Alpaca
+  if (stillUncached.length > 0) {
+    const alpacaResults = await Promise.all(
+      stillUncached.map(async (symbol) => {
+        try {
+          const quote = await fetchAlpacaQuote(symbol);
+          if (quote) {
+            return { symbol, data: quote, source: 'alpaca_direct' };
+          }
+          return { symbol, error: true };
+        } catch {
+          return { symbol, error: true };
+        }
+      })
+    );
+
+    for (const result of alpacaResults) {
+      if (result.error || !result.data) {
+        failedSymbols.push(result.symbol);
+      } else {
         const quoteData: QuoteData = {
           symbol: result.symbol,
-          last: result.data.price ?? result.data.last ?? result.data.close,
-          open: result.data.open,
-          high: result.data.high,
-          low: result.data.low,
-          close: result.data.close,
-          volume: result.data.volume,
-          change: result.data.change,
-          changePercent: result.data.change_percent ?? result.data.changePercent,
+          last: result.data.last,
           bid: result.data.bid,
           ask: result.data.ask,
-          timestamp: result.data.timestamp || new Date().toISOString(),
+          timestamp: result.data.timestamp,
         };
         quotes[result.symbol] = quoteData;
 
-        // Cache individual quote
+        // Cache the quote
         const cacheKey = marketCacheKey('quote', { symbol: result.symbol });
         serverCache.set(cacheKey, quoteData, CACHE_TTL.QUOTES);
       }
     }
+  }
 
-    if (hasRealData) {
-      return NextResponse.json({ quotes, mock: false });
+  // Return results
+  const hasAnyData = Object.keys(quotes).length > 0;
+
+  if (hasAnyData) {
+    const response: {
+      quotes: Record<string, QuoteData>;
+      mock: boolean;
+      source: string;
+      warning?: string;
+      failedSymbols?: string[];
+    } = {
+      quotes,
+      mock: false,
+      source: 'mixed',
+    };
+
+    // Add warning if some symbols failed
+    if (failedSymbols.length > 0) {
+      response.warning = `Could not fetch quotes for: ${failedSymbols.join(', ')}`;
+      response.failedSymbols = failedSymbols;
     }
 
-    throw new Error('No real quotes available');
-  } catch (error) {
-    // Backend unavailable - return mock data so UI still works
-    console.warn('Backend unavailable, returning mock quotes:', error);
-    return NextResponse.json({
-      quotes: generateMockQuotes(symbolList),
-      mock: true,
-      warning: 'Using simulated data - backend unavailable'
-    });
+    return NextResponse.json(response);
   }
+
+  // All sources failed - return error (NEVER mock data)
+  return NextResponse.json(
+    {
+      error: 'DATA_UNAVAILABLE',
+      message: 'Quote data unavailable. All data sources failed.',
+      details: {
+        symbols: symbolList,
+        suggestion: 'Please try again later or check if the symbols are valid.',
+      }
+    },
+    { status: 503 }
+  );
 }
