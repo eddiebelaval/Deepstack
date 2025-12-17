@@ -21,6 +21,7 @@ const PredictionMarketsWidget = lazy(() => import('./PredictionMarketsWidget'));
 const ThesisActiveWidget = lazy(() => import('./ThesisActiveWidget'));
 const JournalRecentWidget = lazy(() => import('./JournalRecentWidget'));
 const InsightsLatestWidget = lazy(() => import('./InsightsLatestWidget'));
+const MarketSummaryWidget = lazy(() => import('./MarketSummaryWidget'));
 
 // Loading fallback
 function WidgetLoading() {
@@ -53,6 +54,8 @@ export function WidgetRenderer({ type }: WidgetRendererProps) {
         return <WatchlistWidget />;
       case 'market-status':
         return <MarketStatusWidget />;
+      case 'market-summary':
+        return <MarketSummaryWidget />;
       case 'positions-summary':
         return <PositionsSummaryWidget />;
       case 'quick-stats':

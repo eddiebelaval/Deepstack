@@ -18,6 +18,7 @@ import {
   Lightbulb,
   BookOpen,
   TrendingUp,
+  Brain,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -27,6 +28,7 @@ export type WidgetType =
   | 'mini-chart'
   | 'watchlist'
   | 'market-status'
+  | 'market-summary'
   // Portfolio
   | 'positions-summary'
   | 'quick-stats'
@@ -86,6 +88,14 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     icon: Activity,
     category: 'market',
     defaultHeight: 'compact',
+  },
+  'market-summary': {
+    type: 'market-summary',
+    title: 'AI Market Summary',
+    description: 'AI-powered market intelligence from Perplexity',
+    icon: Brain,
+    category: 'market',
+    defaultHeight: 'medium',
   },
   // Portfolio Widgets
   'positions-summary': {
