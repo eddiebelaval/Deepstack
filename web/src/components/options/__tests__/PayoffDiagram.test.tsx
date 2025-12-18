@@ -75,7 +75,8 @@ describe('PayoffDiagram', () => {
 
     it('renders chart container', () => {
       const { container } = render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
-      expect(container.querySelector('[ref]')).toBeInTheDocument();
+      // Chart container is rendered with w-full class
+      expect(container.querySelector('.w-full')).toBeInTheDocument();
     });
 
     it('shows empty state when no calculation', () => {
@@ -88,7 +89,8 @@ describe('PayoffDiagram', () => {
     it('renders max profit', () => {
       render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
       expect(screen.getByText('Max Profit')).toBeInTheDocument();
-      expect(screen.getByText('Unlimited')).toBeInTheDocument();
+      // Both Max Profit and Risk/Reward show 'Unlimited', so check for at least one
+      expect(screen.getAllByText('Unlimited').length).toBeGreaterThan(0);
     });
 
     it('renders max loss', () => {
@@ -106,7 +108,8 @@ describe('PayoffDiagram', () => {
     it('renders risk/reward ratio', () => {
       render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
       expect(screen.getByText('Risk/Reward')).toBeInTheDocument();
-      expect(screen.getByText('Unlimited')).toBeInTheDocument();
+      // Both Max Profit and Risk/Reward show 'Unlimited', check for at least 2
+      expect(screen.getAllByText('Unlimited').length).toBeGreaterThanOrEqual(2);
     });
 
     it('displays finite max profit correctly', () => {
@@ -238,8 +241,8 @@ describe('PayoffDiagram', () => {
   describe('chart data conversion', () => {
     it('converts P&L data to chart format', () => {
       const { container } = render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
-      // Chart should be rendered
-      expect(container.querySelector('[ref]')).toBeInTheDocument();
+      // Chart container should be rendered
+      expect(container.querySelector('.w-full')).toBeInTheDocument();
     });
 
     it('handles empty P&L arrays', () => {
@@ -263,15 +266,21 @@ describe('PayoffDiagram', () => {
     });
 
     it('applies profit color to max profit', () => {
-      const { container } = render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
-      const maxProfit = screen.getByText('Unlimited').closest('.p-2');
-      expect(maxProfit?.className).toContain('text-green-500');
+      render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
+      // Find the Max Profit label and check its sibling has profit color
+      const maxProfitLabel = screen.getByText('Max Profit');
+      const metricCard = maxProfitLabel.closest('.p-2');
+      const valueDiv = metricCard?.querySelector('.text-green-500');
+      expect(valueDiv).toBeInTheDocument();
     });
 
     it('applies loss color to max loss', () => {
-      const { container } = render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
-      const maxLoss = screen.getByText('$250').closest('.p-2');
-      expect(maxLoss?.className).toContain('text-red-500');
+      render(<PayoffDiagram calculation={mockCalculation} underlyingPrice={450} />);
+      // Find the Max Loss label and check its sibling has loss color
+      const maxLossLabel = screen.getByText('Max Loss');
+      const metricCard = maxLossLabel.closest('.p-2');
+      const valueDiv = metricCard?.querySelector('.text-red-500');
+      expect(valueDiv).toBeInTheDocument();
     });
   });
 
@@ -302,8 +311,9 @@ describe('PayoffDiagram', () => {
     });
 
     it('does not render chart in empty state', () => {
-      const { container } = render(<PayoffDiagram calculation={null} underlyingPrice={450} />);
-      expect(container.querySelector('[ref]')).not.toBeInTheDocument();
+      render(<PayoffDiagram calculation={null} underlyingPrice={450} />);
+      // Empty state shows message, no chart rendered
+      expect(screen.getByText('Add legs to see payoff diagram')).toBeInTheDocument();
     });
   });
 
