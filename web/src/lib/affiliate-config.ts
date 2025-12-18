@@ -9,7 +9,7 @@ export interface AffiliatePartner {
   referralUrl: string;
   tagline: string;
   cta: string;
-  icon: 'alpaca' | 'robinhood' | 'webull';
+  icon: 'alpaca' | 'webull';
   enabled: boolean;
 }
 
@@ -24,17 +24,6 @@ export const AFFILIATES: Record<string, AffiliatePartner> = {
     cta: 'Open Account',
     icon: 'alpaca',
     enabled: true,
-  },
-  // Secondary: Robinhood affiliate program
-  // Apply at: https://app.impact.com/campaign-mediapartner-signup/Robinhood.brand?execution=e1s1
-  robinhood: {
-    id: 'robinhood',
-    name: 'Robinhood',
-    referralUrl: 'https://robinhood.com/signup', // Replace with Impact Radius affiliate link once approved
-    tagline: 'Start investing today',
-    cta: 'Get Started',
-    icon: 'robinhood',
-    enabled: false, // Enable once affiliate approved
   },
   // Tertiary: Webull affiliate program
   // Apply at: https://act.webullapp.com/mktb/partners/individual (need 5k+ followers)
