@@ -208,51 +208,13 @@ export function LeftSidebar() {
                     </Tooltip>
                 </div>
 
-                {/* Thesis Engine & Journal Section */}
-                <div className="px-2 space-y-1 border-b border-sidebar-border pb-3 mb-3">
+                {/* Free Tools Section */}
+                <div className="px-2 space-y-1 pb-2">
                     {showExpanded && (
                         <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Research Tools
+                            Tools
                         </div>
                     )}
-                    <div className="relative">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant={activeContent === 'thesis' ? "secondary" : "ghost"}
-                                    className={cn(
-                                        "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
-                                        !showExpanded && "justify-center px-2",
-                                        activeContent === 'thesis' && "bg-primary/20 text-primary"
-                                    )}
-                                    onClick={() => {
-                                        setActiveContent(activeContent === 'thesis' ? 'none' : 'thesis');
-                                        if (isMobile || isTablet) setLeftSidebarOpen(false);
-                                    }}
-                                >
-                                    <Lightbulb className="h-4 w-4 shrink-0" />
-                                    {showExpanded && <span className="ml-2">Thesis Engine</span>}
-                                </Button>
-                            </TooltipTrigger>
-                            {!showExpanded && <TooltipContent side="right">Thesis Engine</TooltipContent>}
-                        </Tooltip>
-                        {/* Tour Ping for Thesis Step - shows even when sidebar is collapsed */}
-                        {isThesisTourActive && thesisTourStep && (
-                            <div className={cn(
-                                "absolute top-1/2 -translate-y-1/2 z-50",
-                                showExpanded ? "-right-2" : "left-full ml-2"
-                            )}>
-                                <TourPing
-                                    isActive={isThesisTourActive}
-                                    title={thesisTourStep.title}
-                                    description={thesisTourStep.description}
-                                    tip={thesisTourStep.tip}
-                                    position="right"
-                                    onDismiss={dismissThesisTour}
-                                />
-                            </div>
-                        )}
-                    </div>
                     <div className="relative">
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -334,26 +296,6 @@ export function LeftSidebar() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant={activeContent === 'deep-research' ? "secondary" : "ghost"}
-                                className={cn(
-                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
-                                    !showExpanded && "justify-center px-2",
-                                    activeContent === 'deep-research' && "bg-primary/20 text-primary"
-                                )}
-                                onClick={() => {
-                                    setActiveContent(activeContent === 'deep-research' ? 'none' : 'deep-research');
-                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
-                                }}
-                            >
-                                <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
-                                {showExpanded && <span className="ml-2">Deep Research</span>}
-                            </Button>
-                        </TooltipTrigger>
-                        {!showExpanded && <TooltipContent side="right">Deep Research (Premium)</TooltipContent>}
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
                                 variant="ghost"
                                 className={cn(
                                     "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
@@ -370,6 +312,82 @@ export function LeftSidebar() {
                         </TooltipTrigger>
                         {!showExpanded && <TooltipContent side="right">Manage Watchlist</TooltipContent>}
                     </Tooltip>
+                </div>
+
+                {/* Pro Tools Section (Premium - Orange Icons) */}
+                <div className="px-2 space-y-1 border-t border-sidebar-border pt-2 pb-2">
+                    {showExpanded && (
+                        <div className="px-1 py-1 text-xs font-medium text-amber-500 uppercase tracking-wider">
+                            Pro
+                        </div>
+                    )}
+                    <div className="relative">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={activeContent === 'thesis' ? "secondary" : "ghost"}
+                                    className={cn(
+                                        "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                        !showExpanded && "justify-center px-2",
+                                        activeContent === 'thesis' && "bg-primary/20 text-primary"
+                                    )}
+                                    onClick={() => {
+                                        setActiveContent(activeContent === 'thesis' ? 'none' : 'thesis');
+                                        if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                    }}
+                                >
+                                    <Lightbulb className="h-4 w-4 shrink-0 text-amber-500" />
+                                    {showExpanded && <span className="ml-2">Thesis Engine</span>}
+                                </Button>
+                            </TooltipTrigger>
+                            {!showExpanded && <TooltipContent side="right">Thesis Engine (Pro)</TooltipContent>}
+                        </Tooltip>
+                        {/* Tour Ping for Thesis Step - shows even when sidebar is collapsed */}
+                        {isThesisTourActive && thesisTourStep && (
+                            <div className={cn(
+                                "absolute top-1/2 -translate-y-1/2 z-50",
+                                showExpanded ? "-right-2" : "left-full ml-2"
+                            )}>
+                                <TourPing
+                                    isActive={isThesisTourActive}
+                                    title={thesisTourStep.title}
+                                    description={thesisTourStep.description}
+                                    tip={thesisTourStep.tip}
+                                    position="right"
+                                    onDismiss={dismissThesisTour}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={activeContent === 'deep-research' ? "secondary" : "ghost"}
+                                className={cn(
+                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                    !showExpanded && "justify-center px-2",
+                                    activeContent === 'deep-research' && "bg-primary/20 text-primary"
+                                )}
+                                onClick={() => {
+                                    setActiveContent(activeContent === 'deep-research' ? 'none' : 'deep-research');
+                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                }}
+                            >
+                                <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
+                                {showExpanded && <span className="ml-2">Deep Research</span>}
+                            </Button>
+                        </TooltipTrigger>
+                        {!showExpanded && <TooltipContent side="right">Deep Research (Pro)</TooltipContent>}
+                    </Tooltip>
+                </div>
+
+                {/* Account Section */}
+                <div className="px-2 space-y-1 border-t border-b border-sidebar-border pt-2 pb-3 mb-3">
+                    {showExpanded && (
+                        <div className="px-1 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Account
+                        </div>
+                    )}
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
