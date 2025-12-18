@@ -441,10 +441,18 @@ export function LeftSidebar() {
                         settingsOpen={settingsOpen}
                     />
                     {showExpanded && (
-                        <div className="mt-2 text-center">
-                            <span className="text-[10px] text-muted-foreground/40 font-mono">
+                        <div className="mt-2 text-center space-y-1">
+                            <span className="text-[10px] text-muted-foreground/40 font-mono block">
                                 v{process.env.NEXT_PUBLIC_APP_VERSION}
                             </span>
+                            <a
+                                href="https://id8labs.app"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors font-mono"
+                            >
+                                made by id8labs.app
+                            </a>
                         </div>
                     )}
                 </div>
