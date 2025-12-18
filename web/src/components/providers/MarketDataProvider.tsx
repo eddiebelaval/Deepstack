@@ -11,8 +11,15 @@ import { usePrefetchBars } from "@/hooks/useBarData";
 // Removed AMD - focus on major indices and top tech names
 const TICKER_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIXY', 'NVDA', 'AAPL', 'TSLA', 'MSFT', 'GOOGL'];
 
+// Mobile market watcher symbols (must also fetch quotes for these)
+// These are separate from ticker to support compact display: indices, volatility, macro, crypto
+const MOBILE_MARKET_SYMBOLS = ['SPY', 'QQQ', 'VIXY', 'GLD', 'TLT', 'BTC/USD'];
+
+// Combined symbols for initial quote fetch (union of ticker + mobile)
+const ALL_QUOTE_SYMBOLS = [...new Set([...TICKER_SYMBOLS, ...MOBILE_MARKET_SYMBOLS])];
+
 // Default symbols to prefetch for Market Watch (warms up React Query cache)
-const DEFAULT_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIXY', 'VTI'];
+const DEFAULT_INDICES = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIXY', 'VTI', 'GLD', 'TLT'];
 const DEFAULT_CRYPTO = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'DOGE/USD', 'XRP/USD'];
 
 // Types for API responses
@@ -178,10 +185,11 @@ export function MarketDataProvider({
   const prefetchDone = useRef(false);
 
   // Fetch initial ticker quotes and prefetch bar data on mount
+  // ALL_QUOTE_SYMBOLS includes both LED ticker and mobile market watcher symbols
   useEffect(() => {
     if (!initialFetchDone.current) {
       initialFetchDone.current = true;
-      fetchQuotes(TICKER_SYMBOLS);
+      fetchQuotes(ALL_QUOTE_SYMBOLS);
     }
 
     // Prefetch historical bars for faster Market Watch loading
