@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { useTour, useTourStep } from './TourManager';
 import { TourPing } from './TourPing';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -126,8 +127,16 @@ export function RestartTourButton() {
 
 /**
  * Main tour overlay component - renders all floating tour elements
+ * Only renders on /app routes to avoid showing tour on landing page
  */
 export function TourOverlay() {
+    const pathname = usePathname();
+
+    // Only show tour on /app routes
+    if (!pathname?.startsWith('/app')) {
+        return null;
+    }
+
     return (
         <>
             <WelcomePing />
