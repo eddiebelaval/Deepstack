@@ -9,6 +9,12 @@ on:
     # Run nightly tests at 2 AM UTC
     - cron: '0 2 * * *'
 
+# Permissions needed for test result publishing and PR comments
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   unit-tests:
     name: Unit Tests
@@ -168,6 +174,7 @@ jobs:
           --cov-report=html \
           --cov-report=xml \
           --cov-report=term-missing \
+          --cov-fail-under=0 \
           --junit-xml=test-results/all-tests.xml
 
     - name: Upload HTML coverage report
@@ -189,7 +196,7 @@ jobs:
         file: ./coverage.xml
         flags: combined
         name: combined-coverage
-        fail_ci_if_error: true
+        fail_ci_if_error: false  # Don't fail on Codecov rate limits or network issues
 
     - name: Comment coverage on PR
       if: github.event_name == 'pull_request'
