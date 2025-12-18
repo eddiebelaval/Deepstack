@@ -1262,7 +1262,14 @@ class TestPortfolioReset:
         assert paper_trader.peak_portfolio_value == 100000.0
 
     def test_reset_portfolio_clears_database(self, paper_trader):
-        """Test reset clears all database tables."""
+        """Test reset clears all database tables.
+
+        Note: First ensure database is clean (parallel test isolation),
+        then add data, verify it exists, reset, and verify it's cleared.
+        """
+        # First, ensure clean state (parallel test isolation)
+        paper_trader.reset_portfolio()
+
         # Add some data
         paper_trader.positions["AAPL"] = {
             "quantity": 100,
@@ -1274,6 +1281,12 @@ class TestPortfolioReset:
         }
         paper_trader._save_positions()
 
+        # Verify data was actually added
+        with sqlite3.connect(paper_trader.db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) FROM positions")
+            count = cursor.fetchone()[0]
+            assert count > 0, "Position should have been saved"
+
         # Reset
         paper_trader.reset_portfolio()
 
@@ -1282,7 +1295,7 @@ class TestPortfolioReset:
             for table in ["positions", "orders", "trades", "performance_snapshots"]:
                 cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
                 count = cursor.fetchone()[0]
-                assert count == 0
+                assert count == 0, f"Table {table} should be empty after reset"
 
     def test_reset_portfolio_resets_risk_systems(self, paper_trader):
         """Test reset resets risk systems."""
