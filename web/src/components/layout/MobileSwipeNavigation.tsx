@@ -18,10 +18,11 @@ interface MobileSwipeNavigationProps {
 // Default page IDs - can be overridden via props
 const DEFAULT_PAGE_IDS: MobilePageId[] = ['tools', 'chat', 'news', 'predictions'];
 
-// Swipe physics config - tuned for smooth, responsive swiping
-const SWIPE_THRESHOLD = 40; // Min distance to trigger page change (lowered for responsiveness)
-const SWIPE_VELOCITY_THRESHOLD = 300; // Min velocity to trigger page change (lowered for easier triggering)
-const DRAG_ELASTIC = 0.2; // Elasticity during drag (higher = more responsive feel)
+// Swipe physics config - tuned to prevent accidental swipes while scrolling
+const SWIPE_THRESHOLD = 80; // Min distance to trigger page change (higher prevents accidental swipes)
+const SWIPE_VELOCITY_THRESHOLD = 500; // Min velocity to trigger page change (higher = more intentional)
+const DRAG_ELASTIC = 0.15; // Lower elasticity for more controlled feel
+const EDGE_SWIPE_ZONE = 30; // Pixels from screen edge for edge swipes
 const SPRING_STIFFNESS = 260; // Animation stiffness (lower = smoother)
 const SPRING_DAMPING = 26; // Animation damping (lower = more bounce)
 const BOUNCE_STIFFNESS = 260; // Bounce back stiffness
@@ -48,7 +49,9 @@ export function MobileSwipeNavigation({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [isDragging, setIsDragging] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [isEdgeSwipe, setIsEdgeSwipe] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragStartX = useRef<number>(0);
   const controls = useAnimation();
   const { selection, light } = useHaptics();
 
@@ -106,8 +109,24 @@ export function MobileSwipeNavigation({
   }, [currentPage, pageCount, controls, selection, onPageChange, effectivePageIds, getPageOffset]);
 
   // Handle drag/swipe gestures
-  const handleDragStart = useCallback(() => {
+  const handleDragStart = useCallback((event: MouseEvent | TouchEvent | PointerEvent) => {
     setIsDragging(true);
+
+    // Track where the drag started to detect edge swipes
+    let startX = 0;
+    if ('touches' in event) {
+      startX = event.touches[0].clientX;
+    } else if ('clientX' in event) {
+      startX = event.clientX;
+    }
+    dragStartX.current = startX;
+
+    // Determine if this is an edge swipe (started near screen edge)
+    const width = containerRef.current?.offsetWidth || window.innerWidth;
+    const isFromLeftEdge = startX < EDGE_SWIPE_ZONE;
+    const isFromRightEdge = startX > width - EDGE_SWIPE_ZONE;
+    setIsEdgeSwipe(isFromLeftEdge || isFromRightEdge);
+
     light(); // Light haptic on drag start
   }, [light]);
 
@@ -116,7 +135,7 @@ export function MobileSwipeNavigation({
       setIsDragging(false);
 
       const { offset, velocity } = info;
-      const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+      const width = containerRef.current?.offsetWidth || window.innerWidth;
 
       // Calculate which page to land on
       let targetPage = currentPage;
@@ -125,7 +144,16 @@ export function MobileSwipeNavigation({
       const swipeDistance = Math.abs(offset.x);
       const swipeVelocity = Math.abs(velocity.x);
 
-      if (swipeDistance > SWIPE_THRESHOLD || swipeVelocity > SWIPE_VELOCITY_THRESHOLD) {
+      // Use different thresholds for edge swipes vs content swipes
+      // Edge swipes are more intentional, so use lower threshold
+      const distanceThreshold = isEdgeSwipe ? SWIPE_THRESHOLD * 0.6 : SWIPE_THRESHOLD;
+      const velocityThreshold = isEdgeSwipe ? SWIPE_VELOCITY_THRESHOLD * 0.7 : SWIPE_VELOCITY_THRESHOLD;
+
+      // Must have primarily horizontal movement (prevent diagonal scroll triggering swipe)
+      const verticalOffset = Math.abs(offset.y);
+      const isHorizontalSwipe = swipeDistance > verticalOffset * 1.5;
+
+      if (isHorizontalSwipe && (swipeDistance > distanceThreshold || swipeVelocity > velocityThreshold)) {
         if (offset.x > 0 && currentPage > 0) {
           // Swiped right, go to previous page
           targetPage = currentPage - 1;
@@ -135,9 +163,9 @@ export function MobileSwipeNavigation({
         }
       }
 
-      // Also check if dragged more than half the screen
-      const dragRatio = offset.x / containerWidth;
-      if (Math.abs(dragRatio) > 0.3) {
+      // Also check if dragged more than 40% of the screen (increased from 30%)
+      const dragRatio = offset.x / width;
+      if (isHorizontalSwipe && Math.abs(dragRatio) > 0.4) {
         if (dragRatio > 0 && currentPage > 0) {
           targetPage = currentPage - 1;
         } else if (dragRatio < 0 && currentPage < pageCount - 1) {
@@ -145,9 +173,10 @@ export function MobileSwipeNavigation({
         }
       }
 
+      setIsEdgeSwipe(false);
       navigateToPage(targetPage);
     },
-    [currentPage, pageCount, navigateToPage]
+    [currentPage, pageCount, navigateToPage, isEdgeSwipe]
   );
 
   // Initialize position on mount and sync when currentPage changes externally
@@ -179,7 +208,7 @@ export function MobileSwipeNavigation({
         "relative w-full h-full overflow-hidden select-none",
         className
       )}
-      style={{ touchAction: 'pan-y pinch-zoom' }}
+      style={{ touchAction: 'none' }} // Let Framer Motion fully control gestures at container level
     >
       {/* Page Indicator Dots - dynamically based on actual page count */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 flex gap-1.5">
@@ -203,11 +232,11 @@ export function MobileSwipeNavigation({
         className="flex h-full"
         style={{
           width: `${pageCount * 100}%`,
-          touchAction: 'pan-y', // Allow vertical scroll inside, but let horizontal swipe through
         }}
         initial={{ x: `-${initialPage * (100 / pageCount)}%` }}
         animate={controls}
         drag="x"
+        dragDirectionLock // Lock to horizontal after detecting initial direction
         dragConstraints={{
           // Use pixel values calculated from tracked container width
           left: -(pageCount - 1) * (containerWidth || window.innerWidth),
@@ -255,10 +284,10 @@ export function MobileSwipeNavigation({
               />
             )}
 
-            {/* Page Content - touch-action allows vertical scroll but lets horizontal swipe bubble up */}
+            {/* Page Content - touch-action allows vertical scroll and pinch zoom inside pages */}
             <div
               className="h-full w-full overflow-hidden"
-              style={{ touchAction: 'pan-y' }}
+              style={{ touchAction: 'pan-y pinch-zoom' }}
             >
               {child}
             </div>
