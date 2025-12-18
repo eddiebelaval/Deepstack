@@ -262,9 +262,15 @@ class DeepStackAPIServer:
         """Setup CORS and other middleware."""
         # Security: CORS origins are validated in config to prevent
         # wildcard (*) being used with credentials
+        #
+        # We use allow_origin_regex to support Vercel preview deployments
+        # which have dynamic URLs like: deepstack-{hash}-{team}.vercel.app
+        vercel_preview_regex = r"https://deepstack-.*\.vercel\.app"
+
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=self.config.api.cors_origins,
+            allow_origin_regex=vercel_preview_regex,
             allow_credentials=self.config.api.cors_allow_credentials,
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
