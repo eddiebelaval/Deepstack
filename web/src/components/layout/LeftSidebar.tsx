@@ -29,6 +29,7 @@ import {
     FileSearch,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTourStep, TourPing } from '@/components/onboarding';
 
 export function LeftSidebar() {
     const { leftSidebarOpen, toggleLeftSidebar, setLeftSidebarOpen, toggleProfile, toggleSettings, toggleUsage, profileOpen, settingsOpen, usageOpen, activeContent, setActiveContent } = useUIStore();
@@ -38,6 +39,10 @@ export function LeftSidebar() {
     const { chatsToday, dailyLimit, isLoading: chatLimitLoading } = useChatLimit();
     const chatHistoryRef = useRef<HTMLDivElement>(null);
     const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
+
+    // Tour integration
+    const { isActive: isThesisTourActive, step: thesisTourStep, dismiss: dismissThesisTour } = useTourStep('thesis');
+    const { isActive: isJournalTourActive, step: journalTourStep, dismiss: dismissJournalTour } = useTourStep('journal');
 
     // Show upgrade banner for free tier users
     const showUpgradeBanner = tier === 'free';
@@ -210,46 +215,82 @@ export function LeftSidebar() {
                             Research Tools
                         </div>
                     )}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={activeContent === 'thesis' ? "secondary" : "ghost"}
-                                className={cn(
-                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
-                                    !showExpanded && "justify-center px-2",
-                                    activeContent === 'thesis' && "bg-primary/20 text-primary"
-                                )}
-                                onClick={() => {
-                                    setActiveContent(activeContent === 'thesis' ? 'none' : 'thesis');
-                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
-                                }}
-                            >
-                                <Lightbulb className="h-4 w-4 shrink-0 text-amber-500" />
-                                {showExpanded && <span className="ml-2">Thesis Engine</span>}
-                            </Button>
-                        </TooltipTrigger>
-                        {!showExpanded && <TooltipContent side="right">Thesis Engine</TooltipContent>}
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={activeContent === 'journal' ? "secondary" : "ghost"}
-                                className={cn(
-                                    "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
-                                    !showExpanded && "justify-center px-2",
-                                    activeContent === 'journal' && "bg-primary/20 text-primary"
-                                )}
-                                onClick={() => {
-                                    setActiveContent(activeContent === 'journal' ? 'none' : 'journal');
-                                    if (isMobile || isTablet) setLeftSidebarOpen(false);
-                                }}
-                            >
-                                <BookOpen className="h-4 w-4 shrink-0 text-blue-500" />
-                                {showExpanded && <span className="ml-2">Trade Journal</span>}
-                            </Button>
-                        </TooltipTrigger>
-                        {!showExpanded && <TooltipContent side="right">Trade Journal</TooltipContent>}
-                    </Tooltip>
+                    <div className="relative">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={activeContent === 'thesis' ? "secondary" : "ghost"}
+                                    className={cn(
+                                        "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                        !showExpanded && "justify-center px-2",
+                                        activeContent === 'thesis' && "bg-primary/20 text-primary"
+                                    )}
+                                    onClick={() => {
+                                        setActiveContent(activeContent === 'thesis' ? 'none' : 'thesis');
+                                        if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                    }}
+                                >
+                                    <Lightbulb className="h-4 w-4 shrink-0 text-amber-500" />
+                                    {showExpanded && <span className="ml-2">Thesis Engine</span>}
+                                </Button>
+                            </TooltipTrigger>
+                            {!showExpanded && <TooltipContent side="right">Thesis Engine</TooltipContent>}
+                        </Tooltip>
+                        {/* Tour Ping for Thesis Step - shows even when sidebar is collapsed */}
+                        {isThesisTourActive && thesisTourStep && (
+                            <div className={cn(
+                                "absolute top-1/2 -translate-y-1/2 z-50",
+                                showExpanded ? "-right-2" : "left-full ml-2"
+                            )}>
+                                <TourPing
+                                    isActive={isThesisTourActive}
+                                    title={thesisTourStep.title}
+                                    description={thesisTourStep.description}
+                                    tip={thesisTourStep.tip}
+                                    position="right"
+                                    onDismiss={dismissThesisTour}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <div className="relative">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={activeContent === 'journal' ? "secondary" : "ghost"}
+                                    className={cn(
+                                        "w-full justify-start text-sm font-normal rounded-xl h-10 tap-target",
+                                        !showExpanded && "justify-center px-2",
+                                        activeContent === 'journal' && "bg-primary/20 text-primary"
+                                    )}
+                                    onClick={() => {
+                                        setActiveContent(activeContent === 'journal' ? 'none' : 'journal');
+                                        if (isMobile || isTablet) setLeftSidebarOpen(false);
+                                    }}
+                                >
+                                    <BookOpen className="h-4 w-4 shrink-0 text-blue-500" />
+                                    {showExpanded && <span className="ml-2">Trade Journal</span>}
+                                </Button>
+                            </TooltipTrigger>
+                            {!showExpanded && <TooltipContent side="right">Trade Journal</TooltipContent>}
+                        </Tooltip>
+                        {/* Tour Ping for Journal Step - shows even when sidebar is collapsed */}
+                        {isJournalTourActive && journalTourStep && (
+                            <div className={cn(
+                                "absolute top-1/2 -translate-y-1/2 z-50",
+                                showExpanded ? "-right-2" : "left-full ml-2"
+                            )}>
+                                <TourPing
+                                    isActive={isJournalTourActive}
+                                    title={journalTourStep.title}
+                                    description={journalTourStep.description}
+                                    tip={journalTourStep.tip}
+                                    position="right"
+                                    onDismiss={dismissJournalTour}
+                                />
+                            </div>
+                        )}
+                    </div>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button

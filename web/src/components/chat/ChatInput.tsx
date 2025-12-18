@@ -13,6 +13,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { CommandPalette } from './CommandPalette';
 import { cn } from '@/lib/utils';
 import { FirewallStatusDot } from '@/components/emotional-firewall';
+import { useTourStep, TourPing } from '@/components/onboarding';
 
 type ChatInputProps = {
   onSend: (message: string) => void;
@@ -28,6 +29,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { isMobile } = useIsMobile();
+
+  // Tour integration
+  const { isActive: isChatTourActive, step: chatTourStep, dismiss: dismissChatTour } = useTourStep('chat');
 
   const handleCommand = useCallback(async (command: string) => {
     // Populate input for visual feedback
@@ -273,6 +277,20 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         onOpenChange={setShowCommandPalette}
         onCommand={handleCommand}
       />
+
+      {/* Tour Ping for Chat Step - z-[60] to appear above Guest Gate Overlay */}
+      {isChatTourActive && chatTourStep && (
+        <div className="absolute -top-2 right-4 z-[60]">
+          <TourPing
+            isActive={isChatTourActive}
+            title={chatTourStep.title}
+            description={chatTourStep.description}
+            tip={chatTourStep.tip}
+            position="top"
+            onDismiss={dismissChatTour}
+          />
+        </div>
+      )}
 
       {/* Guest Gate Overlay */}
       {!user && !loading && (

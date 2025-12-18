@@ -30,6 +30,29 @@ function WelcomePing() {
 }
 
 /**
+ * Floating shortcuts ping that appears in a fixed position
+ * Used for the final "Shortcuts" step (no specific target element)
+ */
+function ShortcutsPing() {
+    const { isActive, step, dismiss } = useTourStep('shortcuts');
+
+    if (!isActive || !step) return null;
+
+    return (
+        <div className="fixed bottom-24 right-8 z-50">
+            <TourPing
+                isActive={isActive}
+                title={step.title}
+                description={step.description}
+                tip={step.tip}
+                position="left"
+                onDismiss={dismiss}
+            />
+        </div>
+    );
+}
+
+/**
  * Tour progress indicator and skip button
  */
 function TourProgressIndicator() {
@@ -108,6 +131,7 @@ export function TourOverlay() {
     return (
         <>
             <WelcomePing />
+            <ShortcutsPing />
             <TourProgressIndicator />
         </>
     );

@@ -10,6 +10,7 @@ import { ChevronDown, LineChart } from 'lucide-react';
 import { AnimatedChartIcon } from '@/components/ui/AnimatedChartIcon';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTourStep, TourPing } from '@/components/onboarding';
 
 // Fixed dimensions - no resizing, solid panel feel
 const COLLAPSED_TAB_HEIGHT = 44; // Height of the tab when collapsed
@@ -34,6 +35,9 @@ export function MarketWatchPanel() {
 
   const { wsConnected, wsReconnecting, lastError } = useMarketDataStore();
   const { isMobile, isTablet } = useIsMobile();
+
+  // Tour integration
+  const { isActive: isMarketWatchTourActive, step: marketWatchTourStep, dismiss: dismissMarketWatchTour } = useTourStep('market-watch');
 
   // Status bar state
   const [currentTime, setCurrentTime] = useState<string>("");
@@ -159,6 +163,20 @@ export function MarketWatchPanel() {
             {isExpanded ? "Collapse Market Watch" : "Expand Market Watch"}
           </TooltipContent>
         </Tooltip>
+
+        {/* Tour Ping for Market Watch Step */}
+        {isMarketWatchTourActive && marketWatchTourStep && (
+          <div className="relative">
+            <TourPing
+              isActive={isMarketWatchTourActive}
+              title={marketWatchTourStep.title}
+              description={marketWatchTourStep.description}
+              tip={marketWatchTourStep.tip}
+              position="bottom"
+              onDismiss={dismissMarketWatchTour}
+            />
+          </div>
+        )}
 
         {/* Center: Connection + Market Status with backlit glow */}
         <div className="flex items-center gap-4 text-xs">
