@@ -42,27 +42,45 @@ def setup_test_env():
     yield
 
 
+class MockStripeSession:
+    """Mock Stripe checkout session with explicit attributes.
+
+    Using a real class instead of MagicMock ensures .url is always a string,
+    avoiding Pydantic validation errors in CheckoutSessionResponse.
+    """
+
+    def __init__(self):
+        self.url = "https://checkout.stripe.com/test_session_123"
+        self.id = "cs_test_123"
+        self.customer = "cus_test_123"
+        self.subscription = "sub_test_123"
+
+
 @pytest.fixture
 def mock_stripe_api():
-    """Mock Stripe API calls."""
+    """Mock Stripe API calls with explicit return values.
+
+    Uses a combination of MagicMock (for call tracking) and explicit objects
+    (for return values) to ensure both test assertions and Pydantic validation work.
+    """
     import stripe as stripe_module
 
-    # Create fresh mock for checkout.Session.create to avoid cross-test pollution
-    # Don't use reset_mock() as it can clear nested mock configurations
-    mock_session = MagicMock()
-    mock_session.url = "https://checkout.stripe.com/test_session_123"
-    mock_session.id = "cs_test_123"
-    mock_session.customer = "cus_test_123"
-    mock_session.subscription = "sub_test_123"
+    # Create the session object that will be returned
+    mock_session = MockStripeSession()
 
-    # Explicitly configure the mock - create fresh mock objects for each test
-    stripe_module.checkout = MagicMock()
-    stripe_module.checkout.Session = MagicMock()
-    stripe_module.checkout.Session.create = MagicMock(return_value=mock_session)
+    # Create MagicMock for call tracking, but with explicit return value
+    create_mock = MagicMock(return_value=mock_session)
 
-    # Mock webhook signature verification with fresh mock
-    stripe_module.Webhook = MagicMock()
-    stripe_module.Webhook.construct_event = MagicMock(
+    # Build the checkout structure using MagicMock for the Session class
+    session_mock = MagicMock()
+    session_mock.create = create_mock
+
+    checkout_mock = MagicMock()
+    checkout_mock.Session = session_mock
+
+    # Set up webhook mock with default return value
+    webhook_mock = MagicMock()
+    webhook_mock.construct_event = MagicMock(
         return_value={
             "type": "checkout.session.completed",
             "data": {
@@ -75,16 +93,32 @@ def mock_stripe_api():
         }
     )
 
-    # Mock Stripe error classes
-    stripe_module.error = MagicMock()
-    stripe_module.error.SignatureVerificationError = type(
+    # Create error mock with exception class
+    error_mock = MagicMock()
+    error_mock.SignatureVerificationError = type(
         "SignatureVerificationError", (Exception,), {}
     )
 
-    # Set API key
+    # Store original attributes
+    original_checkout = getattr(stripe_module, "checkout", None)
+    original_webhook = getattr(stripe_module, "Webhook", None)
+    original_error = getattr(stripe_module, "error", None)
+
+    # Replace stripe module attributes
+    stripe_module.checkout = checkout_mock
+    stripe_module.Webhook = webhook_mock
+    stripe_module.error = error_mock
     stripe_module.api_key = "sk_test_mock_secret_key"
 
-    return stripe_module
+    yield stripe_module
+
+    # Restore original attributes (for test isolation)
+    if original_checkout is not None:
+        stripe_module.checkout = original_checkout
+    if original_webhook is not None:
+        stripe_module.Webhook = original_webhook
+    if original_error is not None:
+        stripe_module.error = original_error
 
 
 @pytest.fixture
