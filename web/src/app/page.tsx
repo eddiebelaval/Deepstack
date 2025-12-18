@@ -24,8 +24,6 @@ import {
   Newspaper,
   Eye,
   Lock,
-  Calendar,
-  Rocket,
   Quote,
 } from 'lucide-react';
 
@@ -35,7 +33,6 @@ import { TypewriterChatDemo } from '@/components/landing/TypewriterChatDemo';
 import {
   ScrollProgressBar,
   StickySection,
-  ScaleOnScroll,
   ScrollReveal,
   ParallaxSection,
 } from '@/components/landing/StickySection';
@@ -359,21 +356,41 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
+              className="flex flex-col items-center gap-4"
             >
-              <Link
-                href="/app"
-                className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium transition-all text-lg flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:shadow-[0_0_40px_rgba(251,146,60,0.6)]"
+              {/* Free Forever Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-sm font-bold border border-emerald-500/30"
               >
-                Try Demo Free
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="w-full sm:w-auto px-8 py-4 bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 rounded-xl font-medium transition-all text-lg backdrop-blur-sm border border-border/50"
-              >
-                See How It Works
-              </Link>
+                <Sparkles className="w-4 h-4" />
+                100% FREE — No Credit Card Required
+              </motion.div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Link
+                    href="/app"
+                    className="relative w-full sm:w-auto px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl flex items-center justify-center gap-3 group shadow-[0_0_30px_rgba(251,146,60,0.5)] hover:shadow-[0_0_50px_rgba(251,146,60,0.7)]"
+                  >
+                    {/* Animated ring */}
+                    <span className="absolute inset-0 rounded-2xl border-2 border-primary/50 animate-ping opacity-20" />
+                    Start Trading Smarter
+                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </motion.div>
+                <Link
+                  href="#how-it-works"
+                  className="w-full sm:w-auto px-8 py-4 bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 rounded-xl font-medium transition-all text-lg backdrop-blur-sm border border-border/50"
+                >
+                  See How It Works
+                </Link>
+              </div>
             </motion.div>
 
             {/* Trust Signals */}
@@ -473,181 +490,109 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* SEE IT IN ACTION - TypewriterChatDemo */}
+        {/* HOW IT WORKS - Combined Demo + Firewall */}
         {/* ================================================================== */}
-        <section className="py-24 px-4 relative">
+        <section id="how-it-works" className="py-24 px-4 relative bg-gradient-to-b from-transparent via-orange-950/5 to-transparent">
           <div className="max-w-6xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Left - Copy */}
+            {/* Section Header */}
+            <ScrollReveal className="text-center mb-16">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20 mb-4">
+                <Zap className="w-4 h-4" />
+                How It Works
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Two powerful systems.{' '}
+                <span className="text-gradient-shimmer">One disciplined trader.</span>
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                AI that researches for you + guardrails that protect you from yourself.
+              </p>
+            </ScrollReveal>
+
+            {/* Two-panel layout */}
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Panel 1: AI Research */}
               <ScrollReveal direction="left">
-                <div className="space-y-6">
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
-                    <MessageSquare className="w-4 h-4" />
-                    See It In Action
-                  </span>
-                  <h2 className="text-3xl md:text-4xl font-bold leading-tight">
-                    An AI that catches
-                    <br />
-                    <span className="text-gradient-shimmer">your blind spots</span>
-                  </h2>
-                  <p className="text-lg text-muted-foreground leading-relaxed">
-                    deepstack doesn&apos;t just answer questions. It notices patterns in your behavior,
-                    challenges emotional decisions, and validates ideas against prediction markets.
-                  </p>
-                  <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                      Detects revenge trading and FOMO patterns
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                      Cross-references with prediction market odds
-                    </li>
-                    <li className="flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      Suggests actions aligned with YOUR strategy
-                    </li>
-                  </ul>
+                <div className="h-full p-6 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">AI Research Assistant</h3>
+                      <p className="text-xs text-muted-foreground">Catches your blind spots</p>
+                    </div>
+                  </div>
+                  <TypewriterChatDemo />
                 </div>
               </ScrollReveal>
 
-              {/* Right - Demo */}
-              <ScrollReveal direction="right" delay={0.2}>
-                <TypewriterChatDemo />
+              {/* Panel 2: Emotional Firewall */}
+              <ScrollReveal direction="right" delay={0.1}>
+                <div className="h-full p-6 rounded-2xl bg-card/30 border border-orange-500/20 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-orange-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">Emotional Firewall</h3>
+                      <p className="text-xs text-muted-foreground">Stops destructive patterns</p>
+                    </div>
+                  </div>
+
+                  {/* Compact pattern list */}
+                  <div className="space-y-3 mb-4">
+                    {FIREWALL_PATTERNS.map((pattern) => (
+                      <div key={pattern.name} className={`p-3 rounded-lg ${pattern.bgColor} border ${pattern.borderColor} flex items-center gap-3`}>
+                        <div className={`${pattern.color} shrink-0`}>{pattern.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{pattern.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{pattern.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Compact firewall mockup */}
+                  <div className="rounded-xl bg-card/60 border border-border/50 p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium">Status</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                        <span className="text-xs text-orange-400 font-medium">Warning Active</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Revenge Risk</span>
+                          <span className="text-orange-400">High</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            whileInView={{ width: '75%' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1 }}
+                            className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                      <div className="flex items-center gap-2">
+                        <Ban className="w-4 h-4 text-orange-400 shrink-0" />
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-orange-400 font-medium">Cooldown:</span> 48 min remaining
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </ScrollReveal>
             </div>
           </div>
         </section>
-
-        {/* ================================================================== */}
-        {/* EMOTIONAL FIREWALL - STICKY (slow down - unique differentiator) */}
-        {/* ================================================================== */}
-        <StickySection
-          id="firewall"
-          title="Your Psychological Guardrails"
-          subtitle="The Emotional Firewall detects destructive trading patterns before they cost you money. It's like having a mentor who stops you from yourself."
-          badge="Only in deepstack"
-          badgeIcon={<Shield className="w-4 h-4" />}
-          badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
-          titleAccent="text-orange-400"
-          scrollHeight="min-h-fit"
-          className="bg-gradient-to-b from-orange-950/10 via-transparent to-transparent"
-          align="right"
-        >
-          {/* Content stacks vertically - scrolls alongside sticky header */}
-          <div className="space-y-6">
-            {/* Pattern cards */}
-            {FIREWALL_PATTERNS.map((pattern, i) => (
-              <ScrollReveal key={pattern.name} delay={i * 0.1} direction="up">
-                <div className={`p-4 rounded-xl ${pattern.bgColor} border ${pattern.borderColor} backdrop-blur-sm flex items-start gap-4`}>
-                  <div className={`w-10 h-10 rounded-lg bg-background/50 flex items-center justify-center ${pattern.color} shrink-0`}>
-                    {pattern.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="font-semibold">{pattern.name}</h4>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground shrink-0">
-                        {pattern.cooldown}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{pattern.description}</p>
-                  </div>
-                </div>
-              </ScrollReveal>
-            ))}
-
-            {/* Firewall mockup */}
-            <ScaleOnScroll>
-              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-semibold">Emotional Firewall</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                    <span className="text-sm text-orange-400 font-medium">Warning</span>
-                  </div>
-                </div>
-
-                {/* Status bars */}
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Revenge Trading Risk</span>
-                      <span className="text-orange-400">High</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '75%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.5 }}
-                        className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Trade Frequency</span>
-                      <span className="text-yellow-400">Elevated</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '55%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.6 }}
-                        className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Win Streak</span>
-                      <span className="text-green-400">Normal</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '25%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.7 }}
-                        className="h-full bg-green-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Alert */}
-                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
-                  <div className="flex items-start gap-3">
-                    <Ban className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-orange-400">Trading Restricted</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        You lost $450 on TSLA 12 minutes ago. Cooldown: 48 min remaining.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border/30">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">3</p>
-                    <p className="text-xs text-muted-foreground">Trades Today</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-red-400">-$450</p>
-                    <p className="text-xs text-muted-foreground">Last Trade</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">2</p>
-                    <p className="text-xs text-muted-foreground">Blocks Today</p>
-                  </div>
-                </div>
-              </div>
-            </ScaleOnScroll>
-          </div>
-        </StickySection>
 
         {/* Thesis Builder and Prediction Markets sections removed - consolidated into Full Toolkit below */}
 
@@ -739,117 +684,46 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* CREDIBILITY Section - Built With Transparency */}
+        {/* TRUST BAR - Compact credibility */}
         {/* ================================================================== */}
-        <section id="credibility" className="py-20 px-4">
+        <section className="py-12 px-4 border-y border-border/20 bg-card/10">
           <div className="max-w-5xl mx-auto">
-            {/* Section header with launch badges */}
-            <ScrollReveal className="text-center mb-12">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
-                  <Rocket className="w-3 h-3" />
-                  Early Access
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-card/50 text-muted-foreground text-xs font-medium border border-border/30">
-                  <Calendar className="w-3 h-3" />
-                  Launched December 2024
-                </span>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Built With Transparency</h2>
-              <p className="text-muted-foreground">
-                Full transparency on what powers deepstack. No black boxes.
+            <ScrollReveal>
+              <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-wider mb-6">
+                Powered by industry leaders
               </p>
-            </ScrollReveal>
-
-            {/* AI Models Section */}
-            <ScrollReveal className="text-center mb-6">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">
-                AI Models
-              </p>
-            </ScrollReveal>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              {AI_MODELS.map((model, i) => (
-                <ScrollReveal key={model.name} delay={i * 0.1}>
-                  <div className="group p-5 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 hover:bg-card/50 transition-all duration-300">
-                    <div
-                      className={`${model.color} mb-3 flex justify-center opacity-70 group-hover:opacity-100 transition-opacity`}
-                    >
-                      {model.icon}
-                    </div>
-                    <p className="font-semibold mb-0.5">{model.name}</p>
-                    <p className="text-[10px] text-muted-foreground/70 mb-1">{model.company}</p>
-                    <p className="text-xs text-muted-foreground">{model.description}</p>
+              <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+                {[...AI_MODELS, ...DATA_SOURCES].slice(0, 6).map((item) => (
+                  <div key={item.name} className={`${item.color} opacity-50 hover:opacity-100 transition-opacity flex items-center gap-2`}>
+                    {item.icon}
+                    <span className="text-sm font-medium text-muted-foreground">{item.name}</span>
                   </div>
-                </ScrollReveal>
-              ))}
-            </div>
-
-            {/* Data Sources Section */}
-            <ScrollReveal className="text-center mb-10">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-2">
-                Real-time data from
-              </p>
-            </ScrollReveal>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              {DATA_SOURCES.map((source, i) => (
-                <ScrollReveal key={source.name} delay={i * 0.1}>
-                  <div className="group p-5 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 hover:bg-card/50 transition-all duration-300">
-                    <div
-                      className={`${source.color} mb-3 flex justify-center opacity-70 group-hover:opacity-100 transition-opacity`}
-                    >
-                      {source.icon}
-                    </div>
-                    <p className="font-semibold mb-1">{source.name}</p>
-                    <p className="text-xs text-muted-foreground">{source.description}</p>
-                  </div>
-                </ScrollReveal>
-              ))}
-            </div>
-
-            {/* Trust badges */}
-            <ScrollReveal delay={0.4}>
-              <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  <span>Enterprise-grade security</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  <span>SOC 2 compliant data handling</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  <span>Sub-100ms API latency</span>
-                </div>
-              </div>
-            </ScrollReveal>
-
-            {/* Founder Story */}
-            <ScrollReveal delay={0.5}>
-              <div className="mt-12 p-8 rounded-2xl bg-card/40 border border-primary/20 text-center max-w-2xl mx-auto">
-                <Quote className="w-8 h-8 text-primary/40 mx-auto mb-4" />
-                <p className="text-lg italic text-foreground/90 mb-4 leading-relaxed">
-                  &quot;I built deepstack because I kept making the same emotional trading mistakes.
-                  Revenge trades after losses, overtrading when bored, ignoring my own rules.
-                  I needed something that would call me out before I sabotaged myself.&quot;
-                </p>
-                <p className="text-sm text-muted-foreground font-medium">— Eddie, Founder</p>
+                ))}
               </div>
             </ScrollReveal>
           </div>
         </section>
 
         {/* ================================================================== */}
-        {/* Final CTA Section */}
+        {/* Final CTA Section with Founder Story */}
         {/* ================================================================== */}
         <section className="py-32 px-4 relative">
           {/* Glow effect */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
           <div className="max-w-3xl mx-auto text-center relative">
+            {/* Founder Story - emotional close */}
             <ScrollReveal>
+              <div className="mb-12 p-6 rounded-2xl bg-card/30 border border-primary/20 text-center max-w-xl mx-auto">
+                <Quote className="w-6 h-6 text-primary/40 mx-auto mb-3" />
+                <p className="text-base italic text-foreground/80 mb-3 leading-relaxed">
+                  &quot;I built this because I kept revenge trading after losses. I needed something to call me out before I sabotaged myself.&quot;
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">— Eddie, Founder</p>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.1}>
               <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to trade
                 <br />
@@ -857,28 +731,32 @@ export default function LandingPage() {
               </h2>
             </ScrollReveal>
 
-            <ScrollReveal delay={0.1}>
-              <p className="text-muted-foreground text-xl mb-10">
-                The only platform that protects you from yourself while making you smarter with every trade.
-              </p>
-            </ScrollReveal>
-
             <ScrollReveal delay={0.2}>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/app"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_50px_rgba(251,146,60,0.6)] hover:scale-105"
-                >
-                  Launch deepstack
-                  <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
+              <p className="text-muted-foreground text-xl mb-8">
+                The only platform that protects you from yourself.
+              </p>
             </ScrollReveal>
 
             <ScrollReveal delay={0.3}>
-              <p className="mt-6 text-sm text-muted-foreground">
-                Free forever · Upgrade when you&apos;re ready
-              </p>
+              <div className="flex flex-col items-center gap-4">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Link
+                    href="/app"
+                    className="relative inline-flex items-center justify-center gap-3 px-12 py-6 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_40px_rgba(251,146,60,0.5)] hover:shadow-[0_0_60px_rgba(251,146,60,0.7)]"
+                  >
+                    <span className="absolute inset-0 rounded-2xl border-2 border-primary/50 animate-ping opacity-20" />
+                    Start Trading Smarter
+                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </motion.div>
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  100% Free — No credit card required
+                </p>
+              </div>
             </ScrollReveal>
           </div>
         </section>
