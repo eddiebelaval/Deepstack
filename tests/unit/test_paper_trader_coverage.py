@@ -79,8 +79,11 @@ def mock_alpaca():
 
 
 @pytest.fixture
-def paper_trader(config, mock_alpaca):
-    """Create paper trader with all features enabled."""
+def paper_trader(config, mock_alpaca, tmp_path):
+    """Create paper trader with all features enabled.
+
+    Uses tmp_path for isolated database to avoid parallel test conflicts.
+    """
     trader = PaperTrader(
         config=config,
         alpaca_client=mock_alpaca,
@@ -90,13 +93,18 @@ def paper_trader(config, mock_alpaca):
         enforce_market_hours=False,
         slippage_volatility_multiplier=1.0,
     )
+    # Use isolated temp database for parallel test safety
+    _reinit_trader_db(trader, str(tmp_path / "paper_trading.db"))
     trader.reset_portfolio()
     return trader
 
 
 @pytest.fixture
-def paper_trader_no_risk(config, mock_alpaca):
-    """Create paper trader without risk systems."""
+def paper_trader_no_risk(config, mock_alpaca, tmp_path):
+    """Create paper trader without risk systems.
+
+    Uses tmp_path for isolated database to avoid parallel test conflicts.
+    """
     trader = PaperTrader(
         config=config,
         alpaca_client=mock_alpaca,
@@ -105,6 +113,8 @@ def paper_trader_no_risk(config, mock_alpaca):
         commission_per_share=0.0,
         enforce_market_hours=False,
     )
+    # Use isolated temp database for parallel test safety
+    _reinit_trader_db(trader, str(tmp_path / "paper_trading_no_risk.db"))
     trader.reset_portfolio()
     return trader
 
@@ -1262,7 +1272,14 @@ class TestPortfolioReset:
         assert paper_trader.peak_portfolio_value == 100000.0
 
     def test_reset_portfolio_clears_database(self, paper_trader):
-        """Test reset clears all database tables."""
+        """Test reset clears all database tables.
+
+        Note: First ensure database is clean (parallel test isolation),
+        then add data, verify it exists, reset, and verify it's cleared.
+        """
+        # First, ensure clean state (parallel test isolation)
+        paper_trader.reset_portfolio()
+
         # Add some data
         paper_trader.positions["AAPL"] = {
             "quantity": 100,
@@ -1274,6 +1291,12 @@ class TestPortfolioReset:
         }
         paper_trader._save_positions()
 
+        # Verify data was actually added
+        with sqlite3.connect(paper_trader.db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) FROM positions")
+            count = cursor.fetchone()[0]
+            assert count > 0, "Position should have been saved"
+
         # Reset
         paper_trader.reset_portfolio()
 
@@ -1282,7 +1305,7 @@ class TestPortfolioReset:
             for table in ["positions", "orders", "trades", "performance_snapshots"]:
                 cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
                 count = cursor.fetchone()[0]
-                assert count == 0
+                assert count == 0, f"Table {table} should be empty after reset"
 
     def test_reset_portfolio_resets_risk_systems(self, paper_trader):
         """Test reset resets risk systems."""
