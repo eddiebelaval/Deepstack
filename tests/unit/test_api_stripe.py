@@ -47,34 +47,36 @@ def mock_stripe_api():
     """Mock Stripe API calls."""
     import stripe as stripe_module
 
-    # Reset all mocks
-    stripe_module.reset_mock()
-
-    # Mock checkout session
+    # Create fresh mock for checkout.Session.create to avoid cross-test pollution
+    # Don't use reset_mock() as it can clear nested mock configurations
     mock_session = MagicMock()
     mock_session.url = "https://checkout.stripe.com/test_session_123"
     mock_session.id = "cs_test_123"
     mock_session.customer = "cus_test_123"
     mock_session.subscription = "sub_test_123"
-    stripe_module.checkout.Session.create.return_value = mock_session
-    # Clear any side_effect
-    stripe_module.checkout.Session.create.side_effect = None
 
-    # Mock webhook signature verification
-    stripe_module.Webhook.construct_event.return_value = {
-        "type": "checkout.session.completed",
-        "data": {
-            "object": {
-                "metadata": {"user_id": "user_123", "tier": "pro"},
-                "customer": "cus_test_123",
-                "subscription": "sub_test_123",
-            }
-        },
-    }
-    # Clear any side_effect
-    stripe_module.Webhook.construct_event.side_effect = None
+    # Explicitly configure the mock - create fresh mock objects for each test
+    stripe_module.checkout = MagicMock()
+    stripe_module.checkout.Session = MagicMock()
+    stripe_module.checkout.Session.create = MagicMock(return_value=mock_session)
+
+    # Mock webhook signature verification with fresh mock
+    stripe_module.Webhook = MagicMock()
+    stripe_module.Webhook.construct_event = MagicMock(
+        return_value={
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "metadata": {"user_id": "user_123", "tier": "pro"},
+                    "customer": "cus_test_123",
+                    "subscription": "sub_test_123",
+                }
+            },
+        }
+    )
 
     # Mock Stripe error classes
+    stripe_module.error = MagicMock()
     stripe_module.error.SignatureVerificationError = type(
         "SignatureVerificationError", (Exception,), {}
     )
