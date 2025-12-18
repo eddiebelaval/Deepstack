@@ -400,7 +400,7 @@ export function NewsPanel() {
                 )}
                 {!hasMore && articles.length > 0 && (
                   <span className="text-sm text-muted-foreground">
-                    You've reached the end
+                    You&apos;ve reached the end
                   </span>
                 )}
               </div>

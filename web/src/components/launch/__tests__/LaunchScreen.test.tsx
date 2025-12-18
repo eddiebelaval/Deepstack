@@ -339,7 +339,7 @@ describe('LaunchScreen', () => {
     it('handles SSR gracefully', () => {
       // Mock window as undefined
       const originalWindow = global.window;
-      // @ts-ignore
+      // @ts-expect-error - Testing SSR scenario where window is undefined
       delete global.window;
 
       expect(() => {
