@@ -1,35 +1,54 @@
-# 🔥 DeepStack Trading Platform
+# DeepStack Trading Platform
 
-**🌐 Live: [deepstack.trade](https://deepstack.trade)** | **📦 Version: 2.0.0** | **📅 Updated: December 2024**
+**Live: [deepstack.trade](https://deepstack.trade)** | **Version: 2.5.0** | **Updated: December 2024**
 
 > **DISCLAIMER: RESEARCH ONLY. NOT FINANCIAL ADVICE.** DeepStack is a financial research and analysis platform providing data and AI-driven insights for informational purposes only. This platform does NOT execute trades on your behalf. Trading in financial markets involves significant risk.
 
 ---
 
-## 🎯 What is DeepStack?
+## What is DeepStack?
 
-DeepStack is an **AI-powered trading research platform** that combines conversational AI with professional-grade market tools. Think of it as having a research analyst in your pocket – helping you develop, test, and track your trading ideas with discipline.
+DeepStack is an **AI-powered trading research platform** that combines conversational AI with professional-grade market tools. Think of it as having a research analyst in your pocket - helping you develop, test, and track your trading ideas with discipline.
 
-### ✨ Key Features
+### Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🤖 **AI Research Chat** | Claude-powered analysis for market research, thesis development, and strategy backtesting |
-| 📊 **Professional Charts** | TradingView-style charts with advanced indicators and symbol search |
-| 💡 **Thesis Engine** | Develop, track, and validate trading hypotheses with live monitoring |
-| 📔 **Trade Journal** | Log trades with emotion tracking, P&L calculation, and rich notes |
-| 🧠 **AI Pattern Learning** | Discover patterns in your trading behavior (with privacy controls) |
-| 📈 **Real-time Data** | Live market data via Alpaca Markets (15m delayed on Free tier) |
-| 🔍 **Stock Screener** | Filter stocks by fundamentals, technicals, and custom criteria |
-| ⚡ **Options Analysis** | Options chains, Greeks, and strategy builders |
-| 🛡️ **Emotional Firewall** | AI-powered check before impulsive trades |
+| **AI Research Chat** | Claude-powered analysis with 30+ tools for market research, thesis development, and strategy backtesting |
+| **Professional Charts** | TradingView-style charts with 30+ indicators, drawing tools, and multi-timeframe analysis |
+| **Thesis Engine** | Develop, track, and validate trading hypotheses with live monitoring and validation scores |
+| **Trade Journal** | Log trades with emotion tracking, P&L calculation, screenshot capture, and rich text notes |
+| **Prediction Markets** | Live odds from Kalshi & Polymarket with thesis linking and event-based betting |
+| **Deep Research Hub** | Perplexity AI integration for earnings analysis, SEC filings, and market summaries |
+| **Emotional Firewall** | Real-time cognitive state detection - blocks revenge trading and overtrading patterns |
+| **Options Suite** | Full options chains, Greeks, multi-leg strategy builder with payoff diagrams |
+| **Stock Screener** | Natural language + traditional screeners with fundamentals and technicals |
+| **Paper Trading** | Full order simulation with position tracking, P&L, and trade history |
+| **Real-time Data** | Live market data via Alpaca Markets with WebSocket streaming |
+| **Politicians Tracker** | Track congressional trading activity from SEC filings |
+| **Mobile & PWA** | Fully responsive with offline support and swipe navigation |
 
 ---
 
-## 🚀 Quick Start
+## New in v2.5 (December 2024)
+
+- **Prediction Markets Integration** - Live Kalshi & Polymarket data with thesis linking
+- **Deep Research Panel** - Perplexity-powered earnings, SEC, and market analysis
+- **Emotional Firewall 2.0** - Real-time pattern detection (revenge trading, overtrading, exhaustion)
+- **Interactive Onboarding Tour** - Guided walkthrough for new users
+- **Options Strategy Builder** - Visual multi-leg construction with payoff diagrams
+- **Watchlist Management** - Multi-watchlist support with import/export
+- **Command Palette** - Cmd/Ctrl+K for quick actions
+- **Streaming Ticker** - Real-time price bar with market status
+- **40+ Dashboard Widgets** - Fully customizable widget-based dashboard
+- **Mobile Optimization** - Bottom nav, swipe gestures, pull-to-refresh
+
+---
+
+## Quick Start
 
 ### Option 1: Use the Web App (Recommended)
-Visit **[deepstack.trade](https://deepstack.trade)** – no installation required!
+Visit **[deepstack.trade](https://deepstack.trade)** - no installation required!
 
 ### Option 2: Run Locally
 
@@ -53,123 +72,207 @@ npm run dev
 ```
 
 ### Required API Keys
-- **Alpaca Markets** – Market data (get free keys at [alpaca.markets](https://alpaca.markets))
-- **Anthropic Claude** – AI analysis (get at [console.anthropic.com](https://console.anthropic.com))
-- **Supabase** (optional) – User authentication
+- **Alpaca Markets** - Market data (get free keys at [alpaca.markets](https://alpaca.markets))
+- **Anthropic Claude** - AI analysis (get at [console.anthropic.com](https://console.anthropic.com))
+- **Supabase** (optional) - User authentication
 
 ---
 
-## 💎 Product Tiers
+## Product Tiers
 
-### 🆓 Free Tier – *The Learning Hook*
-- ✅ 10 AI queries per 12 hours
-- ✅ 15-minute delayed market data
-- ✅ Basic charts
-- ✅ 5 watchlist symbols
-- ✅ 1 active Thesis Engine
-- ✅ Unlimited Journal entries (basic)
-- ✅ Basic Emotional Firewall
+### Free Tier - *The Learning Hook*
+- 10 AI queries per 12 hours
+- 15-minute delayed market data
+- Basic charts with indicators
+- 5 watchlist symbols
+- 1 active Thesis Engine
+- Unlimited Journal entries (basic)
+- Basic Emotional Firewall
+- Prediction Markets (view only)
 
-### 💰 Pro Tier – *The Serious Researcher*
-- ✅ Unlimited AI queries (including advanced reasoning)
-- ✅ Real-time market data
-- ✅ Advanced charts with all indicators
-- ✅ Unlimited watchlists
-- ✅ Full Screener + custom filters
-- ✅ Complete Options Suite
-- ✅ Unlimited Thesis Engines
-- ✅ Full Trade Journal with TipTap editor
-- ✅ AI Pattern Learning (personalized insights)
-- ✅ Priority support
+### Pro Tier - *The Serious Researcher*
+- Unlimited AI queries (including extended thinking)
+- Real-time market data
+- Advanced charts with all indicators + drawing tools
+- Unlimited watchlists with import/export
+- Full Screener + NL Screener
+- Complete Options Suite with strategy builder
+- Unlimited Thesis Engines with validation scores
+- Full Trade Journal with TipTap editor + screenshots
+- AI Pattern Learning (personalized insights)
+- Full Prediction Markets with thesis linking
+- Deep Research Hub access
+- Priority support
 
 ---
 
-## 🏗️ Architecture
+## Core Features
+
+### AI Chat & Analysis
+- **Multi-provider support**: Claude (Sonnet/Opus), Perplexity
+- **30+ analysis tools**: Technical analysis, fundamental research, pattern recognition
+- **Extended thinking mode**: Deep reasoning for complex analysis
+- **Command palette**: Cmd/Ctrl+K for quick actions
+- **Persona selection**: Trading Mentor, Analyst, Risk Manager personas
+- **Streaming responses**: Real-time AI output
+
+### Charts & Technical Analysis
+- **Multi-series charting**: Candlesticks, bars, lines, area
+- **30+ indicators**: RSI, MACD, Bollinger Bands, Volume Profile, and more
+- **Drawing tools**: Trendlines, channels, Fibonacci, annotations
+- **Timeframe selection**: 1m to Monthly with keyboard shortcuts (1-9)
+- **Symbol search**: Autocomplete with asset info
+- **Saved drawings**: Persist annotations per symbol
+
+### Thesis Engine
+- **Hypothesis tracking**: Entry/exit targets, timeframes, conviction levels
+- **Live validation**: Real-time price vs. thesis targets
+- **Validation scores**: 0-100 score based on price action
+- **Market linking**: Connect theses to prediction markets
+- **Journal integration**: Link journal entries to theses
+
+### Trade Journal
+- **Rich text editor**: TipTap/ProseMirror with full formatting
+- **Emotion tracking**: Log emotional state per trade
+- **P&L calculation**: Automatic profit/loss computation
+- **Screenshot capture**: Attach chart screenshots
+- **Thesis linking**: Connect entries to theses
+- **Pattern analysis**: AI discovers behavioral patterns
+
+### Prediction Markets
+- **Multi-platform**: Kalshi and Polymarket integration
+- **Live odds**: Real-time probability updates
+- **Market types**: Binary, multi-outcome, scalar markets
+- **Thesis linking**: Connect markets to investment theses
+- **Event cards**: Calendar-based event betting
+- **Search**: Find markets by topic or keyword
+
+### Emotional Firewall
+- **Pattern detection**: Revenge trading, overtrading, emotional exhaustion
+- **Real-time checks**: Pre-trade cognitive state assessment
+- **Decision fitness**: Score-based trading readiness
+- **Cooldown periods**: Automatic trading pauses after losses
+- **Journal prompts**: Encourages reflection during high-risk states
+
+### Options Analysis
+- **Options chains**: Full chain data with Greeks
+- **Strategy builder**: Multi-leg visual construction
+- **Payoff diagrams**: P&L visualization at expiration
+- **Greeks analysis**: Delta, Gamma, Theta, Vega, Rho
+- **Screener**: Filter options by criteria
+
+### Deep Research Hub
+- **Perplexity integration**: AI-powered research synthesis
+- **Earnings analysis**: Transcript summaries and key takeaways
+- **SEC filings**: 10-K, 10-Q, 8-K analysis
+- **Company profiles**: Comprehensive business summaries
+- **Market summaries**: Daily/weekly market recaps
+
+---
+
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          DeepStack Architecture                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Frontend (Next.js 16 + React)                                              │
-│  ├── /chat          – AI conversation interface                             │
-│  ├── /journal       – Trade Journal with TipTap editor                      │
-│  ├── /thesis        – Thesis Engine with live monitoring                    │
-│  ├── /insights      – AI Pattern Learning dashboard                         │
-│  └── /dashboard     – Charts, Screener, News, Calendar                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  API Routes (Edge Runtime)                                                  │
-│  ├── /api/chat      – AI streaming with multi-provider support              │
-│  ├── /api/market/*  – Alpaca proxy (quotes, bars, assets)                   │
-│  ├── /api/journal   – CRUD for journal entries                              │
-│  ├── /api/thesis    – CRUD for thesis tracking                              │
-│  └── /api/options/* – Options chains and strategies                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Backend (Python FastAPI)                                                   │
-│  ├── market_api.py  – Alpaca integration                                    │
-│  ├── core/          – Trading strategies & risk management                  │
-│  └── cli/           – Terminal interface                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  State Management (Zustand + Persist)                                       │
-│  ├── chat-store     – Conversations & messages                              │
-│  ├── journal-store  – Trade journal entries                                 │
-│  ├── thesis-store   – Trading theses                                        │
-│  ├── pattern-store  – AI-discovered patterns                                │
-│  └── quota-store    – Tier limits & usage tracking                          │
-└─────────────────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------------------+
+|                          DeepStack Architecture                              |
++-----------------------------------------------------------------------------+
+|  Frontend (Next.js 15 + React 19)                                           |
+|  +-- /app           - Main trading interface with panels                    |
+|  +-- /chat          - AI conversation interface                             |
+|  +-- /journal       - Trade Journal with TipTap editor                      |
+|  +-- /thesis        - Thesis Engine with validation                         |
+|  +-- /insights      - AI Pattern Learning dashboard                         |
+|  +-- /dashboard     - Customizable widget dashboard                         |
++-----------------------------------------------------------------------------+
+|  API Routes (Edge Runtime)                                                  |
+|  +-- /api/chat              - AI streaming with tool execution              |
+|  +-- /api/market/*          - Alpaca proxy (quotes, bars, assets)           |
+|  +-- /api/prediction-markets - Kalshi/Polymarket integration                |
+|  +-- /api/perplexity/*      - Deep research (earnings, SEC, profiles)       |
+|  +-- /api/options/*         - Options chains and strategies                 |
+|  +-- /api/emotional-firewall - Cognitive state assessment                   |
+|  +-- /api/politicians/*     - Congressional trading data                    |
++-----------------------------------------------------------------------------+
+|  Backend (Python FastAPI)                                                   |
+|  +-- api_server.py  - Main API server with WebSocket                        |
+|  +-- core/          - Trading core, risk management, strategies             |
+|  +-- orchestrator/  - Multi-strategy orchestration                          |
++-----------------------------------------------------------------------------+
+|  State Management (Zustand + Persist)                                       |
+|  +-- 23 stores      - Chat, trading, positions, thesis, journal, etc.       |
+|  +-- WebSocket      - Real-time market data streaming                       |
+|  +-- LocalStorage   - Offline persistence                                   |
++-----------------------------------------------------------------------------+
+|  External Services                                                          |
+|  +-- Alpaca         - Market data, quotes, bars                             |
+|  +-- Anthropic      - Claude AI (Sonnet, Opus)                              |
+|  +-- Perplexity     - Research synthesis                                    |
+|  +-- Kalshi         - Prediction markets                                    |
+|  +-- Polymarket     - Prediction markets                                    |
+|  +-- Supabase       - Authentication, database                              |
++-----------------------------------------------------------------------------+
 ```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 deepstack/
-├── web/                      # Next.js frontend
-│   ├── src/
-│   │   ├── app/              # App router pages
-│   │   │   ├── api/          # API routes
-│   │   │   ├── chat/         # Main chat interface
-│   │   │   ├── journal/      # Trade Journal
-│   │   │   ├── thesis/       # Thesis Engine
-│   │   │   └── insights/     # AI Insights
-│   │   ├── components/       # React components
-│   │   │   ├── chat/         # Chat UI components
-│   │   │   ├── charts/       # TradingView-style charts
-│   │   │   ├── journal/      # Journal components
-│   │   │   ├── thesis/       # Thesis components
-│   │   │   └── ui/           # Shadcn UI primitives
-│   │   └── lib/              # Utilities & stores
-│   │       ├── stores/       # Zustand state management
-│   │       └── llm/          # AI provider configs
-├── core/                     # Python trading core
-│   ├── broker/               # Broker integrations
-│   ├── risk/                 # Risk management
-│   └── strategies/           # Trading strategies
-├── cli/                      # Terminal interface
-├── docs/                     # Documentation
-└── tests/                    # Test suites
++-- web/                          # Next.js frontend
+|   +-- src/
+|   |   +-- app/                  # App router pages
+|   |   |   +-- api/              # 40+ API routes
+|   |   |   +-- (app)/            # Main app routes
+|   |   |   +-- (marketing)/      # Landing, pricing
+|   |   +-- components/           # 150+ React components
+|   |   |   +-- chat/             # AI chat interface
+|   |   |   +-- charts/           # TradingView-style charts
+|   |   |   +-- trading/          # Trading panels & widgets
+|   |   |   +-- prediction-markets/ # Kalshi/Polymarket
+|   |   |   +-- options/          # Options analysis
+|   |   |   +-- journal/          # Trade journal
+|   |   |   +-- thesis/           # Thesis engine
+|   |   |   +-- emotional-firewall/ # Trading psychology
+|   |   |   +-- onboarding/       # Tour & welcome
+|   |   |   +-- layout/           # App layout
+|   |   |   +-- dashboard/        # Widget dashboard
+|   |   |   +-- ui/               # Shadcn primitives
+|   |   +-- lib/
+|   |   |   +-- stores/           # 23 Zustand stores
+|   |   |   +-- llm/              # AI provider configs
+|   |   +-- hooks/                # 57 custom hooks
++-- core/                         # Python trading core
+|   +-- api/                      # API routers
+|   +-- broker/                   # Broker integrations
+|   +-- risk/                     # Risk management
+|   +-- strategies/               # Trading strategies
+|   +-- data/                     # Data providers
++-- tests/                        # Test suites
++-- docs/                         # Documentation
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 16, React 19, TypeScript |
-| **Styling** | Tailwind CSS, Shadcn UI |
-| **Charts** | Recharts, custom MultiSeriesChart |
+| **Frontend** | Next.js 15, React 19, TypeScript 5 |
+| **Styling** | Tailwind CSS 3.4, Shadcn UI |
+| **Charts** | Recharts, Lightweight Charts, custom components |
 | **Rich Text** | TipTap (ProseMirror) |
-| **State** | Zustand with persistence |
-| **AI** | Anthropic Claude, OpenAI, Google Gemini |
-| **Backend** | Python FastAPI |
-| **Data** | Alpaca Markets API |
-| **Auth** | Supabase |
+| **State** | Zustand with persistence (23 stores) |
+| **AI** | Anthropic Claude, Perplexity |
+| **Backend** | Python 3.11, FastAPI, WebSockets |
+| **Data** | Alpaca Markets, Kalshi, Polymarket |
+| **Auth** | Supabase Auth |
+| **Database** | Supabase (PostgreSQL) |
 | **Hosting** | Vercel (frontend), Railway (backend) |
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 ```bash
 # Required
@@ -177,61 +280,83 @@ ALPACA_API_KEY=your_alpaca_key
 ALPACA_SECRET_KEY=your_alpaca_secret
 ANTHROPIC_API_KEY=your_claude_key
 
-# Optional
-OPENAI_API_KEY=your_openai_key
-GOOGLE_AI_API_KEY=your_gemini_key
+# Optional - Enhanced Features
+PERPLEXITY_API_KEY=your_perplexity_key    # Deep Research Hub
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 ```
 
 ---
 
-## 🧪 Testing
+## Feature Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| AI Chat | Production | Multi-provider, 30+ tools, streaming |
+| Charts | Production | Real-time, 30+ indicators, drawings |
+| Trade Journal | Production | TipTap, emotions, screenshots, P&L |
+| Thesis Engine | Production | Live validation, scoring, market linking |
+| Prediction Markets | Production | Kalshi + Polymarket integration |
+| Deep Research | Production | Perplexity-powered analysis |
+| Emotional Firewall | Production | Real-time pattern detection |
+| Options Suite | Production | Chains, Greeks, strategy builder |
+| Screener | Production | NL + traditional, Alpaca data |
+| Paper Trading | Production | Full simulation, positions, history |
+| Politicians Tracker | Production | Congressional trades |
+| News/Calendar | Production | Aggregated feeds |
+| Onboarding Tour | Production | Interactive 6-step guide |
+| Mobile/PWA | Production | Responsive, offline support |
+| Auth | Beta | Supabase integration |
+| Payments | Planned | Stripe integration |
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl + K` | Open command palette |
+| `1-9` | Switch chart timeframes |
+| `?` | Show all shortcuts |
+| `Shift + Tab` | Open commands (in chat) |
+| `Enter` | Send message |
+| `Shift + Enter` | New line in chat |
+
+---
+
+## Safety & Compliance
+
+- **Disclaimer Banner**: Persistent "Not Financial Advice" warning on every page
+- **Emotional Firewall**: AI-powered pattern detection blocks impulsive trades
+- **Privacy First**: Pattern data never shared or sold
+- **No Trade Execution**: Research only - we never execute real trades
+- **Circuit Breakers**: Automatic halts on extreme conditions
+- **Data Encryption**: All sensitive data encrypted at rest and in transit
+
+---
+
+## Testing
 
 ```bash
-# Run all tests
+# Backend tests
 pytest tests/
 
-# Run with coverage
+# With coverage
 pytest --cov=core tests/
 
 # Frontend type checking
 cd web && npm run build
 
-# E2E tests (requires running dev server)
+# E2E tests (Playwright)
 npm run test:e2e
+
+# Lint
+npm run lint
 ```
 
 ---
 
-## 📊 Feature Status
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| AI Chat | ✅ Production | Multi-provider, streaming |
-| Charts | ✅ Production | Real-time, symbol search |
-| Trade Journal | ✅ Production | TipTap, emotions, P&L |
-| Thesis Engine | ✅ Production | Live monitoring, validation |
-| AI Insights | ✅ Production | Pattern analysis, privacy |
-| Options | ✅ Production | Chains, strategies |
-| Screener | ✅ Production | Real data via Alpaca |
-| News/Calendar | ✅ Production | Real data |
-| Auth | 🟡 Beta | Supabase integration |
-| Payments | 🔴 Planned | Stripe integration |
-
----
-
-## 🛡️ Safety & Compliance
-
-- **Disclaimer Banner**: Persistent "Not Financial Advice" warning on every page
-- **Emotional Firewall**: AI-powered pause before impulsive trades
-- **Privacy First**: Pattern data never shared or sold
-- **No Trade Execution**: Research only – we never execute trades
-- **Circuit Breakers**: Automatic halts on extreme conditions
-
----
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -247,13 +372,13 @@ npm run test:e2e
 
 ---
 
-## 📜 License
+## License
 
-MIT License – See [LICENSE](LICENSE) file.
+MIT License - See [LICENSE](LICENSE) file.
 
 ---
 
-## ⚠️ Full Disclaimer
+## Full Disclaimer
 
 **DISCLAIMER: RESEARCH ONLY. NOT FINANCIAL ADVICE.**
 
@@ -269,17 +394,22 @@ The developers of DeepStack are not responsible for any financial losses incurre
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built with:
-- [Anthropic Claude](https://anthropic.com) – AI reasoning
-- [Alpaca Markets](https://alpaca.markets) – Market data
-- [Vercel](https://vercel.com) – Hosting
-- [Shadcn UI](https://ui.shadcn.com) – Components
-- [TipTap](https://tiptap.dev) – Rich text editor
+- [Anthropic Claude](https://anthropic.com) - AI reasoning
+- [Perplexity](https://perplexity.ai) - Research synthesis
+- [Alpaca Markets](https://alpaca.markets) - Market data
+- [Kalshi](https://kalshi.com) - Prediction markets
+- [Polymarket](https://polymarket.com) - Prediction markets
+- [Vercel](https://vercel.com) - Frontend hosting
+- [Railway](https://railway.app) - Backend hosting
+- [Supabase](https://supabase.com) - Auth & database
+- [Shadcn UI](https://ui.shadcn.com) - UI components
+- [TipTap](https://tiptap.dev) - Rich text editor
 
 ---
 
-**Built with ❤️ for disciplined traders who want an edge**
+**Built for disciplined traders who want an edge**
 
-*Last updated: December 7, 2024*
+*Last updated: December 17, 2024*

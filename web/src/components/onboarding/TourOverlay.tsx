@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { useTour, useTourStep } from './TourManager';
 import { TourPing } from './TourPing';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +13,29 @@ import { X, RotateCcw } from 'lucide-react';
  */
 function WelcomePing() {
     const { isActive, step, dismiss } = useTourStep('welcome');
+
+    if (!isActive || !step) return null;
+
+    return (
+        <div className="fixed bottom-24 right-8 z-50">
+            <TourPing
+                isActive={isActive}
+                title={step.title}
+                description={step.description}
+                tip={step.tip}
+                position="left"
+                onDismiss={dismiss}
+            />
+        </div>
+    );
+}
+
+/**
+ * Floating shortcuts ping that appears in a fixed position
+ * Used for the final "Shortcuts" step (no specific target element)
+ */
+function ShortcutsPing() {
+    const { isActive, step, dismiss } = useTourStep('shortcuts');
 
     if (!isActive || !step) return null;
 
@@ -103,11 +127,20 @@ export function RestartTourButton() {
 
 /**
  * Main tour overlay component - renders all floating tour elements
+ * Only renders on /app routes to avoid showing tour on landing page
  */
 export function TourOverlay() {
+    const pathname = usePathname();
+
+    // Only show tour on /app routes
+    if (!pathname?.startsWith('/app')) {
+        return null;
+    }
+
     return (
         <>
             <WelcomePing />
+            <ShortcutsPing />
             <TourProgressIndicator />
         </>
     );

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 
 const TOUR_STORAGE_KEY = 'deepstack_tour_progress';
 const TOUR_COMPLETE_KEY = 'deepstack_onboarding_complete';
@@ -89,6 +90,10 @@ export function TourProvider({ children, steps = DEFAULT_TOUR_STEPS }: TourProvi
     const [completedSteps, setCompletedSteps] = useState<string[]>([]);
     const [hasInitialized, setHasInitialized] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const pathname = usePathname();
+
+    // Tour only runs on /app routes
+    const isAppRoute = pathname?.startsWith('/app');
 
     // Calculate current step based on completed steps
     const currentStepIndex = completedSteps.length;
@@ -99,7 +104,7 @@ export function TourProvider({ children, steps = DEFAULT_TOUR_STEPS }: TourProvi
         setIsMounted(true);
     }, []);
 
-    // Load progress from localStorage (only on client after mount)
+    // Load progress from localStorage (only on client after mount, only on /app routes)
     useEffect(() => {
         if (!isMounted) return;
 
@@ -113,15 +118,16 @@ export function TourProvider({ children, steps = DEFAULT_TOUR_STEPS }: TourProvi
         } else if (savedProgress) {
             const parsed = JSON.parse(savedProgress);
             setCompletedSteps(parsed.completedSteps || []);
-            setIsActive(parsed.isActive ?? true);
-        } else {
-            // First time - start tour after a delay
+            // Only restore isActive on /app routes
+            setIsActive(isAppRoute ? (parsed.isActive ?? true) : false);
+        } else if (isAppRoute) {
+            // First time on /app - start tour after a delay
             setTimeout(() => {
                 setIsActive(true);
             }, 1000);
         }
         setHasInitialized(true);
-    }, [isMounted, steps]);
+    }, [isMounted, steps, isAppRoute]);
 
     // Save progress to localStorage
     useEffect(() => {
