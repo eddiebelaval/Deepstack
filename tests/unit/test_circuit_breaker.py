@@ -18,7 +18,6 @@ Test Coverage:
     - Integration scenarios
 """
 
-
 import pytest
 
 from core.risk.circuit_breaker import BreakerState, BreakerType, CircuitBreaker
@@ -237,11 +236,12 @@ class TestMaxDrawdownBreaker:
 
     def test_drawdown_from_peak_not_initial(self):
         """Test drawdown calculated from peak, not initial value."""
-        # Set high daily loss limit so we only test drawdown breaker
+        # Set high daily loss limit and rapid drawdown limit to only test max drawdown breaker
         breaker = CircuitBreaker(
             initial_portfolio_value=100000,
             max_drawdown_limit=0.10,
             daily_loss_limit=0.50,  # High limit to not interfere with drawdown test
+            rapid_drawdown_limit=1.0,  # Disable rapid drawdown check
         )
 
         # Portfolio grows to 120k (new peak)
@@ -908,11 +908,12 @@ class TestIntegration:
 
     def test_new_peak_resets_drawdown_calculation(self):
         """Test drawdown calculation resets from new peaks."""
-        # Set high daily loss limit so we only test drawdown breaker
+        # Set high daily loss limit and rapid drawdown limit to only test max drawdown breaker
         breaker = CircuitBreaker(
             initial_portfolio_value=100000,
             max_drawdown_limit=0.10,
             daily_loss_limit=0.50,  # High limit to not interfere
+            rapid_drawdown_limit=1.0,  # Disable rapid drawdown check
         )
 
         # Portfolio grows

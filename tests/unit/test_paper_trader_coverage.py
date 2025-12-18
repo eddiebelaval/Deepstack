@@ -25,6 +25,22 @@ import pytz
 from core.broker.paper_trader import PaperTrader
 from core.config import Config
 from core.data.alpaca_client import AlpacaClient
+from core.data.data_storage import SQLiteConnectionPool
+
+
+def _reinit_trader_db(trader: PaperTrader, db_path: str) -> None:
+    """
+    Reinitialize a PaperTrader's database to use a new path.
+
+    This is needed because PaperTrader's __init__ sets up the connection pool
+    with the default db_path. To use a test-specific database, we need to:
+    1. Set the new db_path
+    2. Reinitialize the connection pool for the new path
+    3. Initialize the database schema
+    """
+    trader.db_path = db_path
+    trader._db_pool = SQLiteConnectionPool(db_path, pool_size=5)
+    trader._init_db()
 
 
 @pytest.fixture
@@ -899,17 +915,51 @@ class TestDatabaseOperations:
         # Create a trader with old schema (simulate)
         db_path = str(tmp_path / "test.db")
 
-        # Create old schema without commission column
+        # Create old schema without commission column - needs all tables for migration to work
         with sqlite3.connect(db_path) as conn:
             conn.execute(
                 """
-                CREATE TABLE IF NOT EXISTS orders (
+                CREATE TABLE orders (
                     order_id TEXT PRIMARY KEY,
                     symbol TEXT,
                     action TEXT,
                     quantity INTEGER,
                     order_type TEXT,
-                    status TEXT
+                    limit_price REAL,
+                    stop_price REAL,
+                    status TEXT,
+                    filled_quantity INTEGER DEFAULT 0,
+                    filled_avg_price REAL,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                )
+                """
+            )
+            # Need trades table for migration to work
+            conn.execute(
+                """
+                CREATE TABLE trades (
+                    trade_id TEXT PRIMARY KEY,
+                    symbol TEXT,
+                    action TEXT,
+                    quantity INTEGER,
+                    price REAL,
+                    slippage REAL,
+                    timestamp TIMESTAMP,
+                    order_id TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE positions (
+                    symbol TEXT PRIMARY KEY,
+                    quantity INTEGER,
+                    avg_cost REAL,
+                    market_value REAL,
+                    unrealized_pnl REAL,
+                    realized_pnl REAL,
+                    updated_at TIMESTAMP
                 )
                 """
             )
@@ -921,14 +971,14 @@ class TestDatabaseOperations:
             alpaca_client=mock_alpaca,
             enable_risk_systems=False,
         )
-        trader.db_path = db_path
-        trader._init_db()
+        _reinit_trader_db(trader, db_path)
 
         # Check migration added columns
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute("PRAGMA table_info(orders)")
             columns = [row[1] for row in cursor.fetchall()]
-            # Note: Migration only happens if orders table already exists with old schema
+            assert "commission" in columns
+            assert "slippage" in columns
 
 
 class TestRiskSystemIntegration:

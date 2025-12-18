@@ -793,6 +793,9 @@ class TestErrorHandling:
         # Patch _run_once to simulate error
         orchestrator_with_mocks._run_once = mock_run_once_with_error
         orchestrator_with_mocks._cadence_s = 0.05
+        # Reduce backoff to make test faster (default is 5s which is too long for test)
+        orchestrator_with_mocks._base_backoff = 0.01
+        orchestrator_with_mocks._max_backoff = 0.05
 
         # Start the loop
         await orchestrator_with_mocks.start()
@@ -856,6 +859,9 @@ class TestErrorHandling:
 
         orchestrator_with_mocks._run_once = mock_run_once_timeout_then_succeed
         orchestrator_with_mocks._cadence_s = 0.05
+        # Reduce backoff to make test faster (default is 5s which is too long for test)
+        orchestrator_with_mocks._base_backoff = 0.01
+        orchestrator_with_mocks._max_backoff = 0.05
 
         await orchestrator_with_mocks.start()
         await asyncio.sleep(0.15)
