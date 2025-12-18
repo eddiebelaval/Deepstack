@@ -21,7 +21,8 @@ import pytest
 # Import TestClient first before mocking
 from fastapi.testclient import TestClient
 
-# Then mock all external dependencies
+# Mock all external dependencies at module level
+# These prevent real imports but api_server may have already imported differently
 sys.modules["stripe"] = MagicMock()
 sys.modules["yfinance"] = MagicMock()
 sys.modules["supabase"] = MagicMock()
@@ -56,28 +57,14 @@ class MockStripeSession:
         self.subscription = "sub_test_123"
 
 
-@pytest.fixture
-def mock_stripe_api():
-    """Mock Stripe API calls with explicit return values.
+def _create_stripe_mock():
+    """Create a fully configured stripe mock with proper return types."""
+    stripe_mock = MagicMock()
 
-    CRITICAL: We configure the EXISTING stripe mock from sys.modules rather than
-    creating a new one. This is because api_server imports stripe at module load
-    time and holds a reference to that original mock. Creating a new mock would
-    not affect api_server's reference.
-
-    Uses a combination of MagicMock (for call tracking) and explicit objects
-    (for return values) to ensure both test assertions and Pydantic validation work.
-    """
-    # Get the existing stripe mock that was set at module level
-    # This is the same mock that api_server imported
-    stripe_mock = sys.modules["stripe"]
-
-    # Create the session object that will be returned - using explicit class
-    # ensures .url is always a string, not a MagicMock
+    # Create the session object - using explicit class ensures .url is a string
     mock_session = MockStripeSession()
 
-    # Configure the existing mock's checkout.Session.create to return our session
-    # We need to set these up fresh on each test to avoid state leakage
+    # Configure checkout.Session.create to return our session
     stripe_mock.checkout = MagicMock()
     stripe_mock.checkout.Session = MagicMock()
     stripe_mock.checkout.Session.create = MagicMock(return_value=mock_session)
@@ -106,7 +93,22 @@ def mock_stripe_api():
     # Set API key
     stripe_mock.api_key = "sk_test_mock_secret_key"
 
-    yield stripe_mock
+    return stripe_mock
+
+
+@pytest.fixture
+def mock_stripe_api():
+    """Mock Stripe API by patching at the api_server module level.
+
+    CRITICAL: With pytest-xdist, different workers may import api_server before
+    our test file runs. Using patch() on 'core.api_server.stripe' ensures we
+    replace the reference that api_server actually uses, regardless of import order.
+    """
+    stripe_mock = _create_stripe_mock()
+
+    # Patch stripe at the api_server module level - this is where it's actually used
+    with patch("core.api_server.stripe", stripe_mock):
+        yield stripe_mock
 
 
 @pytest.fixture
@@ -134,7 +136,11 @@ def mock_supabase_client():
 
 @pytest.fixture
 def app(mock_stripe_api, mock_supabase_client):
-    """Create FastAPI app with mocked dependencies."""
+    """Create FastAPI app with mocked dependencies.
+
+    Note: mock_stripe_api is included as dependency to ensure the patch
+    is active when create_app() is called.
+    """
     # Patch config and other dependencies
     with patch("core.config.get_config") as mock_config:
         # Configure mock config
