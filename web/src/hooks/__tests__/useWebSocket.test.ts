@@ -706,12 +706,12 @@ describe('useWebSocket', () => {
   });
 
   describe('Cleanup', () => {
-    it('cleans up on unmount', () => {
+    it('cleans up on unmount', async () => {
       const { result, unmount } = renderHook(() =>
-        useWebSocket({ autoConnect: false })
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -726,10 +726,12 @@ describe('useWebSocket', () => {
   });
 
   describe('Configuration', () => {
-    it('uses default options when not provided', () => {
-      const { result } = renderHook(() => useWebSocket({ autoConnect: false }));
+    it('uses default options when not provided', async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ autoConnect: false, checkBackendFirst: false })
+      );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
@@ -737,15 +739,16 @@ describe('useWebSocket', () => {
       expect(wsInstances[0].url).toContain('ws://127.0.0.1:8000/ws');
     });
 
-    it('allows partial option overrides', () => {
+    it('allows partial option overrides', async () => {
       const { result } = renderHook(() =>
         useWebSocket({
           autoConnect: false,
+          checkBackendFirst: false,
           url: 'ws://custom.com/ws',
         })
       );
 
-      act(() => {
+      await act(async () => {
         result.current.connect();
       });
 
