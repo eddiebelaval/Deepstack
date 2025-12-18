@@ -24,11 +24,6 @@ function createWrapper() {
         gcTime: 0,
       },
     },
-    logger: {
-      log: () => {},
-      warn: () => {},
-      error: () => {},
-    },
   });
 
   return ({ children }: { children: ReactNode }) =>

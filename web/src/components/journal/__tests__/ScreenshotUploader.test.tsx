@@ -6,12 +6,12 @@ import { ScreenshotUploader } from '../ScreenshotUploader';
 // Mock Supabase storage functions
 vi.mock('@/lib/supabase/storage', () => ({
   validateImageFile: vi.fn((file: File) => ({ valid: true })),
-  uploadScreenshot: vi.fn((file: File, onProgress: Function) => {
-    onProgress(50);
-    onProgress(100);
-    return Promise.resolve(`http://example.com/${file.name}`);
+  uploadScreenshot: vi.fn((file: File, onProgress?: (progress: number) => void) => {
+    onProgress?.(50);
+    onProgress?.(100);
+    return Promise.resolve(`http://example.com/${file.name}`) as Promise<string>;
   }),
-  deleteScreenshot: vi.fn(() => Promise.resolve()),
+  deleteScreenshot: vi.fn(() => Promise.resolve() as Promise<void>),
 }));
 
 // Mock toast
@@ -139,12 +139,12 @@ describe('ScreenshotUploader', () => {
     it('displays upload progress', async () => {
       const user = userEvent.setup();
       let resolveUpload: any;
-      const uploadPromise = new Promise((resolve) => {
+      const uploadPromise = new Promise<string>((resolve) => {
         resolveUpload = resolve;
       });
 
       vi.mocked(uploadScreenshot).mockImplementation((file, onProgress) => {
-        onProgress(50);
+        onProgress?.(50);
         return uploadPromise;
       });
 
@@ -493,7 +493,7 @@ describe('ScreenshotUploader', () => {
     it('disables upload button in uploading files when disabled', async () => {
       const user = userEvent.setup();
       let resolveUpload: any;
-      const uploadPromise = new Promise((resolve) => {
+      const uploadPromise = new Promise<string>((resolve) => {
         resolveUpload = resolve;
       });
 
@@ -520,12 +520,12 @@ describe('ScreenshotUploader', () => {
     it('shows uploading file with progress', async () => {
       const user = userEvent.setup();
       let resolveUpload: any;
-      const uploadPromise = new Promise((resolve) => {
+      const uploadPromise = new Promise<string>((resolve) => {
         resolveUpload = resolve;
       });
 
       vi.mocked(uploadScreenshot).mockImplementation((file, onProgress) => {
-        onProgress(50);
+        onProgress?.(50);
         return uploadPromise;
       });
 

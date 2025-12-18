@@ -15,7 +15,6 @@ vi.mock('date-fns', async () => {
 
 describe('PositionHistory', () => {
   const createMockPosition = (overrides: Partial<Position> = {}): Position => ({
-    id: '1',
     symbol: 'AAPL',
     quantity: 0, // Closed position
     avg_cost: 150,
@@ -28,29 +27,27 @@ describe('PositionHistory', () => {
     first_trade_at: '2024-01-01T10:00:00Z',
     last_trade_at: '2024-01-15T10:00:00Z',
     trades: [
-      { id: '1', action: 'BUY', quantity: 10, price: 150, executed_at: '2024-01-01T10:00:00Z' },
-      { id: '2', action: 'SELL', quantity: 10, price: 160, executed_at: '2024-01-15T10:00:00Z' },
+      { id: '1', symbol: 'AAPL', action: 'BUY', quantity: 10, price: 150, orderType: 'MKT', createdAt: '2024-01-01T10:00:00Z' },
+      { id: '2', symbol: 'AAPL', action: 'SELL', quantity: 10, price: 160, orderType: 'MKT', createdAt: '2024-01-15T10:00:00Z' },
     ],
     ...overrides,
   } as Position);
 
   const mockClosedPositions = [
     createMockPosition({
-      id: '1',
       symbol: 'AAPL',
       realized_pnl: 100,
       first_trade_at: '2024-01-01T10:00:00Z',
       last_trade_at: '2024-01-15T10:00:00Z',
     }),
     createMockPosition({
-      id: '2',
       symbol: 'MSFT',
       realized_pnl: -50,
       first_trade_at: '2024-01-05T10:00:00Z',
       last_trade_at: '2024-01-20T10:00:00Z',
       trades: [
-        { id: '3', action: 'BUY', quantity: 5, price: 300, executed_at: '2024-01-05T10:00:00Z' },
-        { id: '4', action: 'SELL', quantity: 5, price: 290, executed_at: '2024-01-20T10:00:00Z' },
+        { id: '3', symbol: 'MSFT', action: 'BUY', quantity: 5, price: 300, orderType: 'MKT', createdAt: '2024-01-05T10:00:00Z' },
+        { id: '4', symbol: 'MSFT', action: 'SELL', quantity: 5, price: 290, orderType: 'MKT', createdAt: '2024-01-20T10:00:00Z' },
       ],
     }),
   ];
@@ -216,8 +213,8 @@ describe('PositionHistory', () => {
         symbol: 'TSLA',
         realized_pnl: -75,
         trades: [
-          { id: '5', action: 'BUY', quantity: 5, price: 200, executed_at: '2024-01-01' },
-          { id: '6', action: 'SELL', quantity: 5, price: 185, executed_at: '2024-01-10' },
+          { id: '5', symbol: 'TSLA', action: 'BUY', quantity: 5, price: 200, orderType: 'MKT', createdAt: '2024-01-01' },
+          { id: '6', symbol: 'TSLA', action: 'SELL', quantity: 5, price: 185, orderType: 'MKT', createdAt: '2024-01-10' },
         ],
       });
 
@@ -232,12 +229,10 @@ describe('PositionHistory', () => {
     it('sorts positions by exit date (most recent first)', () => {
       const positions = [
         createMockPosition({
-          id: '1',
           symbol: 'OLD',
           last_trade_at: '2024-01-01T10:00:00Z',
         }),
         createMockPosition({
-          id: '2',
           symbol: 'NEW',
           last_trade_at: '2024-01-20T10:00:00Z',
         }),

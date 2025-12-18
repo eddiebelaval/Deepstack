@@ -23,9 +23,12 @@ vi.mock('@/lib/supabase/journal', () => ({
 const mockEntry: JournalEntry = {
   id: 'entry-123',
   symbol: 'AAPL',
-  entryType: 'trade',
-  content: 'Bought 10 shares at $150',
-  tags: ['buy', 'tech'],
+  tradeDate: '2024-01-01',
+  direction: 'long',
+  entryPrice: 150,
+  quantity: 10,
+  emotionAtEntry: 'confident',
+  notes: 'Bought 10 shares at $150',
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };
@@ -33,9 +36,12 @@ const mockEntry: JournalEntry = {
 const mockAnalysisEntry: JournalEntry = {
   id: 'entry-456',
   symbol: 'TSLA',
-  entryType: 'analysis',
-  content: 'Strong support at $200',
-  tags: ['technical', 'support'],
+  tradeDate: '2024-01-02',
+  direction: 'short',
+  entryPrice: 200,
+  quantity: 5,
+  emotionAtEntry: 'anxious',
+  notes: 'Strong support at $200',
   createdAt: '2024-01-02T00:00:00Z',
   updatedAt: '2024-01-02T00:00:00Z',
 };
@@ -166,12 +172,12 @@ describe('useJournalSync', () => {
     });
 
     it('refetches data when subscription callback is triggered', async () => {
-      const updatedEntry = { ...mockEntry, content: 'Updated content' };
+      const updatedEntry = { ...mockEntry, notes: 'Updated content' };
       vi.mocked(journalApi.fetchJournalEntries)
         .mockResolvedValueOnce([mockEntry])
         .mockResolvedValueOnce([updatedEntry]);
 
-      let subscriptionCallback: (() => Promise<void>) | null = null;
+      let subscriptionCallback: (() => void) | null = null;
       vi.mocked(journalApi.subscribeToJournalEntries).mockImplementation((cb) => {
         subscriptionCallback = cb;
         return () => {};
@@ -181,18 +187,18 @@ describe('useJournalSync', () => {
 
       // Wait for initial load
       await waitFor(() => {
-        expect(result.current.entries[0]?.content).toBe('Bought 10 shares at $150');
+        expect(result.current.entries[0]?.notes).toBe('Bought 10 shares at $150');
       });
 
       // Trigger subscription callback
       if (subscriptionCallback) {
         await act(async () => {
-          await subscriptionCallback!();
+          subscriptionCallback!();
         });
       }
 
       await waitFor(() => {
-        expect(result.current.entries[0]?.content).toBe('Updated content');
+        expect(result.current.entries[0]?.notes).toBe('Updated content');
       });
     });
 
@@ -201,7 +207,7 @@ describe('useJournalSync', () => {
         .mockResolvedValueOnce([mockEntry])
         .mockRejectedValueOnce(new Error('Sync error'));
 
-      let subscriptionCallback: (() => Promise<void>) | null = null;
+      let subscriptionCallback: (() => void) | null = null;
       vi.mocked(journalApi.subscribeToJournalEntries).mockImplementation((cb) => {
         subscriptionCallback = cb;
         return () => {};
@@ -216,7 +222,7 @@ describe('useJournalSync', () => {
       // Trigger subscription callback that fails
       if (subscriptionCallback) {
         await act(async () => {
-          await subscriptionCallback!();
+          subscriptionCallback!();
         });
       }
 
@@ -233,9 +239,12 @@ describe('useJournalSync', () => {
       await act(async () => {
         newEntry = await result.current.addEntry({
           symbol: 'NVDA',
-          entryType: 'trade',
-          content: 'Sold 5 shares at $500',
-          tags: ['sell'],
+          tradeDate: '2024-01-03',
+          direction: 'short',
+          entryPrice: 500,
+          quantity: 5,
+          emotionAtEntry: 'confident',
+          notes: 'Sold 5 shares at $500',
         });
       });
 
@@ -261,17 +270,23 @@ describe('useJournalSync', () => {
       await act(async () => {
         newEntry = await result.current.addEntry({
           symbol: 'AAPL',
-          entryType: 'trade',
-          content: 'Bought 10 shares at $150',
-          tags: ['buy', 'tech'],
+          tradeDate: '2024-01-01',
+          direction: 'long',
+          entryPrice: 150,
+          quantity: 10,
+          emotionAtEntry: 'confident',
+          notes: 'Bought 10 shares at $150',
         });
       });
 
       expect(journalApi.createJournalEntry).toHaveBeenCalledWith({
         symbol: 'AAPL',
-        entryType: 'trade',
-        content: 'Bought 10 shares at $150',
-        tags: ['buy', 'tech'],
+        tradeDate: '2024-01-01',
+        direction: 'long',
+        entryPrice: 150,
+        quantity: 10,
+        emotionAtEntry: 'confident',
+        notes: 'Bought 10 shares at $150',
       });
       expect(result.current.entries).toHaveLength(1);
       expect(result.current.entries[0].id).toBe('entry-123');
@@ -294,9 +309,12 @@ describe('useJournalSync', () => {
       await act(async () => {
         newEntry = await result.current.addEntry({
           symbol: 'NVDA',
-          entryType: 'trade',
-          content: 'Test entry',
-          tags: [],
+          tradeDate: '2024-01-03',
+          direction: 'long',
+          entryPrice: 400,
+          quantity: 10,
+          emotionAtEntry: 'neutral',
+          notes: 'Test entry',
         });
       });
 
@@ -316,13 +334,13 @@ describe('useJournalSync', () => {
 
       await act(async () => {
         await result.current.updateEntry('entry-123', {
-          content: 'Updated content',
-          tags: ['buy', 'tech', 'updated'],
+          notes: 'Updated content',
+          exitPrice: 160,
         });
       });
 
-      expect(result.current.entries[0].content).toBe('Updated content');
-      expect(result.current.entries[0].tags).toEqual(['buy', 'tech', 'updated']);
+      expect(result.current.entries[0].notes).toBe('Updated content');
+      expect(result.current.entries[0].exitPrice).toBe(160);
       expect(journalApi.updateJournalEntry).not.toHaveBeenCalled();
     });
 
@@ -340,14 +358,14 @@ describe('useJournalSync', () => {
 
       await act(async () => {
         await result.current.updateEntry('entry-123', {
-          content: 'Updated content',
+          notes: 'Updated content',
         });
       });
 
       expect(journalApi.updateJournalEntry).toHaveBeenCalledWith('entry-123', {
-        content: 'Updated content',
+        notes: 'Updated content',
       });
-      expect(result.current.entries[0].content).toBe('Updated content');
+      expect(result.current.entries[0].notes).toBe('Updated content');
     });
 
     it('updates updatedAt timestamp when updating', async () => {
@@ -366,7 +384,7 @@ describe('useJournalSync', () => {
 
       await act(async () => {
         await result.current.updateEntry('entry-123', {
-          content: 'Updated',
+          notes: 'Updated',
         });
       });
 
@@ -387,12 +405,12 @@ describe('useJournalSync', () => {
 
       await act(async () => {
         await result.current.updateEntry('entry-123', {
-          content: 'Updated locally',
+          notes: 'Updated locally',
         });
       });
 
       // Should still update locally
-      expect(result.current.entries[0].content).toBe('Updated locally');
+      expect(result.current.entries[0].notes).toBe('Updated locally');
     });
   });
 

@@ -41,8 +41,12 @@ const mockCalculation: StrategyCalculation = {
     gamma: 0.05,
     theta: -0.03,
     vega: 0.12,
-    rho: 0.02,
   },
+  greeks_over_price: [
+    { price: 440, delta: 0.52, gamma: 0.05, theta: -0.03, vega: 0.12 },
+    { price: 450, delta: 0.55, gamma: 0.05, theta: -0.03, vega: 0.12 },
+    { price: 460, delta: 0.58, gamma: 0.05, theta: -0.03, vega: 0.12 },
+  ],
   mock: false,
 };
 
