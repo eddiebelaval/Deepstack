@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-// Using regular img for external news images - more reliable than next/image for third-party URLs
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import { cn } from '@/lib/utils';
 import type { NewsArticle, NewsSentiment } from '@/lib/stores/news-store';
 import {
@@ -90,21 +90,17 @@ export function DiscoverHeroCard({
     >
       {/* Hero Image */}
       <div className="relative aspect-[21/9] w-full overflow-hidden bg-muted">
-        {hasImage ? (
-          <img
-            src={article.imageUrl!}
-            alt={article.headline}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            onError={() => setImageError(true)}
-            loading="eager"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <span className="text-6xl font-bold text-primary/10">
-              {article.source.charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
+        <OptimizedImage
+          src={article.imageUrl || ''}
+          alt={article.headline}
+          fill
+          sizes="100vw"
+          priority
+          className="group-hover:scale-105 transition-transform duration-700"
+          fallbackClassName="from-primary/20 to-primary/5"
+          fallbackChar={article.source.charAt(0).toUpperCase()}
+          onError={() => setImageError(true)}
+        />
 
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />

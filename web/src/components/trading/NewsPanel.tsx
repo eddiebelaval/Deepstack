@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -420,6 +421,8 @@ function CompactArticleCard({
   article: ReturnType<typeof useNewsStore.getState>['articles'][0];
   onSymbolClick: (symbol: string) => void;
 }) {
+  const [imageError, setImageError] = useState(false);
+
   const formatTimeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -442,12 +445,16 @@ function CompactArticleCard({
     >
       <div className="flex items-start gap-3">
         {/* Thumbnail */}
-        {article.imageUrl && (
-          <div className="w-20 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
-            <img
+        {article.imageUrl && !imageError && (
+          <div className="w-20 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0 relative">
+            <Image
               src={article.imageUrl}
               alt=""
-              className="w-full h-full object-cover"
+              fill
+              sizes="80px"
+              className="object-cover"
+              onError={() => setImageError(true)}
+              unoptimized
             />
           </div>
         )}
