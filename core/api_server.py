@@ -1797,6 +1797,13 @@ class DeepStackAPIServer:
         if self.ibkr_client:
             await self.ibkr_client.disconnect()
 
+        # Close Alpaca client (WebSocket streams and caches)
+        if self.alpaca_client:
+            try:
+                await self.alpaca_client.close()
+            except Exception as e:
+                logger.error(f"Error closing Alpaca client: {e}")
+
     def get_app(self) -> FastAPI:
         """Get the FastAPI application instance."""
         return self.app

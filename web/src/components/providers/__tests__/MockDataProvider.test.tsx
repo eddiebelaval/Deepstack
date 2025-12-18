@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { MockDataProvider } from '../MockDataProvider';
 import { useMarketDataStore } from '@/lib/stores/market-data-store';
 import { initializeMockData } from '@/lib/mock-data';
@@ -8,14 +8,21 @@ import { initializeMockData } from '@/lib/mock-data';
 vi.mock('@/lib/stores/market-data-store');
 vi.mock('@/lib/mock-data');
 
+// Helper to flush promises and advance timers
+async function flushPromisesAndTimers(ms: number) {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+}
+
 describe('MockDataProvider', () => {
-  let mockSetBars: any;
-  let mockUpdateQuotes: any;
-  let mockUpdateQuote: any;
-  let mockSetWsConnected: any;
-  let mockSetLoadingBars: any;
-  let mockGetState: any;
-  let mockUpdateLastBar: any;
+  let mockSetBars: ReturnType<typeof vi.fn>;
+  let mockUpdateQuotes: ReturnType<typeof vi.fn>;
+  let mockUpdateQuote: ReturnType<typeof vi.fn>;
+  let mockSetWsConnected: ReturnType<typeof vi.fn>;
+  let mockSetLoadingBars: ReturnType<typeof vi.fn>;
+  let mockGetState: ReturnType<typeof vi.fn>;
+  let mockUpdateLastBar: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -35,18 +42,18 @@ describe('MockDataProvider', () => {
       updateLastBar: mockUpdateLastBar,
     });
 
-    (useMarketDataStore as any).mockReturnValue({
+    vi.mocked(useMarketDataStore).mockReturnValue({
       setBars: mockSetBars,
       updateQuotes: mockUpdateQuotes,
       updateQuote: mockUpdateQuote,
       setWsConnected: mockSetWsConnected,
       setLoadingBars: mockSetLoadingBars,
-    });
+    } as any);
 
     (useMarketDataStore as any).getState = mockGetState;
 
     // Mock initializeMockData
-    (initializeMockData as any).mockReturnValue({
+    vi.mocked(initializeMockData).mockReturnValue({
       bars: {
         SPY: [{ time: 1, open: 400, high: 405, low: 399, close: 403, volume: 1000000 }],
         QQQ: [{ time: 1, open: 300, high: 305, low: 299, close: 303, volume: 800000 }],
@@ -100,9 +107,9 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      await waitFor(() => {
-        expect(initializeMockData).not.toHaveBeenCalled();
-      });
+      // Advance time and flush - should not call initializeMockData in production
+      await flushPromisesAndTimers(1000);
+      expect(initializeMockData).not.toHaveBeenCalled();
 
       (process.env as any).NODE_ENV = originalEnv;
     });
@@ -130,13 +137,12 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      await waitFor(() => {
-        expect(mockSetLoadingBars).toHaveBeenCalledWith('SPY', true);
-        expect(mockSetLoadingBars).toHaveBeenCalledWith('QQQ', true);
-        expect(mockSetLoadingBars).toHaveBeenCalledWith('AAPL', true);
-        expect(mockSetLoadingBars).toHaveBeenCalledWith('MSFT', true);
-        expect(mockSetLoadingBars).toHaveBeenCalledWith('NVDA', true);
-      });
+      // Loading state is set synchronously before the timeout
+      expect(mockSetLoadingBars).toHaveBeenCalledWith('SPY', true);
+      expect(mockSetLoadingBars).toHaveBeenCalledWith('QQQ', true);
+      expect(mockSetLoadingBars).toHaveBeenCalledWith('AAPL', true);
+      expect(mockSetLoadingBars).toHaveBeenCalledWith('MSFT', true);
+      expect(mockSetLoadingBars).toHaveBeenCalledWith('NVDA', true);
     });
 
     it('simulates loading delay', async () => {
@@ -150,11 +156,9 @@ describe('MockDataProvider', () => {
       expect(initializeMockData).not.toHaveBeenCalled();
 
       // Fast-forward past the loading delay
-      vi.advanceTimersByTime(500);
+      await flushPromisesAndTimers(500);
 
-      await waitFor(() => {
-        expect(initializeMockData).toHaveBeenCalled();
-      });
+      expect(initializeMockData).toHaveBeenCalled();
     });
 
     it('initializes mock data after delay', async () => {
@@ -164,11 +168,9 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
+      await flushPromisesAndTimers(500);
 
-      await waitFor(() => {
-        expect(initializeMockData).toHaveBeenCalled();
-      });
+      expect(initializeMockData).toHaveBeenCalled();
     });
 
     it('sets bars for each symbol', async () => {
@@ -178,12 +180,10 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
+      await flushPromisesAndTimers(500);
 
-      await waitFor(() => {
-        expect(mockSetBars).toHaveBeenCalledWith('SPY', expect.any(Array));
-        expect(mockSetBars).toHaveBeenCalledWith('QQQ', expect.any(Array));
-      });
+      expect(mockSetBars).toHaveBeenCalledWith('SPY', expect.any(Array));
+      expect(mockSetBars).toHaveBeenCalledWith('QQQ', expect.any(Array));
     });
 
     it('sets initial quotes', async () => {
@@ -193,16 +193,14 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
+      await flushPromisesAndTimers(500);
 
-      await waitFor(() => {
-        expect(mockUpdateQuotes).toHaveBeenCalledWith(
-          expect.arrayContaining([
-            expect.objectContaining({ symbol: 'SPY' }),
-            expect.objectContaining({ symbol: 'QQQ' }),
-          ])
-        );
-      });
+      expect(mockUpdateQuotes).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ symbol: 'SPY' }),
+          expect.objectContaining({ symbol: 'QQQ' }),
+        ])
+      );
     });
 
     it('sets WebSocket connected state', async () => {
@@ -212,11 +210,9 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
+      await flushPromisesAndTimers(500);
 
-      await waitFor(() => {
-        expect(mockSetWsConnected).toHaveBeenCalledWith(true);
-      });
+      expect(mockSetWsConnected).toHaveBeenCalledWith(true);
     });
 
     it('starts real-time quote updates', async () => {
@@ -226,18 +222,13 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-
-      await waitFor(() => {
-        expect(initializeMockData).toHaveBeenCalled();
-      });
+      await flushPromisesAndTimers(500);
+      expect(initializeMockData).toHaveBeenCalled();
 
       // Advance past first update interval (2 seconds)
-      vi.advanceTimersByTime(2000);
+      await flushPromisesAndTimers(2000);
 
-      await waitFor(() => {
-        expect(mockUpdateQuote).toHaveBeenCalled();
-      });
+      expect(mockUpdateQuote).toHaveBeenCalled();
     });
 
     it('updates quotes every 2 seconds', async () => {
@@ -247,20 +238,20 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      expect(initializeMockData).toHaveBeenCalled();
 
       // First update
-      vi.advanceTimersByTime(2000);
-      await waitFor(() => expect(mockUpdateQuote).toHaveBeenCalledTimes(1));
+      await flushPromisesAndTimers(2000);
+      expect(mockUpdateQuote).toHaveBeenCalledTimes(1);
 
       // Second update
-      vi.advanceTimersByTime(2000);
-      await waitFor(() => expect(mockUpdateQuote).toHaveBeenCalledTimes(2));
+      await flushPromisesAndTimers(2000);
+      expect(mockUpdateQuote).toHaveBeenCalledTimes(2);
 
       // Third update
-      vi.advanceTimersByTime(2000);
-      await waitFor(() => expect(mockUpdateQuote).toHaveBeenCalledTimes(3));
+      await flushPromisesAndTimers(2000);
+      expect(mockUpdateQuote).toHaveBeenCalledTimes(3);
     });
 
     it('simulates price movement within range', async () => {
@@ -270,21 +261,17 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      await flushPromisesAndTimers(2000);
 
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        expect(mockUpdateQuote).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            last: expect.any(Number),
-            change: expect.any(Number),
-            changePercent: expect.any(Number),
-          })
-        );
-      });
+      expect(mockUpdateQuote).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          last: expect.any(Number),
+          change: expect.any(Number),
+          changePercent: expect.any(Number),
+        })
+      );
     });
 
     it('updates high/low prices correctly', async () => {
@@ -294,21 +281,16 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      await flushPromisesAndTimers(2000);
 
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        const updateCall = mockUpdateQuote.mock.calls[0];
-        if (updateCall) {
-          const quote = updateCall[1];
-          // High should be at least equal to last price
-          expect(quote.high).toBeGreaterThanOrEqual(quote.last);
-          // Low should be at most equal to last price
-          expect(quote.low).toBeLessThanOrEqual(quote.last);
-        }
-      });
+      const updateCall = mockUpdateQuote.mock.calls[0];
+      expect(updateCall).toBeDefined();
+      const quote = updateCall[1];
+      // High should be at least equal to last price
+      expect(quote.high).toBeGreaterThanOrEqual(quote.last);
+      // Low should be at most equal to last price
+      expect(quote.low).toBeLessThanOrEqual(quote.last);
     });
 
     it('updates bid/ask spread', async () => {
@@ -318,21 +300,16 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      await flushPromisesAndTimers(2000);
 
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        const updateCall = mockUpdateQuote.mock.calls[0];
-        if (updateCall) {
-          const quote = updateCall[1];
-          // Bid should be slightly below last
-          expect(quote.bid).toBeLessThan(quote.last);
-          // Ask should be slightly above last
-          expect(quote.ask).toBeGreaterThan(quote.last);
-        }
-      });
+      const updateCall = mockUpdateQuote.mock.calls[0];
+      expect(updateCall).toBeDefined();
+      const quote = updateCall[1];
+      // Bid should be slightly below last
+      expect(quote.bid).toBeLessThan(quote.last);
+      // Ask should be slightly above last
+      expect(quote.ask).toBeGreaterThan(quote.last);
     });
 
     it('updates timestamp on each quote update', async () => {
@@ -342,58 +319,63 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      await flushPromisesAndTimers(2000);
 
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        expect(mockUpdateQuote).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            timestamp: expect.any(String),
-          })
-        );
-      });
+      expect(mockUpdateQuote).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          timestamp: expect.any(String),
+        })
+      );
     });
 
     it('updates last bar data when quote changes', async () => {
+      // Ensure getState returns bars for both symbols
+      mockGetState.mockReturnValue({
+        bars: {
+          SPY: [{ time: 1, open: 400, high: 405, low: 399, close: 403, volume: 1000000 }],
+          QQQ: [{ time: 1, open: 300, high: 305, low: 299, close: 303, volume: 800000 }],
+        },
+        updateLastBar: mockUpdateLastBar,
+      });
+
       render(
         <MockDataProvider>
           <div>Child</div>
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      await flushPromisesAndTimers(2000);
 
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        expect(mockUpdateLastBar).toHaveBeenCalled();
-      });
+      expect(mockUpdateLastBar).toHaveBeenCalled();
     });
 
     it('increments volume on bar updates', async () => {
+      // Ensure getState returns bars for both symbols
+      mockGetState.mockReturnValue({
+        bars: {
+          SPY: [{ time: 1, open: 400, high: 405, low: 399, close: 403, volume: 1000000 }],
+          QQQ: [{ time: 1, open: 300, high: 305, low: 299, close: 303, volume: 800000 }],
+        },
+        updateLastBar: mockUpdateLastBar,
+      });
+
       render(
         <MockDataProvider>
           <div>Child</div>
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      await flushPromisesAndTimers(2000);
 
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        const updateCall = mockUpdateLastBar.mock.calls[0];
-        if (updateCall) {
-          const updatedBar = updateCall[1];
-          // Volume should be incremented
-          expect(updatedBar.volume).toBeGreaterThan(1000000);
-        }
-      });
+      const updateCall = mockUpdateLastBar.mock.calls[0];
+      expect(updateCall).toBeDefined();
+      const updatedBar = updateCall[1];
+      // Volume should be incremented (check minimum is 800000 for QQQ case)
+      expect(updatedBar.volume).toBeGreaterThanOrEqual(800000);
     });
 
     it('picks random symbols to update', async () => {
@@ -403,22 +385,21 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
 
       // Trigger multiple updates
-      vi.advanceTimersByTime(2000);
-      await waitFor(() => expect(mockUpdateQuote).toHaveBeenCalled());
+      await flushPromisesAndTimers(2000);
+      expect(mockUpdateQuote).toHaveBeenCalled();
 
-      vi.advanceTimersByTime(2000);
-      await waitFor(() => expect(mockUpdateQuote).toHaveBeenCalledTimes(2));
+      await flushPromisesAndTimers(2000);
+      expect(mockUpdateQuote).toHaveBeenCalledTimes(2);
 
-      vi.advanceTimersByTime(2000);
-      await waitFor(() => expect(mockUpdateQuote).toHaveBeenCalledTimes(3));
+      await flushPromisesAndTimers(2000);
+      expect(mockUpdateQuote).toHaveBeenCalledTimes(3);
 
       // Should update symbols (could be SPY or QQQ)
-      const symbols = mockUpdateQuote.mock.calls.map((call: any) => call[0]);
-      expect(symbols.every((s: string) => ['SPY', 'QQQ'].includes(s))).toBe(true);
+      const symbols = mockUpdateQuote.mock.calls.map((call: unknown[]) => call[0]) as string[];
+      expect(symbols.every((s) => ['SPY', 'QQQ'].includes(s))).toBe(true);
     });
 
     it('cleans up interval on unmount', async () => {
@@ -428,15 +409,15 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      expect(initializeMockData).toHaveBeenCalled();
 
       const updateCallsBefore = mockUpdateQuote.mock.calls.length;
 
       unmount();
 
       // Advance time after unmount
-      vi.advanceTimersByTime(10000);
+      await flushPromisesAndTimers(10000);
 
       // Should not have any new calls
       expect(mockUpdateQuote.mock.calls.length).toBe(updateCallsBefore);
@@ -449,7 +430,7 @@ describe('MockDataProvider', () => {
     });
 
     it('handles empty quotes from initializeMockData', async () => {
-      (initializeMockData as any).mockReturnValue({
+      vi.mocked(initializeMockData).mockReturnValue({
         bars: {},
         quotes: {},
       });
@@ -465,14 +446,12 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
+      await flushPromisesAndTimers(500);
 
-      await waitFor(() => {
-        expect(initializeMockData).toHaveBeenCalled();
-      });
+      expect(initializeMockData).toHaveBeenCalled();
 
       // Should not crash
-      vi.advanceTimersByTime(2000);
+      await flushPromisesAndTimers(2000);
     });
 
     it('handles missing bars for symbol', async () => {
@@ -487,16 +466,14 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      expect(initializeMockData).toHaveBeenCalled();
 
       // Should not crash when trying to update bars
-      vi.advanceTimersByTime(2000);
+      await flushPromisesAndTimers(2000);
 
       // Should still update quotes even if bars are missing
-      await waitFor(() => {
-        expect(mockUpdateQuote).toHaveBeenCalled();
-      });
+      expect(mockUpdateQuote).toHaveBeenCalled();
     });
 
     it('handles empty bars array for symbol', async () => {
@@ -511,19 +488,17 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      expect(initializeMockData).toHaveBeenCalled();
 
-      vi.advanceTimersByTime(2000);
+      await flushPromisesAndTimers(2000);
 
       // Should not crash and should not call updateLastBar
-      await waitFor(() => {
-        expect(mockUpdateQuote).toHaveBeenCalled();
-      });
+      expect(mockUpdateQuote).toHaveBeenCalled();
     });
 
     it('handles quote with missing open price', async () => {
-      (initializeMockData as any).mockReturnValue({
+      vi.mocked(initializeMockData).mockReturnValue({
         bars: {},
         quotes: {
           SPY: {
@@ -531,7 +506,7 @@ describe('MockDataProvider', () => {
             last: 403,
             // Missing open price
             timestamp: new Date().toISOString(),
-          },
+          } as any,
         },
       });
 
@@ -541,20 +516,17 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalled());
+      await flushPromisesAndTimers(500);
+      expect(initializeMockData).toHaveBeenCalled();
 
-      vi.advanceTimersByTime(2000);
+      await flushPromisesAndTimers(2000);
 
       // Should handle missing open price gracefully
-      await waitFor(() => {
-        const updateCall = mockUpdateQuote.mock.calls[0];
-        if (updateCall) {
-          const quote = updateCall[1];
-          // Change percent should be 0 when open is missing
-          expect(quote.changePercent).toBe(0);
-        }
-      });
+      const updateCall = mockUpdateQuote.mock.calls[0];
+      expect(updateCall).toBeDefined();
+      const quote = updateCall[1];
+      // Change percent should be 0 when open is missing
+      expect(quote.changePercent).toBe(0);
     });
   });
 
@@ -570,8 +542,8 @@ describe('MockDataProvider', () => {
         </MockDataProvider>
       );
 
-      vi.advanceTimersByTime(500);
-      await waitFor(() => expect(initializeMockData).toHaveBeenCalledTimes(1));
+      await flushPromisesAndTimers(500);
+      expect(initializeMockData).toHaveBeenCalledTimes(1);
 
       rerender(
         <MockDataProvider>

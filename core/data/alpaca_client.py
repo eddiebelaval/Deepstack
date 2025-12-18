@@ -1089,3 +1089,47 @@ class AlpacaClient:
         except Exception as e:
             logger.error(f"Health check failed: {e}")
             return False
+
+    async def close(self) -> None:
+        """
+        Properly close all connections and clean up resources.
+
+        This should be called when shutting down the application to ensure
+        WebSocket connections are closed and resources are released.
+        """
+        logger.info("Closing AlpacaClient...")
+
+        # Disconnect WebSocket stream if connected
+        if self.is_connected:
+            await self.disconnect_stream()
+
+        # Clear all caches
+        async with self._cache_lock:
+            self.quote_cache.clear()
+            self.bars_cache.clear()
+
+        # Clear callbacks
+        self._quote_callbacks.clear()
+        self._trade_callbacks.clear()
+        self._bar_callbacks.clear()
+
+        # Clear subscriptions
+        self._subscribed_symbols.clear()
+
+        # Reset rate limit tracking
+        self.request_timestamps.clear()
+
+        logger.info("AlpacaClient closed successfully")
+
+    def __del__(self) -> None:
+        """
+        Destructor - warn if not properly closed.
+
+        The close() method should be called explicitly before the object
+        is garbage collected to ensure proper cleanup.
+        """
+        if self.is_connected:
+            logger.warning(
+                "AlpacaClient being garbage collected while still connected. "
+                "Call close() explicitly for proper cleanup."
+            )

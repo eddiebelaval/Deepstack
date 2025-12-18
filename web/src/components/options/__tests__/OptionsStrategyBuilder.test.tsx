@@ -89,7 +89,7 @@ describe('OptionsStrategyBuilder', () => {
     legs: [] as OptionLeg[],
     calculation: null as StrategyCalculation | null,
     isCalculating: false,
-    error: null,
+    error: null as string | null,
     showGreeks: false,
     setSymbol: mockSetSymbol,
     setUnderlyingPrice: mockSetUnderlyingPrice,

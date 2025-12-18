@@ -409,7 +409,7 @@ describe('InstallPromptBanner', () => {
   describe('edge cases', () => {
     it('handles SSR gracefully', () => {
       const originalWindow = global.window;
-      // @ts-ignore
+      // @ts-expect-error - Testing SSR scenario where window is undefined
       delete global.window;
 
       expect(() => {

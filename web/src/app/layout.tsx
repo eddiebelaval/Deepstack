@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { ReactNode } from 'react'
 import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import Providers from '@/components/providers'
 import { PaywallModal } from '@/components/ui/paywall-modal'
 import { DisclaimerBanner } from '@/components/ui/disclaimer-banner'
@@ -100,6 +101,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </TourProvider>
         </Providers>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
