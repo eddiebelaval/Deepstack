@@ -23,9 +23,17 @@ import pytz
 from core.broker.paper_trader import PaperTrader
 from core.config import Config
 from core.data.alpaca_client import AlpacaClient
+from core.data.data_storage import SQLiteConnectionPool
 from core.risk.circuit_breaker import CircuitBreaker
 from core.risk.kelly_position_sizer import KellyPositionSizer
 from core.risk.stop_loss_manager import StopLossManager
+
+
+def _reinit_trader_db(trader: PaperTrader, db_path: str) -> None:
+    """Reinitialize a PaperTrader's database to use a new path for test isolation."""
+    trader.db_path = db_path
+    trader._db_pool = SQLiteConnectionPool(db_path, pool_size=5)
+    trader._init_db()
 
 
 @pytest.fixture
@@ -54,8 +62,11 @@ def mock_alpaca():
 
 
 @pytest.fixture
-def paper_trader(config, mock_alpaca):
-    """Create paper trader with mocked dependencies."""
+def paper_trader(config, mock_alpaca, tmp_path):
+    """Create paper trader with mocked dependencies.
+
+    Uses tmp_path for isolated database to avoid parallel test conflicts.
+    """
     trader = PaperTrader(
         config=config,
         alpaca_client=mock_alpaca,
@@ -64,14 +75,18 @@ def paper_trader(config, mock_alpaca):
         commission_per_share=0.005,  # $0.005 per share
         enforce_market_hours=False,  # Disable for testing
     )
-    # Clear any existing DB state
+    # Use isolated temp database for parallel test safety
+    _reinit_trader_db(trader, str(tmp_path / "paper_trading.db"))
     trader.reset_portfolio()
     return trader
 
 
 @pytest.fixture
-def paper_trader_no_risk(config, mock_alpaca):
-    """Create paper trader without risk systems for baseline testing."""
+def paper_trader_no_risk(config, mock_alpaca, tmp_path):
+    """Create paper trader without risk systems for baseline testing.
+
+    Uses tmp_path for isolated database to avoid parallel test conflicts.
+    """
     trader = PaperTrader(
         config=config,
         alpaca_client=mock_alpaca,
@@ -80,6 +95,8 @@ def paper_trader_no_risk(config, mock_alpaca):
         commission_per_share=0.0,
         enforce_market_hours=False,
     )
+    # Use isolated temp database for parallel test safety
+    _reinit_trader_db(trader, str(tmp_path / "paper_trading_no_risk.db"))
     trader.reset_portfolio()
     return trader
 

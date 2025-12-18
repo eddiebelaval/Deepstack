@@ -79,8 +79,11 @@ def mock_alpaca():
 
 
 @pytest.fixture
-def paper_trader(config, mock_alpaca):
-    """Create paper trader with all features enabled."""
+def paper_trader(config, mock_alpaca, tmp_path):
+    """Create paper trader with all features enabled.
+
+    Uses tmp_path for isolated database to avoid parallel test conflicts.
+    """
     trader = PaperTrader(
         config=config,
         alpaca_client=mock_alpaca,
@@ -90,13 +93,18 @@ def paper_trader(config, mock_alpaca):
         enforce_market_hours=False,
         slippage_volatility_multiplier=1.0,
     )
+    # Use isolated temp database for parallel test safety
+    _reinit_trader_db(trader, str(tmp_path / "paper_trading.db"))
     trader.reset_portfolio()
     return trader
 
 
 @pytest.fixture
-def paper_trader_no_risk(config, mock_alpaca):
-    """Create paper trader without risk systems."""
+def paper_trader_no_risk(config, mock_alpaca, tmp_path):
+    """Create paper trader without risk systems.
+
+    Uses tmp_path for isolated database to avoid parallel test conflicts.
+    """
     trader = PaperTrader(
         config=config,
         alpaca_client=mock_alpaca,
@@ -105,6 +113,8 @@ def paper_trader_no_risk(config, mock_alpaca):
         commission_per_share=0.0,
         enforce_market_hours=False,
     )
+    # Use isolated temp database for parallel test safety
+    _reinit_trader_db(trader, str(tmp_path / "paper_trading_no_risk.db"))
     trader.reset_portfolio()
     return trader
 
