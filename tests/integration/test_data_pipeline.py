@@ -26,11 +26,11 @@ def mock_alpaca_client():
     """Mock Alpaca client for market data."""
     client = AsyncMock()
 
-    # Mock quote data
+    # Mock quote data - realistic bid/ask spread around last price
     client.get_quote.return_value = {
         "symbol": "AAPL",
         "bid": 149.90,
-        "ask": 150.00,  # Match the 'last' price for consistency
+        "ask": 150.10,  # Slightly above last for realistic spread
         "last": 150.00,
         "bid_volume": 100,
         "ask_volume": 100,

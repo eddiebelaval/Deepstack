@@ -13,10 +13,9 @@ Tests all enhancements:
 - End-to-end trade scenarios
 """
 
-import asyncio
 import sqlite3
 from datetime import datetime, time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytz
@@ -40,8 +39,8 @@ def mock_alpaca():
     """Create mock Alpaca client."""
     mock = AsyncMock(spec=AlpacaClient)
 
-    # Default quote response
-    async def mock_get_quote(symbol):
+    # Default quote response as AsyncMock with side_effect for proper mock tracking
+    async def _get_quote_impl(symbol):
         return {
             "symbol": symbol,
             "bid": 150.00,
@@ -50,7 +49,7 @@ def mock_alpaca():
             "timestamp": datetime.now().isoformat(),
         }
 
-    mock.get_quote = mock_get_quote
+    mock.get_quote = AsyncMock(side_effect=_get_quote_impl)
     return mock
 
 
@@ -183,10 +182,10 @@ class TestCircuitBreakerIntegration:
     @pytest.mark.asyncio
     async def test_order_rejected_when_breaker_tripped(self, paper_trader):
         """Test order is rejected when circuit breaker is tripped."""
-        # Trip the daily loss breaker
-        paper_trader.circuit_breaker.trip_breaker(
-            "daily_loss", "Test trip"
-        )
+        # Trip the manual breaker (use 'manual' instead of 'daily_loss' because
+        # daily_loss auto-resets when a new trading day is detected, and since
+        # current_day starts as None, check_breakers thinks it's a new day)
+        paper_trader.circuit_breaker.trip_breaker("manual", "Test trip")
 
         # Try to place order
         order_id = await paper_trader.place_market_order("AAPL", 100, "BUY")
@@ -248,7 +247,9 @@ class TestKellyPositionSizing:
         assert result["win_loss_ratio"] == 2.0
 
     @pytest.mark.asyncio
-    async def test_position_size_respects_portfolio_heat(self, paper_trader, mock_alpaca):
+    async def test_position_size_respects_portfolio_heat(
+        self, paper_trader, mock_alpaca
+    ):
         """Test position sizing respects portfolio heat limits."""
         # Buy first position (should be ~25% of portfolio)
         result1 = await paper_trader.calculate_position_size(
@@ -258,7 +259,9 @@ class TestKellyPositionSizing:
             avg_loss=100.0,
         )
 
-        await paper_trader.place_market_order("AAPL", result1["shares"], "BUY", auto_stop_loss=False)
+        await paper_trader.place_market_order(
+            "AAPL", result1["shares"], "BUY", auto_stop_loss=False
+        )
 
         # Try to buy second position - should be smaller due to heat
         result2 = await paper_trader.calculate_position_size(
@@ -455,18 +458,32 @@ class TestPerformanceAnalytics:
         """Test Sharpe ratio calculation."""
         # Execute some trades with P&L
         for i in range(10):
-            await paper_trader.place_market_order("AAPL", 100, "BUY", auto_stop_loss=False)
+            await paper_trader.place_market_order(
+                "AAPL", 100, "BUY", auto_stop_loss=False
+            )
 
             # Simulate price change
             if i % 2 == 0:
                 # Win
                 async def mock_higher_price(symbol):
-                    return {"symbol": symbol, "bid": 155.00, "ask": 155.05, "last": 155.02}
+                    return {
+                        "symbol": symbol,
+                        "bid": 155.00,
+                        "ask": 155.05,
+                        "last": 155.02,
+                    }
+
                 mock_alpaca.get_quote = mock_higher_price
             else:
                 # Loss
                 async def mock_lower_price(symbol):
-                    return {"symbol": symbol, "bid": 145.00, "ask": 145.05, "last": 145.02}
+                    return {
+                        "symbol": symbol,
+                        "bid": 145.00,
+                        "ask": 145.05,
+                        "last": 145.02,
+                    }
+
                 mock_alpaca.get_quote = mock_lower_price
 
             await paper_trader.place_market_order("AAPL", 100, "SELL")
@@ -474,6 +491,7 @@ class TestPerformanceAnalytics:
             # Reset price
             async def mock_normal_price(symbol):
                 return {"symbol": symbol, "bid": 150.00, "ask": 150.05, "last": 150.02}
+
             mock_alpaca.get_quote = mock_normal_price
 
         sharpe = paper_trader.calculate_sharpe_ratio()
@@ -493,6 +511,7 @@ class TestPerformanceAnalytics:
         # Simulate price drop to 120
         async def mock_lower_price(symbol):
             return {"symbol": symbol, "bid": 120.00, "ask": 120.05, "last": 120.02}
+
         mock_alpaca.get_quote = mock_lower_price
 
         # Update position value (manually for test)
@@ -510,17 +529,31 @@ class TestPerformanceAnalytics:
         """Test trade statistics calculation."""
         # Execute mix of winning and losing trades
         for i in range(5):
-            await paper_trader.place_market_order("AAPL", 100, "BUY", auto_stop_loss=False)
+            await paper_trader.place_market_order(
+                "AAPL", 100, "BUY", auto_stop_loss=False
+            )
 
             if i < 3:
                 # Win
                 async def mock_higher_price(symbol):
-                    return {"symbol": symbol, "bid": 160.00, "ask": 160.05, "last": 160.02}
+                    return {
+                        "symbol": symbol,
+                        "bid": 160.00,
+                        "ask": 160.05,
+                        "last": 160.02,
+                    }
+
                 mock_alpaca.get_quote = mock_higher_price
             else:
                 # Loss
                 async def mock_lower_price(symbol):
-                    return {"symbol": symbol, "bid": 140.00, "ask": 140.05, "last": 140.02}
+                    return {
+                        "symbol": symbol,
+                        "bid": 140.00,
+                        "ask": 140.05,
+                        "last": 140.02,
+                    }
+
                 mock_alpaca.get_quote = mock_lower_price
 
             await paper_trader.place_market_order("AAPL", 100, "SELL")
@@ -528,6 +561,7 @@ class TestPerformanceAnalytics:
             # Reset price
             async def mock_normal_price(symbol):
                 return {"symbol": symbol, "bid": 150.00, "ask": 150.05, "last": 150.02}
+
             mock_alpaca.get_quote = mock_normal_price
 
         stats = paper_trader.get_trade_statistics()
@@ -607,7 +641,7 @@ class TestMarketHours:
         """Test market hours check during trading hours."""
         # Create a datetime during market hours (10 AM ET)
         et_tz = pytz.timezone("America/New_York")
-        with patch('core.broker.paper_trader.datetime') as mock_dt:
+        with patch("core.broker.paper_trader.datetime") as mock_dt:
             mock_now = et_tz.localize(datetime(2024, 1, 15, 10, 0, 0))  # Monday 10 AM
             mock_dt.now.return_value = mock_now
 
@@ -620,7 +654,7 @@ class TestMarketHours:
     def test_market_hours_check_before_open(self, paper_trader):
         """Test market hours check before market opens."""
         et_tz = pytz.timezone("America/New_York")
-        with patch('core.broker.paper_trader.datetime') as mock_dt:
+        with patch("core.broker.paper_trader.datetime") as mock_dt:
             mock_now = et_tz.localize(datetime(2024, 1, 15, 9, 0, 0))  # Monday 9 AM
             mock_dt.now.return_value = mock_now
 
@@ -632,7 +666,7 @@ class TestMarketHours:
     def test_market_hours_check_after_close(self, paper_trader):
         """Test market hours check after market closes."""
         et_tz = pytz.timezone("America/New_York")
-        with patch('core.broker.paper_trader.datetime') as mock_dt:
+        with patch("core.broker.paper_trader.datetime") as mock_dt:
             mock_now = et_tz.localize(datetime(2024, 1, 15, 17, 0, 0))  # Monday 5 PM
             mock_dt.now.return_value = mock_now
 
@@ -644,7 +678,7 @@ class TestMarketHours:
     def test_market_hours_check_weekend(self, paper_trader):
         """Test market hours check on weekend."""
         et_tz = pytz.timezone("America/New_York")
-        with patch('core.broker.paper_trader.datetime') as mock_dt:
+        with patch("core.broker.paper_trader.datetime") as mock_dt:
             mock_now = et_tz.localize(datetime(2024, 1, 13, 10, 0, 0))  # Saturday 10 AM
             mock_dt.now.return_value = mock_now
 
@@ -657,8 +691,10 @@ class TestMarketHours:
     async def test_order_rejected_outside_hours(self, paper_trader, mock_alpaca):
         """Test order rejected outside market hours."""
         et_tz = pytz.timezone("America/New_York")
-        with patch('core.broker.paper_trader.datetime') as mock_dt:
-            mock_now = et_tz.localize(datetime(2024, 1, 15, 8, 0, 0))  # Monday 8 AM (before open)
+        with patch("core.broker.paper_trader.datetime") as mock_dt:
+            mock_now = et_tz.localize(
+                datetime(2024, 1, 15, 8, 0, 0)
+            )  # Monday 8 AM (before open)
             mock_dt.now.return_value = mock_now
 
             paper_trader.enforce_market_hours = True
@@ -819,6 +855,7 @@ class TestEndToEndTradeScenarios:
         # Price increases to 160
         async def mock_higher_price(symbol):
             return {"symbol": symbol, "bid": 160.00, "ask": 160.05, "last": 160.02}
+
         mock_alpaca.get_quote = mock_higher_price
 
         # Sell at 160
@@ -840,6 +877,7 @@ class TestEndToEndTradeScenarios:
         # Price decreases to 140
         async def mock_lower_price(symbol):
             return {"symbol": symbol, "bid": 140.00, "ask": 140.05, "last": 140.02}
+
         mock_alpaca.get_quote = mock_lower_price
 
         # Sell at 140
@@ -867,12 +905,24 @@ class TestEndToEndTradeScenarios:
             if i % 2 == 0:
                 # Price up
                 async def mock_up(symbol):
-                    return {"symbol": symbol, "bid": 155.00, "ask": 155.05, "last": 155.02}
+                    return {
+                        "symbol": symbol,
+                        "bid": 155.00,
+                        "ask": 155.05,
+                        "last": 155.02,
+                    }
+
                 mock_alpaca.get_quote = mock_up
             else:
                 # Price down
                 async def mock_down(symbol):
-                    return {"symbol": symbol, "bid": 145.00, "ask": 145.05, "last": 145.02}
+                    return {
+                        "symbol": symbol,
+                        "bid": 145.00,
+                        "ask": 145.05,
+                        "last": 145.02,
+                    }
+
                 mock_alpaca.get_quote = mock_down
 
             # Sell
@@ -882,6 +932,7 @@ class TestEndToEndTradeScenarios:
             # Reset price
             async def mock_reset(symbol):
                 return {"symbol": symbol, "bid": 150.00, "ask": 150.05, "last": 150.02}
+
             mock_alpaca.get_quote = mock_reset
 
         # Should have executed 12 trades total
@@ -1008,7 +1059,9 @@ class TestEdgeCases:
         paper_trader.cash = 100.0
 
         # Try to buy expensive position
-        order_id = await paper_trader.place_market_order("AAPL", 1000, "BUY", auto_stop_loss=False)
+        order_id = await paper_trader.place_market_order(
+            "AAPL", 1000, "BUY", auto_stop_loss=False
+        )
 
         # Should fail
         assert order_id is None

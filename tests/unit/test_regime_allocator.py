@@ -198,16 +198,18 @@ class TestRegimeBasedAllocator:
 
         # Check BULL allocation
         bull_config = allocator.allocation_configs[MarketRegime.BULL]
-        assert bull_config.cash_reserve == 0.0  # Fully invested in bull
+        assert bull_config.allocations.get("cash", 0.0) == 0.0  # Fully invested in bull
         assert sum(bull_config.allocations.values()) == 100.0
 
-        # Check BEAR allocation
+        # Check BEAR allocation - cash is stored in allocations, not cash_reserve
         bear_config = allocator.allocation_configs[MarketRegime.BEAR]
-        assert bear_config.cash_reserve == 30.0  # Higher cash in bear
+        assert bear_config.allocations.get("cash", 0.0) == 40.0  # Higher cash in bear
 
-        # Check CRISIS allocation
+        # Check CRISIS allocation - cash is stored in allocations, not cash_reserve
         crisis_config = allocator.allocation_configs[MarketRegime.CRISIS]
-        assert crisis_config.cash_reserve == 50.0  # Maximum cash in crisis
+        assert (
+            crisis_config.allocations.get("cash", 0.0) == 70.0
+        )  # Maximum cash in crisis
 
     def test_calculate_target_allocation_high_confidence(self):
         """Test target allocation with high confidence"""
@@ -470,7 +472,14 @@ class TestRegimeBasedAllocator:
             crisis_constraints["max_position_size"]
             < bull_constraints["max_position_size"]
         )
-        assert crisis_constraints["cash_reserve"] > bull_constraints["cash_reserve"]
+        # Cash allocation is stored in allocations dict, not cash_reserve field
+        crisis_cash = allocator.allocation_configs[MarketRegime.CRISIS].allocations.get(
+            "cash", 0.0
+        )
+        bull_cash = allocator.allocation_configs[MarketRegime.BULL].allocations.get(
+            "cash", 0.0
+        )
+        assert crisis_cash > bull_cash
 
     def test_validate_allocation_valid(self):
         """Test validation of valid allocation"""
@@ -663,9 +672,9 @@ class TestScenarios:
         target = allocator.calculate_target_allocation(detection)
 
         # Should have significant cash allocation
-        # Note: Cash reserve is separate from strategy allocations
+        # Cash allocation is stored in allocations dict, not cash_reserve field
         crisis_config = allocator.allocation_configs[MarketRegime.CRISIS]
-        assert crisis_config.cash_reserve == 50.0  # 50% cash
+        assert crisis_config.allocations.get("cash", 0.0) == 70.0  # 70% cash
 
         # Position sizes should be smaller
         constraints = allocator.get_position_sizing_constraints(MarketRegime.CRISIS)

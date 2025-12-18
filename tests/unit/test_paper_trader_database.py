@@ -17,7 +17,23 @@ from datetime import datetime
 import pytest
 
 from core.broker.paper_trader import PaperTrader
+from core.data.data_storage import SQLiteConnectionPool
 from core.exceptions import DatabaseInitializationError
+
+
+def _reinit_trader_db(trader: PaperTrader, db_path: str) -> None:
+    """
+    Reinitialize a PaperTrader's database to use a new path.
+
+    This is needed because PaperTrader's __init__ sets up the connection pool
+    with the default db_path. To use a test-specific database, we need to:
+    1. Set the new db_path
+    2. Reinitialize the connection pool for the new path
+    3. Initialize the database schema
+    """
+    trader.db_path = db_path
+    trader._db_pool = SQLiteConnectionPool(db_path, pool_size=5)
+    trader._init_db()
 
 
 class MockConfig:
@@ -65,8 +81,7 @@ def paper_trader(mock_config, mock_alpaca, db_path):
         enable_risk_systems=False,
         enforce_market_hours=False,
     )
-    trader.db_path = db_path
-    trader._init_db()
+    _reinit_trader_db(trader, db_path)
     return trader
 
 
@@ -85,8 +100,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader1.db_path = db_path
-        trader1._init_db()
+        _reinit_trader_db(trader1, db_path)
 
         # Place some orders
         await trader1.place_market_order("AAPL", 50, "BUY", auto_stop_loss=False)
@@ -105,8 +119,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader2.db_path = db_path
-        trader2._init_db()
+        _reinit_trader_db(trader2, db_path)
         trader2._load_positions()
 
         # Positions should be recovered
@@ -124,8 +137,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader.db_path = db_path
-        trader._init_db()
+        _reinit_trader_db(trader, db_path)
 
         # Load from empty database
         trader._load_positions()
@@ -142,8 +154,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader1.db_path = db_path
-        trader1._init_db()
+        _reinit_trader_db(trader1, db_path)
 
         # Add position with specific values
         await trader1.place_market_order("AAPL", 100, "BUY", auto_stop_loss=False)
@@ -156,8 +167,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader2.db_path = db_path
-        trader2._init_db()
+        _reinit_trader_db(trader2, db_path)
         trader2._load_positions()
 
         recovered_position = trader2.get_position("AAPL")
@@ -178,8 +188,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader.db_path = db_path
-        trader._init_db()
+        _reinit_trader_db(trader, db_path)
 
         for symbol in symbols:
             await trader.place_market_order(symbol, 10, "BUY", auto_stop_loss=False)
@@ -191,8 +200,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader2.db_path = db_path
-        trader2._init_db()
+        _reinit_trader_db(trader2, db_path)
         trader2._load_positions()
 
         # Buy more AAPL
@@ -205,8 +213,7 @@ class TestLoadPositionsAfterRestart:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader3.db_path = db_path
-        trader3._init_db()
+        _reinit_trader_db(trader3, db_path)
         trader3._load_positions()
 
         # AAPL should have 15 shares, others 10
@@ -240,8 +247,7 @@ class TestCorruptedDatabaseRecovery:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader.db_path = db_path
-        trader._init_db()
+        _reinit_trader_db(trader, db_path)
 
         # Should be able to use all tables
         # Verify orders table exists
@@ -284,8 +290,7 @@ class TestCorruptedDatabaseRecovery:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader.db_path = db_path
-        trader._init_db()
+        _reinit_trader_db(trader, db_path)
 
         # Should work normally
         trader._load_positions()
@@ -325,7 +330,9 @@ class TestCorruptedDatabaseRecovery:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
+        # Reinit the pool to use test db (don't call _init_db since we're manually creating tables)
         trader.db_path = db_path
+        trader._db_pool = SQLiteConnectionPool(db_path, pool_size=5)
 
         # Create remaining tables
         with sqlite3.connect(db_path) as conn:
@@ -453,8 +460,7 @@ class TestSchemaMigration:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader.db_path = db_path
-        trader._init_db()
+        _reinit_trader_db(trader, db_path)
 
         # Verify commission column exists
         with sqlite3.connect(db_path) as conn:
@@ -533,8 +539,7 @@ class TestSchemaMigration:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader.db_path = db_path
-        trader._init_db()
+        _reinit_trader_db(trader, db_path)
 
         # Verify original data is preserved
         with sqlite3.connect(db_path) as conn:
@@ -558,8 +563,7 @@ class TestSchemaMigration:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader1.db_path = db_path
-        trader1._init_db()
+        _reinit_trader_db(trader1, db_path)
 
         # Get current schema
         with sqlite3.connect(db_path) as conn:
@@ -573,8 +577,7 @@ class TestSchemaMigration:
             enable_risk_systems=False,
             enforce_market_hours=False,
         )
-        trader2.db_path = db_path
-        trader2._init_db()
+        _reinit_trader_db(trader2, db_path)
 
         # Schema should be unchanged
         with sqlite3.connect(db_path) as conn:

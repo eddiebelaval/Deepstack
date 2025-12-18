@@ -21,7 +21,8 @@ import pytest
 # Import TestClient first before mocking
 from fastapi.testclient import TestClient
 
-# Then mock all external dependencies
+# Mock all external dependencies at module level
+# These prevent real imports but api_server may have already imported differently
 sys.modules["stripe"] = MagicMock()
 sys.modules["yfinance"] = MagicMock()
 sys.modules["supabase"] = MagicMock()
@@ -42,47 +43,72 @@ def setup_test_env():
     yield
 
 
-@pytest.fixture
-def mock_stripe_api():
-    """Mock Stripe API calls."""
-    import stripe as stripe_module
+class MockStripeSession:
+    """Mock Stripe checkout session with explicit attributes.
 
-    # Reset all mocks
-    stripe_module.reset_mock()
+    Using a real class instead of MagicMock ensures .url is always a string,
+    avoiding Pydantic validation errors in CheckoutSessionResponse.
+    """
 
-    # Mock checkout session
-    mock_session = MagicMock()
-    mock_session.url = "https://checkout.stripe.com/test_session_123"
-    mock_session.id = "cs_test_123"
-    mock_session.customer = "cus_test_123"
-    mock_session.subscription = "sub_test_123"
-    stripe_module.checkout.Session.create.return_value = mock_session
-    # Clear any side_effect
-    stripe_module.checkout.Session.create.side_effect = None
+    def __init__(self):
+        self.url = "https://checkout.stripe.com/test_session_123"
+        self.id = "cs_test_123"
+        self.customer = "cus_test_123"
+        self.subscription = "sub_test_123"
 
-    # Mock webhook signature verification
-    stripe_module.Webhook.construct_event.return_value = {
-        "type": "checkout.session.completed",
-        "data": {
-            "object": {
-                "metadata": {"user_id": "user_123", "tier": "pro"},
-                "customer": "cus_test_123",
-                "subscription": "sub_test_123",
-            }
-        },
-    }
-    # Clear any side_effect
-    stripe_module.Webhook.construct_event.side_effect = None
 
-    # Mock Stripe error classes
-    stripe_module.error.SignatureVerificationError = type(
+def _create_stripe_mock():
+    """Create a fully configured stripe mock with proper return types."""
+    stripe_mock = MagicMock()
+
+    # Create the session object - using explicit class ensures .url is a string
+    mock_session = MockStripeSession()
+
+    # Configure checkout.Session.create to return our session
+    stripe_mock.checkout = MagicMock()
+    stripe_mock.checkout.Session = MagicMock()
+    stripe_mock.checkout.Session.create = MagicMock(return_value=mock_session)
+
+    # Set up webhook mock with default return value
+    stripe_mock.Webhook = MagicMock()
+    stripe_mock.Webhook.construct_event = MagicMock(
+        return_value={
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "metadata": {"user_id": "user_123", "tier": "pro"},
+                    "customer": "cus_test_123",
+                    "subscription": "sub_test_123",
+                }
+            },
+        }
+    )
+
+    # Create error mock with exception class
+    stripe_mock.error = MagicMock()
+    stripe_mock.error.SignatureVerificationError = type(
         "SignatureVerificationError", (Exception,), {}
     )
 
     # Set API key
-    stripe_module.api_key = "sk_test_mock_secret_key"
+    stripe_mock.api_key = "sk_test_mock_secret_key"
 
-    return stripe_module
+    return stripe_mock
+
+
+@pytest.fixture
+def mock_stripe_api():
+    """Mock Stripe API by patching at the api_server module level.
+
+    CRITICAL: With pytest-xdist, different workers may import api_server before
+    our test file runs. Using patch() on 'core.api_server.stripe' ensures we
+    replace the reference that api_server actually uses, regardless of import order.
+    """
+    stripe_mock = _create_stripe_mock()
+
+    # Patch stripe at the api_server module level - this is where it's actually used
+    with patch("core.api_server.stripe", stripe_mock):
+        yield stripe_mock
 
 
 @pytest.fixture
@@ -110,7 +136,11 @@ def mock_supabase_client():
 
 @pytest.fixture
 def app(mock_stripe_api, mock_supabase_client):
-    """Create FastAPI app with mocked dependencies."""
+    """Create FastAPI app with mocked dependencies.
+
+    Note: mock_stripe_api is included as dependency to ensure the patch
+    is active when create_app() is called.
+    """
     # Patch config and other dependencies
     with patch("core.config.get_config") as mock_config:
         # Configure mock config

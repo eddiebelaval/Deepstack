@@ -224,8 +224,11 @@ class TestQuoteRetrieval:
             mock_quote.ask_size = 200
 
             def side_effect(request):
-                symbol = request.symbol_or_symbols
-                return {symbol: mock_quote}
+                symbols = request.symbol_or_symbols
+                # Handle both single symbol and list of symbols
+                if isinstance(symbols, list):
+                    return {s: mock_quote for s in symbols}
+                return {symbols: mock_quote}
 
             mock_data_client.return_value.get_stock_latest_quote.side_effect = (
                 side_effect

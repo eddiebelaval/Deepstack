@@ -24,6 +24,7 @@ Integration Pattern:
 import logging
 import random
 import sqlite3
+import uuid
 from datetime import datetime, time
 from typing import Any, Dict, List, Optional
 
@@ -182,6 +183,17 @@ class PaperTrader:
             f"commission_per_trade=${commission_per_trade:.2f}, "
             f"commission_per_share=${commission_per_share:.4f}"
         )
+
+    def _generate_order_id(self) -> str:
+        """Generate a unique order ID.
+
+        Uses UUID4 for guaranteed uniqueness even under high concurrency.
+        Format: paper_YYYYMMDD_HHMMSS_<uuid-suffix>
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Use first 12 chars of UUID4 for uniqueness without being too long
+        unique_suffix = uuid.uuid4().hex[:12]
+        return f"paper_{timestamp}_{unique_suffix}"
 
     def _init_db(self):
         """Initialize SQLite database for paper trading data with migration support."""
@@ -684,10 +696,7 @@ class PaperTrader:
             )
             return None
 
-        # nosec B311 - random used for order ID uniqueness, not security
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        rand_suffix = random.randint(1000, 9999)  # nosec B311
-        order_id = f"paper_{timestamp}_{rand_suffix}"
+        order_id = self._generate_order_id()
 
         try:
             # Step 3: Get current market price
@@ -796,8 +805,7 @@ class PaperTrader:
             logger.error("Order rejected - market is closed")
             return None
 
-        # nosec B311 - random used for order ID uniqueness, not security
-        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"  # nosec B311
+        order_id = self._generate_order_id()
 
         try:
             order = {
@@ -890,8 +898,7 @@ class PaperTrader:
             logger.error("Stop order rejected - market is closed")
             return None
 
-        # nosec B311 - random used for order ID uniqueness, not security
-        order_id = f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{random.randint(1000, 9999)}"  # nosec B311
+        order_id = self._generate_order_id()
 
         try:
             order = {

@@ -307,11 +307,14 @@ class TestEmotionalFirewall:
         """Test that revenge window expires after 30 minutes."""
         firewall = EmotionalFirewall()
 
-        # Record a loss
-        loss_time = datetime.now(firewall.timezone)
+        # Use a fixed time during trading hours (10 AM on a weekday) to avoid
+        # late night or weekend trading checks interfering with this test
+        loss_time = datetime(
+            2025, 1, 6, 10, 0, tzinfo=firewall.timezone
+        )  # Monday 10 AM
         firewall.record_trade("LOSER", profit_loss=-1000, timestamp=loss_time)
 
-        # Try to trade 35 minutes later (should be allowed)
+        # Try to trade 35 minutes later (should be allowed - revenge window expired)
         trade_time = loss_time + timedelta(minutes=35)
         result = firewall.should_block_trade("SAFE", timestamp=trade_time)
         assert not result["blocked"]
