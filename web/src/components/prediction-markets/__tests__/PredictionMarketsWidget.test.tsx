@@ -626,7 +626,7 @@ describe('PredictionMarketsWidget', () => {
       // Get first market item - need to go up to the container div with proper structure
       const titleElement = screen.getByTitle('Will BTC reach $100k by end of year?');
       // Navigate up to find the market container with all info
-      const firstMarket = titleElement.closest('.rounded-lg.border.border-slate-800');
+      const firstMarket = titleElement.closest('.rounded-lg.border.border-slate-800') as HTMLElement;
       expect(firstMarket).toBeInTheDocument();
 
       if (firstMarket) {

@@ -388,7 +388,7 @@ describe('ScalarMarketCard', () => {
       expect(screen.getByTestId('square-card-content').querySelector('.animate-spin')).toBeInTheDocument();
 
       await waitFor(() => {
-        expect(screen.queryByTestId('square-card-content').querySelector('.animate-spin')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('square-card-content')?.querySelector('.animate-spin')).not.toBeInTheDocument();
       }, { timeout: 200 });
     });
 

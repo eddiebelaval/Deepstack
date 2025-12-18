@@ -279,27 +279,27 @@ describe('SymbolSearchDialog', () => {
 
   describe('symbol types', () => {
     it('shows ETF icon for ETFs', () => {
-      const { container } = render(<SymbolSearchDialog />);
+      render(<SymbolSearchDialog />);
 
       // SPY is an ETF and should show star icon
-      const spyItem = screen.getByText('SPY').closest('[role="option"]');
-      const starIcon = within(spyItem as HTMLElement).container.querySelector('.text-yellow-500');
+      const spyItem = screen.getByText('SPY').closest('[role="option"]') as HTMLElement;
+      const starIcon = within(spyItem).getByRole('img', { hidden: true });
       expect(starIcon).toBeInTheDocument();
     });
 
     it('shows stock icon for stocks', () => {
-      const { container } = render(<SymbolSearchDialog />);
+      render(<SymbolSearchDialog />);
 
-      const aaplItem = screen.getByText('AAPL').closest('[role="option"]');
-      const trendingIcon = within(aaplItem as HTMLElement).container.querySelector('.text-green-500');
+      const aaplItem = screen.getByText('AAPL').closest('[role="option"]') as HTMLElement;
+      const trendingIcon = within(aaplItem).getByRole('img', { hidden: true });
       expect(trendingIcon).toBeInTheDocument();
     });
 
     it('shows crypto icon for crypto', () => {
-      const { container } = render(<SymbolSearchDialog />);
+      render(<SymbolSearchDialog />);
 
-      const btcItem = screen.getByText('BTCUSD').closest('[role="option"]');
-      const dollarIcon = within(btcItem as HTMLElement).container.querySelector('.text-orange-500');
+      const btcItem = screen.getByText('BTCUSD').closest('[role="option"]') as HTMLElement;
+      const dollarIcon = within(btcItem).getByRole('img', { hidden: true });
       expect(dollarIcon).toBeInTheDocument();
     });
   });

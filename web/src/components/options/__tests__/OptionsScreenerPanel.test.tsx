@@ -26,7 +26,7 @@ const mockContract: OptionContract = {
   days_to_expiration: 30,
   bid: 2.50,
   ask: 2.55,
-  last: 2.52,
+  last_price: 2.52,
   volume: 15000,
   open_interest: 50000,
   implied_volatility: 0.18,
@@ -34,6 +34,10 @@ const mockContract: OptionContract = {
   gamma: 0.05,
   theta: -0.03,
   vega: 0.12,
+  bid_ask_spread: 0.05,
+  bid_ask_spread_pct: 1.96,
+  moneyness: 'atm',
+  underlying_price: 450.25,
 };
 
 describe('OptionsScreenerPanel', () => {

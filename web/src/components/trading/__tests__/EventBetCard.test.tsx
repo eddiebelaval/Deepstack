@@ -14,7 +14,7 @@ describe('EventBetCard', () => {
     date: '2024-01-15',
     title: 'AAPL Q4 2024 Earnings',
     estimate: '$2.10',
-    actual: null,
+    actual: undefined,
     prior: '$1.95',
     time: 'AMC',
     importance: 'high',
@@ -96,7 +96,7 @@ describe('EventBetCard', () => {
     });
 
     it('shows pending status when no actual EPS', () => {
-      const event = createEarningsEvent({ actual: null });
+      const event = createEarningsEvent({ actual: undefined });
       render(<EventBetCard event={event} onSymbolClick={mockOnSymbolClick} />);
 
       expect(screen.getByText('Pending')).toBeInTheDocument();

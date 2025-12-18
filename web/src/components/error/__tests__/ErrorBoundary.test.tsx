@@ -279,10 +279,18 @@ describe('ErrorBoundary', () => {
 
     it('navigates home on go home button click', async () => {
       const user = userEvent.setup();
-      const originalLocation = window.location;
 
-      delete (window as any).location;
-      window.location = { ...originalLocation, href: '' } as any;
+      // Mock window.location using Object.defineProperty
+      const mockLocation = {
+        ...window.location,
+        href: '',
+      };
+
+      Object.defineProperty(window, 'location', {
+        value: mockLocation,
+        writable: true,
+        configurable: true,
+      });
 
       render(
         <ErrorBoundary level="page">
@@ -294,9 +302,6 @@ describe('ErrorBoundary', () => {
       await user.click(goHomeButton);
 
       expect(window.location.href).toBe('/');
-
-      // Restore
-      window.location = originalLocation;
     });
   });
 

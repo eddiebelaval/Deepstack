@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useInsightsData } from '../useInsightsData';
 import type { JournalEntry } from '@/lib/stores/journal-store';
-import type { Thesis } from '@/lib/types/thesis';
+import type { ThesisEntry } from '@/lib/stores/thesis-store';
 
 // Mock dependencies - using mutable state objects
 let mockEntries: JournalEntry[] = [];
-let mockTheses: Thesis[] = [];
+let mockTheses: ThesisEntry[] = [];
 let mockIsJournalLoading = false;
 let mockIsThesisLoading = false;
 
@@ -49,16 +49,19 @@ function createJournalEntry(overrides: Partial<JournalEntry> = {}): JournalEntry
   };
 }
 
-function createThesis(overrides: Partial<Thesis> = {}): Thesis {
+function createThesis(overrides: Partial<ThesisEntry> = {}): ThesisEntry {
   return {
     id: `thesis-${Date.now()}-${Math.random()}`,
     title: 'Test Thesis',
-    content: 'Test content',
+    symbol: 'AAPL',
+    hypothesis: 'Test hypothesis',
+    timeframe: '1-3 months',
+    keyConditions: ['condition1', 'condition2'],
     status: 'active',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,
-  } as Thesis;
+  };
 }
 
 describe('useInsightsData', () => {
@@ -333,9 +336,11 @@ describe('useInsightsData', () => {
       // Just check that best and worst exist, time periods may vary by timezone
       expect(result.current.patterns.timeOfDay.best).toBeTruthy();
       expect(result.current.patterns.timeOfDay.worst).toBeTruthy();
-      expect(result.current.patterns.timeOfDay.best?.winRate).toBeGreaterThan(
-        result.current.patterns.timeOfDay.worst?.winRate
-      );
+      if (result.current.patterns.timeOfDay.best && result.current.patterns.timeOfDay.worst) {
+        expect(result.current.patterns.timeOfDay.best.winRate).toBeGreaterThan(
+          result.current.patterns.timeOfDay.worst.winRate
+        );
+      }
     });
 
     it('requires minimum 2 trades per period', () => {

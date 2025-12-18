@@ -44,8 +44,13 @@ const mockCalculation: StrategyCalculation = {
     gamma: 0.05,
     theta: -0.03,
     vega: 0.12,
-    rho: 0.02,
   },
+  greeks_over_price: [
+    { price: 440, delta: 0.52, gamma: 0.05, theta: -0.03, vega: 0.12 },
+    { price: 450, delta: 0.55, gamma: 0.05, theta: -0.03, vega: 0.12 },
+    { price: 460, delta: 0.58, gamma: 0.05, theta: -0.03, vega: 0.12 },
+    { price: 470, delta: 0.61, gamma: 0.05, theta: -0.03, vega: 0.12 },
+  ],
   mock: false,
 };
 
@@ -338,7 +343,6 @@ describe('PayoffDiagram', () => {
           gamma: 0.03,
           theta: -0.05,
           vega: 0.10,
-          rho: -0.01,
         },
       };
       render(<PayoffDiagram calculation={negativeGreeks} underlyingPrice={450} showGreeks={true} />);

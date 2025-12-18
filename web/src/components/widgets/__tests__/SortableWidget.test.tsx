@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { forwardRef } from 'react';
 import { SortableWidget } from '../SortableWidget';
 import * as widgetStore from '@/lib/stores/widget-store';
 
@@ -23,11 +24,16 @@ vi.mock('@dnd-kit/utilities', () => ({
 }));
 
 // Mock getWidgetDefinition
+const MockIcon = forwardRef<SVGSVGElement>((props, ref) => (
+  <span data-testid="widget-icon">Icon</span>
+));
+MockIcon.displayName = 'MockIcon';
+
 vi.spyOn(widgetStore, 'getWidgetDefinition').mockReturnValue({
   type: 'watchlist',
   title: 'Watchlist',
   description: 'Track your favorite symbols',
-  icon: () => <span data-testid="widget-icon">Icon</span>,
+  icon: MockIcon,
   category: 'market',
 });
 
