@@ -226,7 +226,7 @@ class StrategyAgent(BaseAgent):
 
                     return {
                         "symbol": symbol,
-                        "price": float(quote.get("ask", quote.get("last", 0))),
+                        "price": float(quote.get("last", quote.get("ask", 0))),
                         "bid": float(quote.get("bid", 0)),
                         "ask": float(quote.get("ask", 0)),
                         "volume": quote.get("ask_volume", 0)
@@ -284,23 +284,45 @@ class StrategyAgent(BaseAgent):
                         symbol
                     )
 
+                    # Helper to sanitize values - use default if None, negative, or invalid
+                    def sanitize(val, default, min_val=0, max_val=None):
+                        if val is None or not isinstance(val, (int, float)):
+                            return default
+                        if val < min_val:
+                            return default
+                        if max_val is not None and val > max_val:
+                            return default
+                        return val
+
                     return {
                         "symbol": symbol,
-                        "pe_ratio": fundamentals.get("pe_ratio")
-                        or 15.0,  # Default P/E if missing
-                        "pb_ratio": fundamentals.get("pb_ratio")
-                        or 1.5,  # Default P/B if missing
-                        "roe": fundamentals.get("roe") or 0.10,  # Default ROE 10%
-                        "debt_equity": fundamentals.get("debt_to_equity") or 0.5,
-                        "current_ratio": fundamentals.get("current_ratio") or 1.0,
-                        "fcf_yield": fundamentals.get("fcf_yield")
-                        or 0.03,  # Default 3%
+                        "pe_ratio": sanitize(
+                            fundamentals.get("pe_ratio"), 15.0
+                        ),  # Default P/E if missing/invalid
+                        "pb_ratio": sanitize(
+                            fundamentals.get("pb_ratio"), 1.5
+                        ),  # Default P/B if missing/invalid
+                        "roe": sanitize(
+                            fundamentals.get("roe"), 0.10, max_val=10.0
+                        ),  # Default ROE 10%, cap at 1000%
+                        "debt_equity": sanitize(
+                            fundamentals.get("debt_to_equity"), 0.5
+                        ),
+                        "current_ratio": sanitize(
+                            fundamentals.get("current_ratio"), 1.0
+                        ),
+                        "fcf_yield": sanitize(
+                            fundamentals.get("fcf_yield"), 0.03
+                        ),  # Default 3%
                         "dividend_yield": (
                             overview.get("dividend_yield", 0) if overview else 0
                         ),
-                        "profit_margin": fundamentals.get("profit_margin") or 0.10,
-                        "operating_margin": fundamentals.get("operating_margin")
-                        or 0.15,
+                        "profit_margin": sanitize(
+                            fundamentals.get("profit_margin"), 0.10
+                        ),
+                        "operating_margin": sanitize(
+                            fundamentals.get("operating_margin"), 0.15
+                        ),
                         "timestamp": fundamentals.get("timestamp"),
                     }
 
