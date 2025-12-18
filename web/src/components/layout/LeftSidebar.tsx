@@ -230,7 +230,7 @@ export function LeftSidebar() {
                                         if (isMobile || isTablet) setLeftSidebarOpen(false);
                                     }}
                                 >
-                                    <Lightbulb className="h-4 w-4 shrink-0 text-amber-500" />
+                                    <Lightbulb className="h-4 w-4 shrink-0" />
                                     {showExpanded && <span className="ml-2">Thesis Engine</span>}
                                 </Button>
                             </TooltipTrigger>
@@ -268,7 +268,7 @@ export function LeftSidebar() {
                                         if (isMobile || isTablet) setLeftSidebarOpen(false);
                                     }}
                                 >
-                                    <BookOpen className="h-4 w-4 shrink-0 text-blue-500" />
+                                    <BookOpen className="h-4 w-4 shrink-0" />
                                     {showExpanded && <span className="ml-2">Trade Journal</span>}
                                 </Button>
                             </TooltipTrigger>
@@ -305,7 +305,7 @@ export function LeftSidebar() {
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >
-                                <Brain className="h-4 w-4 shrink-0 text-purple-500" />
+                                <Brain className="h-4 w-4 shrink-0" />
                                 {showExpanded && <span className="ml-2">Insights</span>}
                             </Button>
                         </TooltipTrigger>
@@ -325,7 +325,7 @@ export function LeftSidebar() {
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >
-                                <FileSearch className="h-4 w-4 shrink-0 text-cyan-500" />
+                                <FileSearch className="h-4 w-4 shrink-0" />
                                 {showExpanded && <span className="ml-2">Research Hub</span>}
                             </Button>
                         </TooltipTrigger>
@@ -345,7 +345,7 @@ export function LeftSidebar() {
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >
-                                <Sparkles className="h-4 w-4 shrink-0 text-violet-500" />
+                                <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
                                 {showExpanded && <span className="ml-2">Deep Research</span>}
                             </Button>
                         </TooltipTrigger>
@@ -364,7 +364,7 @@ export function LeftSidebar() {
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >
-                                <ListChecks className="h-4 w-4 shrink-0 text-green-500" />
+                                <ListChecks className="h-4 w-4 shrink-0" />
                                 {showExpanded && <span className="ml-2">Watchlists</span>}
                             </Button>
                         </TooltipTrigger>
@@ -384,7 +384,7 @@ export function LeftSidebar() {
                                     if (isMobile || isTablet) setLeftSidebarOpen(false);
                                 }}
                             >
-                                <Coins className="h-4 w-4 shrink-0 text-amber-500" />
+                                <Coins className="h-4 w-4 shrink-0" />
                                 {showExpanded && <span className="ml-2">Usage & Credits</span>}
                             </Button>
                         </TooltipTrigger>
