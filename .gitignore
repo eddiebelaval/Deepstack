@@ -70,8 +70,8 @@ logs/
 *.sqlite
 *.sqlite3
 
-# Node.js (CLI)
-cli/node_modules/
+# Node.js
+node_modules/
 cli/dist/
 npm-debug.log*
 yarn-debug.log*
@@ -131,5 +131,15 @@ web/out/
 # Allow data directory but ignore sensitive content
 !data/
 data/paper_trading.db
+data/paper_trading.db-shm
+data/paper_trading.db-wal
 .env*.local
 web/supabase/.temp/
+
+# Build artifacts
+web/BUNDLE_OPTIMIZATION_REPORT.md
+web/test_output.txt
+
+# Service worker (generated)
+web/public/sw.js
+web/public/sw.js.map
