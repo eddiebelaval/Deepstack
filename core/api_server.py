@@ -27,7 +27,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .api.auth import AuthenticatedUser, get_current_user
-from .api.credits import ActionCost, require_action
+from .api.credits import ActionCost, free_action, require_action
 from .api.options_router import router as options_router
 from .api.perplexity_finance_router import router as perplexity_finance_router
 from .api.prediction_markets_router import router as prediction_markets_router
@@ -284,9 +284,7 @@ class DeepStackAPIServer:
             """Health check endpoint."""
             return HealthResponse(status="healthy", timestamp=datetime.now())
 
-        @self.app.get(
-            "/api/news", dependencies=[Depends(require_action(ActionCost.NEWS))]
-        )
+        @self.app.get("/api/news", dependencies=[Depends(free_action(ActionCost.NEWS))])
         async def get_news(
             symbol: Optional[str] = None,
             limit: int = 10,
@@ -320,7 +318,7 @@ class DeepStackAPIServer:
 
         @self.app.get(
             "/api/news/aggregated",
-            dependencies=[Depends(require_action(ActionCost.NEWS_AGGREGATED))],
+            dependencies=[Depends(free_action(ActionCost.NEWS_AGGREGATED))],
         )
         async def get_aggregated_news(
             symbol: Optional[str] = None,
@@ -380,7 +378,7 @@ class DeepStackAPIServer:
 
         @self.app.get(
             "/api/news/sources/health",
-            dependencies=[Depends(require_action(ActionCost.NEWS_SOURCES_HEALTH))],
+            dependencies=[Depends(free_action(ActionCost.NEWS_SOURCES_HEALTH))],
         )
         async def get_news_sources_health():
             """
@@ -545,7 +543,7 @@ class DeepStackAPIServer:
 
         @self.app.get(
             "/api/market/quotes",
-            dependencies=[Depends(require_action(ActionCost.QUOTE))],
+            dependencies=[Depends(free_action(ActionCost.QUOTE))],
         )
         async def get_quotes_batch(symbols: str):
             """
@@ -640,7 +638,7 @@ class DeepStackAPIServer:
         @self.app.get(
             "/quote/{symbol}",
             response_model=QuoteResponse,
-            dependencies=[Depends(require_action(ActionCost.QUOTE))],
+            dependencies=[Depends(free_action(ActionCost.QUOTE))],
         )
         async def get_quote(symbol: str):
             """Get current quote for symbol with optimized source selection."""
@@ -756,7 +754,7 @@ class DeepStackAPIServer:
                 )
 
         @self.app.get(
-            "/api/market/bars", dependencies=[Depends(require_action(ActionCost.BARS))]
+            "/api/market/bars", dependencies=[Depends(free_action(ActionCost.BARS))]
         )
         async def get_market_bars(symbol: str, timeframe: str = "1d", limit: int = 100):
             """Get historical market bars from Alpaca (stocks and crypto)."""
