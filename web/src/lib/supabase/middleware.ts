@@ -65,10 +65,10 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // Redirect authenticated users from auth routes to home
+    // Redirect authenticated users from auth routes to the app
     if (user && isAuthRoute) {
         const url = request.nextUrl.clone()
-        url.pathname = '/'
+        url.pathname = '/app'
         return NextResponse.redirect(url)
     }
 
