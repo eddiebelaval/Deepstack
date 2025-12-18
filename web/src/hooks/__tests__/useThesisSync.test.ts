@@ -167,7 +167,7 @@ describe('useThesisSync', () => {
         .mockResolvedValueOnce([mockThesis])
         .mockResolvedValueOnce([updatedThesis]);
 
-      let subscriptionCallback: (() => Promise<void>) | null = null;
+      let subscriptionCallback: (() => void | Promise<void>) | null = null;
       vi.mocked(thesisApi.subscribeToTheses).mockImplementation((cb) => {
         subscriptionCallback = cb;
         return () => {};
@@ -183,7 +183,7 @@ describe('useThesisSync', () => {
       // Trigger subscription callback
       if (subscriptionCallback) {
         await act(async () => {
-          await subscriptionCallback!();
+          await Promise.resolve(subscriptionCallback!());
         });
       }
 
@@ -206,13 +206,13 @@ describe('useThesisSync', () => {
     it('creates thesis locally when offline', async () => {
       const { result } = renderHook(() => useThesisSync());
 
-      let createdThesis: ThesisEntry | null = null;
+      let createdThesis: ThesisEntry | undefined;
       await act(async () => {
         createdThesis = await result.current.addThesis(newThesisData);
       });
 
       expect(createdThesis).toBeDefined();
-      expect(createdThesis?.title).toBe('New Thesis');
+      expect(createdThesis!.title).toBe('New Thesis');
       expect(result.current.theses).toHaveLength(1);
       expect(thesisApi.createThesis).not.toHaveBeenCalled();
     });
@@ -234,13 +234,13 @@ describe('useThesisSync', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let createdThesis: ThesisEntry | null = null;
+      let createdThesis: ThesisEntry | undefined;
       await act(async () => {
         createdThesis = await result.current.addThesis(newThesisData);
       });
 
       expect(thesisApi.createThesis).toHaveBeenCalledWith(newThesisData);
-      expect(createdThesis?.id).toBe('thesis-456');
+      expect(createdThesis!.id).toBe('thesis-456');
       expect(result.current.theses).toHaveLength(1);
     });
 

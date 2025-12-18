@@ -61,12 +61,10 @@ const mockTrade: TradeEntry = {
   action: 'BUY',
   quantity: 1,
   price: 48000,
-  executedAt: '2024-01-01T00:00:00Z',
   orderType: 'MKT',
   notes: 'Test trade',
   tags: [],
   userId: 'user-1',
-  syncStatus: 'synced',
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };
@@ -97,19 +95,13 @@ const mockSummary = {
 };
 
 describe('usePortfolio', () => {
-  let mockSubscribe: ReturnType<typeof vi.fn>;
-  let mockUpdateQuote: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockSubscribe = vi.fn();
-    mockUpdateQuote = vi.fn();
-
     // Reset the mock market data state
     mockMarketDataState.quotes = {};
-    mockMarketDataState.subscribe = mockSubscribe;
-    mockMarketDataState.updateQuote = mockUpdateQuote;
+    mockMarketDataState.subscribe = vi.fn();
+    mockMarketDataState.updateQuote = vi.fn();
 
     // Add getState to the mock store
     (useMarketDataStore as any).getState = vi.fn(() => mockMarketDataState);
@@ -252,7 +244,7 @@ describe('usePortfolio', () => {
 
       // Update the mock state directly
       mockMarketDataState.quotes = {
-        BTC: { symbol: 'BTC', last: 50000, executedAt: '2024-01-01T00:00:00Z' },
+        BTC: { symbol: 'BTC', last: 50000 },
       };
 
       vi.mocked(useMarketDataStore).mockImplementation((selector: any) => {
@@ -327,7 +319,7 @@ describe('usePortfolio', () => {
       renderHook(() => usePortfolio());
 
       await waitFor(() => {
-        expect(mockSubscribe).toHaveBeenCalledWith('BTC');
+        expect(mockMarketDataState.subscribe).toHaveBeenCalledWith('BTC');
       });
     });
 
@@ -405,7 +397,7 @@ describe('usePortfolio', () => {
       renderHook(() => usePortfolio());
 
       expect(mockQuote).not.toHaveBeenCalled();
-      expect(mockSubscribe).not.toHaveBeenCalled();
+      expect(mockMarketDataState.subscribe).not.toHaveBeenCalled();
     });
 
     it('handles price fetch errors gracefully', async () => {
@@ -485,9 +477,7 @@ describe('usePortfolio', () => {
       mockAddTrade.mockResolvedValue({
         ...newTrade,
         id: 'trade-2',
-        executedAt: '2024-01-02T00:00:00Z',
         userId: 'user-1',
-        syncStatus: 'synced',
         createdAt: '2024-01-02T00:00:00Z',
         updatedAt: '2024-01-02T00:00:00Z',
       });
@@ -589,22 +579,20 @@ describe('usePlacePaperTrade', () => {
     mockAddTrade.mockResolvedValue({
       ...tradeParams,
       id: 'trade-1',
-      executedAt: '2024-01-01T00:00:00Z',
       userId: 'user-1',
-      syncStatus: 'synced',
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     });
 
     const { result } = renderHook(() => usePlacePaperTrade());
 
-    let trade: TradeEntry | null = null;
+    let trade: TradeEntry | null | undefined;
     await act(async () => {
       trade = await result.current.execute(tradeParams);
     });
 
     expect(mockAddTrade).toHaveBeenCalledWith(tradeParams);
-    expect(trade?.symbol).toBe('BTC');
+    expect(trade!.symbol).toBe('BTC');
     expect(result.current.error).toBeNull();
   });
 
@@ -617,9 +605,7 @@ describe('usePlacePaperTrade', () => {
       quantity: 1,
       price: 49500,
       orderType: 'MKT',
-      executedAt: '2024-01-01T00:00:00Z',
       userId: 'user-1',
-      syncStatus: 'synced',
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     });
@@ -741,9 +727,7 @@ describe('usePlacePaperTrade', () => {
         quantity: 1,
         price: 48000,
         orderType: 'MKT',
-        executedAt: '2024-01-01T00:00:00Z',
         userId: 'user-1',
-        syncStatus: 'synced',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       });

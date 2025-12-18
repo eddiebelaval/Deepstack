@@ -35,7 +35,7 @@ export function SafeHtml({ html, className, as: Component = 'div' }: SafeHtmlPro
     <Component
       className={className}
       // Content is sanitized via DOMPurify - safe to render
-      // eslint-disable-next-line react/no-danger
+
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );
