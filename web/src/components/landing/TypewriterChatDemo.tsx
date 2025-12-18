@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Brain, AlertTriangle, TrendingUp, Sparkles } from 'lucide-react';
 
@@ -98,9 +98,11 @@ function ChatBubble({
     message.type === 'assistant' ? 25 : 15,
     true
   );
+  const hasCalledComplete = useRef(false);
 
   useEffect(() => {
-    if (isComplete) {
+    if (isComplete && !hasCalledComplete.current) {
+      hasCalledComplete.current = true;
       onTypingComplete();
     }
   }, [isComplete, onTypingComplete]);
@@ -189,7 +191,7 @@ export function TypewriterChatDemo() {
     }
   }, [isInView, hasStarted]);
 
-  const handleTypingComplete = (messageId: number) => {
+  const handleTypingComplete = useCallback((messageId: number) => {
     setCurrentlyTyping(null);
 
     // Find next message
@@ -202,7 +204,7 @@ export function TypewriterChatDemo() {
         setCurrentlyTyping(nextMessage.id);
       }, delay);
     }
-  };
+  }, []);
 
   const handleRestart = () => {
     setVisibleMessages([]);
