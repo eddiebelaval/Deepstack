@@ -10,6 +10,28 @@ from pytest_bdd import given, parsers, scenarios, then, when
 scenarios("../features/pairs_trade.feature")
 
 
+# =============================================================================
+# Background Steps (required for all scenarios)
+# =============================================================================
+
+
+@given("the trading system is initialized")
+def trading_system_initialized(e2e_trading_system):
+    """Verify trading system is ready."""
+    assert e2e_trading_system is not None
+    assert e2e_trading_system["trader"] is not None
+    assert e2e_trading_system["strategy"] is not None
+    assert e2e_trading_system["breaker"] is not None
+
+
+@given(parsers.parse("the portfolio has {amount:d} dollars in cash"))
+def portfolio_with_cash(e2e_trading_system, amount):
+    """Initialize portfolio with specified cash."""
+    trader = e2e_trading_system["trader"]
+    # Paper trader already initialized with 100k
+    assert trader.get_portfolio_value() == amount
+
+
 @given("pairs trading is enabled")
 def pairs_trading_enabled(e2e_trading_system):
     """Enable pairs trading in the system."""

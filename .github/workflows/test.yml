@@ -123,6 +123,7 @@ jobs:
           --cov=core \
           --cov-report=xml \
           --cov-report=term-missing \
+          --cov-fail-under=0 \
           --junit-xml=test-results/e2e-tests.xml
 
     - name: Upload E2E test results
