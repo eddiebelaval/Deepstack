@@ -6,12 +6,15 @@ import { ToolUseCard } from './ToolUseCard';
 import { LazyCodeBlock } from '@/components/lazy';
 import { ThinkingBlock } from './ThinkingBlock';
 import { CalloutBlock, extractAlertType } from './CalloutBlock';
+import { ContextualPromptCard, detectContextualPrompts, type ContextualPrompt } from './ContextualPromptCard';
 import { cn } from '@/lib/utils';
 
 type Message = any; // import { Message } from '@ai-sdk/react';
 
 type MessageBubbleProps = {
-  message: Message & { thinking?: string };
+  message: Message & { thinking?: string; contextualPrompts?: ContextualPrompt[] };
+  messageIndex?: number;
+  conversationPromptCount?: number;
 };
 
 // Strip XML tool tags from message content (e.g., <get_quote>, <search_news>, etc.)
@@ -34,8 +37,12 @@ function stripToolTags(content: string): string {
   return cleaned;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, messageIndex = 0, conversationPromptCount = 0 }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+
+  // Detect contextual prompts for assistant messages
+  const contextualPrompts = message.contextualPrompts ||
+    (!isUser ? detectContextualPrompts(message.content || '', messageIndex, conversationPromptCount) : []);
 
   if (isUser) {
     return (
@@ -219,6 +226,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <div className="mt-8 space-y-4">
             {message.toolInvocations.map((tool: any, idx: number) => (
               <ToolUseCard key={idx} tool={tool} />
+            ))}
+          </div>
+        )}
+
+        {/* Contextual prompts (affiliate, upgrade, etc.) */}
+        {contextualPrompts.length > 0 && (
+          <div className="mt-6 space-y-3">
+            {contextualPrompts.map((prompt: ContextualPrompt) => (
+              <ContextualPromptCard key={prompt.id} prompt={prompt} />
             ))}
           </div>
         )}

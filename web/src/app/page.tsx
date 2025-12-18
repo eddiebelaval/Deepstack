@@ -24,14 +24,15 @@ import {
   Newspaper,
   Eye,
   Lock,
+  Quote,
 } from 'lucide-react';
 
 import { IntelligentBackground } from '@/components/landing/IntelligentBackground';
 import { FrostedOverlay } from '@/components/landing/FrostedOverlay';
+import { TypewriterChatDemo } from '@/components/landing/TypewriterChatDemo';
 import {
   ScrollProgressBar,
   StickySection,
-  ScaleOnScroll,
   ScrollReveal,
   ParallaxSection,
 } from '@/components/landing/StickySection';
@@ -124,22 +125,6 @@ const FIREWALL_PATTERNS = [
     color: 'text-yellow-400',
     bgColor: 'bg-yellow-500/15',
     borderColor: 'border-yellow-500/30',
-  },
-];
-
-// AI context-aware prompts
-const AI_PROMPTS = [
-  {
-    prompt: '"What\'s happening with NVDA today?"',
-    capability: 'Real-time synthesis',
-  },
-  {
-    prompt: '"Review my journal — am I trading emotionally?"',
-    capability: 'Journal awareness',
-  },
-  {
-    prompt: '"Find prediction markets that contradict my AAPL thesis"',
-    capability: 'Thesis + predictions',
   },
 ];
 
@@ -331,7 +316,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 border border-primary/20 backdrop-blur-sm"
             >
               <Zap className="w-4 h-4" />
-              <span>Research Platform — Not a Broker</span>
+              <span>Free AI Research Platform</span>
             </motion.div>
 
             {/* Headline */}
@@ -339,21 +324,31 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-[1.1]"
+              className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-[1.1]"
             >
-              Stop Trading
+              Research Smarter.
               <br />
-              <span className="text-gradient-shimmer">Against Yourself</span>
+              <span className="text-gradient-shimmer">Trade with Discipline.</span>
             </motion.h1>
+
+            {/* Evocative tagline */}
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.15 }}
+              className="text-2xl md:text-3xl text-foreground/90 mb-4 font-medium"
+            >
+              Stop trading against yourself.
+            </motion.p>
 
             {/* Subheadline */}
             <motion.p
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed"
+              className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
             >
-              AI-powered research that knows your thesis, tracks your emotions, and helps you see what others miss.
+              AI that knows your thesis, detects emotional blind spots, and validates your ideas with prediction markets.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -361,32 +356,63 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
+              className="flex flex-col items-center gap-4"
             >
-              <Link
-                href="/app"
-                className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium transition-all text-lg flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(251,146,60,0.4)] hover:shadow-[0_0_40px_rgba(251,146,60,0.6)]"
+              {/* Free Forever Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-sm font-bold border border-emerald-500/30"
               >
-                Start Researching Free
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="#problem"
-                className="w-full sm:w-auto px-8 py-4 bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 rounded-xl font-medium transition-all text-lg backdrop-blur-sm border border-border/50"
-              >
-                See Why It Works
-              </Link>
+                <Sparkles className="w-4 h-4" />
+                100% FREE — No Credit Card Required
+              </motion.div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Link
+                    href="/app"
+                    className="relative w-full sm:w-auto px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl flex items-center justify-center gap-3 group shadow-[0_0_30px_rgba(251,146,60,0.5)] hover:shadow-[0_0_50px_rgba(251,146,60,0.7)]"
+                  >
+                    {/* Animated ring */}
+                    <span className="absolute inset-0 rounded-2xl border-2 border-primary/50 animate-ping opacity-20" />
+                    Start Trading Smarter
+                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </motion.div>
+                <Link
+                  href="#how-it-works"
+                  className="w-full sm:w-auto px-8 py-4 bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 rounded-xl font-medium transition-all text-lg backdrop-blur-sm border border-border/50"
+                >
+                  See How It Works
+                </Link>
+              </div>
             </motion.div>
 
-            {/* Trust Signal */}
-            <motion.p
+            {/* Trust Signals */}
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.5 }}
-              className="mt-8 text-sm text-muted-foreground/80"
+              className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground/80"
             >
-              Free to use · No credit card required · Your data stays private
-            </motion.p>
+              <span className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary/70" />
+                No signup required
+              </span>
+              <span className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary/70" />
+                Data stays private
+              </span>
+              <span className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-primary/70" />
+                Powered by Claude
+              </span>
+            </motion.div>
 
             {/* Scroll indicator */}
             <motion.div
@@ -464,422 +490,114 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* EMOTIONAL FIREWALL - STICKY (slow down - unique differentiator) */}
+        {/* HOW IT WORKS - Combined Demo + Firewall */}
         {/* ================================================================== */}
-        <StickySection
-          id="firewall"
-          title="Your Psychological Guardrails"
-          subtitle="The Emotional Firewall detects destructive trading patterns before they cost you money. It's like having a mentor who stops you from yourself."
-          badge="Only in deepstack"
-          badgeIcon={<Shield className="w-4 h-4" />}
-          badgeColor="bg-orange-500/15 text-orange-400 border-orange-500/30"
-          titleAccent="text-orange-400"
-          scrollHeight="min-h-fit"
-          className="bg-gradient-to-b from-orange-950/10 via-transparent to-transparent"
-          align="right"
-        >
-          {/* Content stacks vertically - scrolls alongside sticky header */}
-          <div className="space-y-6">
-            {/* Pattern cards */}
-            {FIREWALL_PATTERNS.map((pattern, i) => (
-              <ScrollReveal key={pattern.name} delay={i * 0.1} direction="up">
-                <div className={`p-4 rounded-xl ${pattern.bgColor} border ${pattern.borderColor} backdrop-blur-sm flex items-start gap-4`}>
-                  <div className={`w-10 h-10 rounded-lg bg-background/50 flex items-center justify-center ${pattern.color} shrink-0`}>
-                    {pattern.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="font-semibold">{pattern.name}</h4>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-background/50 text-muted-foreground shrink-0">
-                        {pattern.cooldown}
-                      </span>
+        <section id="how-it-works" className="py-24 px-4 relative bg-gradient-to-b from-transparent via-orange-950/5 to-transparent">
+          <div className="max-w-6xl mx-auto">
+            {/* Section Header */}
+            <ScrollReveal className="text-center mb-16">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20 mb-4">
+                <Zap className="w-4 h-4" />
+                How It Works
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Two powerful systems.{' '}
+                <span className="text-gradient-shimmer">One disciplined trader.</span>
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                AI that researches for you + guardrails that protect you from yourself.
+              </p>
+            </ScrollReveal>
+
+            {/* Two-panel layout */}
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Panel 1: AI Research */}
+              <ScrollReveal direction="left">
+                <div className="h-full p-6 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-blue-400" />
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{pattern.description}</p>
+                    <div>
+                      <h3 className="font-bold">AI Research Assistant</h3>
+                      <p className="text-xs text-muted-foreground">Catches your blind spots</p>
+                    </div>
+                  </div>
+                  <TypewriterChatDemo />
+                </div>
+              </ScrollReveal>
+
+              {/* Panel 2: Emotional Firewall */}
+              <ScrollReveal direction="right" delay={0.1}>
+                <div className="h-full p-6 rounded-2xl bg-card/30 border border-orange-500/20 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-orange-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">Emotional Firewall</h3>
+                      <p className="text-xs text-muted-foreground">Stops destructive patterns</p>
+                    </div>
+                  </div>
+
+                  {/* Compact pattern list */}
+                  <div className="space-y-3 mb-4">
+                    {FIREWALL_PATTERNS.map((pattern) => (
+                      <div key={pattern.name} className={`p-3 rounded-lg ${pattern.bgColor} border ${pattern.borderColor} flex items-center gap-3`}>
+                        <div className={`${pattern.color} shrink-0`}>{pattern.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{pattern.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{pattern.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Compact firewall mockup */}
+                  <div className="rounded-xl bg-card/60 border border-border/50 p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium">Status</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                        <span className="text-xs text-orange-400 font-medium">Warning Active</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Revenge Risk</span>
+                          <span className="text-orange-400">High</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            whileInView={{ width: '75%' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1 }}
+                            className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                      <div className="flex items-center gap-2">
+                        <Ban className="w-4 h-4 text-orange-400 shrink-0" />
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-orange-400 font-medium">Cooldown:</span> 48 min remaining
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </ScrollReveal>
-            ))}
-
-            {/* Firewall mockup */}
-            <ScaleOnScroll>
-              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-semibold">Emotional Firewall</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                    <span className="text-sm text-orange-400 font-medium">Warning</span>
-                  </div>
-                </div>
-
-                {/* Status bars */}
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Revenge Trading Risk</span>
-                      <span className="text-orange-400">High</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '75%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.5 }}
-                        className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Trade Frequency</span>
-                      <span className="text-yellow-400">Elevated</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '55%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.6 }}
-                        className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Win Streak</span>
-                      <span className="text-green-400">Normal</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '25%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.7 }}
-                        className="h-full bg-green-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Alert */}
-                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
-                  <div className="flex items-start gap-3">
-                    <Ban className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-orange-400">Trading Restricted</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        You lost $450 on TSLA 12 minutes ago. Cooldown: 48 min remaining.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border/30">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">3</p>
-                    <p className="text-xs text-muted-foreground">Trades Today</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-red-400">-$450</p>
-                    <p className="text-xs text-muted-foreground">Last Trade</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">2</p>
-                    <p className="text-xs text-muted-foreground">Blocks Today</p>
-                  </div>
-                </div>
-              </div>
-            </ScaleOnScroll>
-          </div>
-        </StickySection>
-
-        {/* ================================================================== */}
-        {/* AI SECTION - STICKY (slow down - core product feature) */}
-        {/* ================================================================== */}
-        <StickySection
-          id="ai-assistant"
-          title="Not a chatbot. A research partner."
-          subtitle="Most AI tools are generic chatbots with stock data bolted on. deepstack's AI knows your complete context."
-          badge="Context-Aware AI"
-          badgeIcon={<Brain className="w-4 h-4" />}
-          badgeColor="bg-primary/10 text-primary border-primary/20"
-          titleAccent="text-primary"
-          scrollHeight="min-h-fit"
-          align="left"
-        >
-          {/* Content stacks vertically - scrolls alongside sticky header */}
-          <div className="space-y-6">
-            {/* Context list */}
-            <div className="space-y-3">
-              {[
-                { icon: <Lightbulb className="w-4 h-4" />, text: 'Your active theses and price targets' },
-                { icon: <BookOpen className="w-4 h-4" />, text: 'Your recent journal entries and emotions' },
-                { icon: <Shield className="w-4 h-4" />, text: 'Your trading patterns and blind spots' },
-                { icon: <BarChart3 className="w-4 h-4" />, text: 'Prediction markets that validate/contradict your thesis' },
-              ].map((item, i) => (
-                <ScrollReveal key={i} delay={i * 0.1} direction="up">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                      {item.icon}
-                    </div>
-                    <span className="text-muted-foreground">{item.text}</span>
-                  </div>
-                </ScrollReveal>
-              ))}
             </div>
-
-            {/* Chat mockup */}
-            <ScaleOnScroll>
-              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl">
-                {/* Chat header */}
-                <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Brain className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">deepstack AI</p>
-                    <p className="text-xs text-muted-foreground">Knows your portfolio context</p>
-                  </div>
-                </div>
-
-                {/* Chat messages */}
-                <div className="p-4 space-y-4">
-                  {/* User message */}
-                  <div className="flex justify-end">
-                    <div className="px-4 py-2 rounded-2xl bg-primary/15 border border-primary/20 max-w-[85%]">
-                      <p className="text-sm">Should I add to my NVDA position given my current emotional state?</p>
-                    </div>
-                  </div>
-
-                  {/* AI response */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Brain className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="space-y-3 flex-1">
-                      <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
-                        <p className="text-sm leading-relaxed">
-                          <span className="text-orange-400 font-medium">Caution recommended.</span> Based on your journal entries, I&apos;m seeing elevated emotional signals:
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                          <p className="text-xs text-red-400">Last Trade: Loss</p>
-                          <p className="text-xs text-muted-foreground">-$450 TSLA (12 min ago)</p>
-                        </div>
-                        <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                          <p className="text-xs text-orange-400">Firewall Status</p>
-                          <p className="text-xs text-muted-foreground">Warning active</p>
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
-                        <p className="text-sm leading-relaxed">
-                          Your NVDA thesis has a <span className="text-green-400 font-medium">72% confidence score</span> and the position is +14% from entry. Consider waiting for the cooldown to clear before adding.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ScaleOnScroll>
-
-            {/* Example prompts */}
-            <ScrollReveal delay={0.4}>
-              <div className="p-4 rounded-xl bg-card/40 border border-border/50 backdrop-blur-sm">
-                <p className="text-sm text-muted-foreground mb-3 font-medium">Try asking:</p>
-                <div className="space-y-2">
-                  {AI_PROMPTS.map((item) => (
-                    <div key={item.prompt} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-foreground">{item.prompt}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-                        {item.capability}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </ScrollReveal>
           </div>
-        </StickySection>
+        </section>
+
+        {/* Thesis Builder and Prediction Markets sections removed - consolidated into Full Toolkit below */}
 
         {/* ================================================================== */}
-        {/* THESIS BUILDER - STICKY (slow down - complex concept) */}
-        {/* ================================================================== */}
-        <StickySection
-          id="thesis"
-          title="Structure Your Thinking"
-          subtitle="Document hypotheses with entry/exit targets. Auto-calculated validation scoring shows when you're right—and when you should cut."
-          badge="Thesis Framework"
-          badgeIcon={<Lightbulb className="w-4 h-4" />}
-          badgeColor="bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-          scrollHeight="min-h-fit"
-          className="bg-card/20"
-          align="right"
-        >
-          {/* Thesis card mockup - scrolls alongside sticky header */}
-          <ScaleOnScroll>
-            <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md p-6 shadow-xl">
-              {/* Thesis header */}
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl font-bold">NVDA</span>
-                    <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs font-medium">Active</span>
-                  </div>
-                  <p className="text-muted-foreground">AI semiconductor dominance through 2025</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-green-400">72%</div>
-                  <p className="text-xs text-muted-foreground">Confidence Score</p>
-                </div>
-              </div>
-
-              {/* Thesis details */}
-              <div className="grid grid-cols-3 gap-4 mb-6 p-4 rounded-xl bg-muted/20">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Entry</p>
-                  <p className="font-semibold">$118.50</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Target</p>
-                  <p className="font-semibold text-green-400">$150.00</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Stop Loss</p>
-                  <p className="font-semibold text-red-400">$105.00</p>
-                </div>
-              </div>
-
-              {/* Validation factors */}
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-muted-foreground">Validation Factors:</p>
-                {[
-                  { label: 'Key conditions met', value: 3, max: 4, percent: 75 },
-                  { label: 'Price progress', value: 14, max: 27, percent: 52 },
-                  { label: 'Timeframe', value: 45, max: 90, percent: 50 },
-                ].map((factor) => (
-                  <div key={factor.label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">{factor.label}</span>
-                      <span>{factor.value}/{factor.max}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${factor.percent}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.8, delay: 0.5 }}
-                        className="h-full bg-primary rounded-full"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Linked prediction market */}
-              <div className="mt-6 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-4 h-4 text-cyan-400" />
-                  <span className="text-sm font-medium text-cyan-400">Linked Prediction Market</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  &quot;Will NVDA hit $150 by March 2025?&quot; — <span className="text-foreground font-medium">68% Yes</span> on Kalshi
-                </p>
-              </div>
-            </div>
-          </ScaleOnScroll>
-        </StickySection>
-
-        {/* ================================================================== */}
-        {/* PREDICTION MARKETS - CENTERED (fast flow - secondary feature) */}
-        {/* ================================================================== */}
-        <StickySection
-          id="predictions"
-          title="Validate Before You Commit Capital"
-          subtitle="What if you could see how thousands of traders are betting on your thesis? deepstack links prediction markets directly to your investment ideas."
-          badge="Prediction Markets"
-          badgeIcon={<BarChart3 className="w-4 h-4" />}
-          badgeColor="bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
-          titleAccent="text-cyan-400"
-          scrollHeight="min-h-fit"
-          align="center"
-        >
-          {/* Centered layout - horizontal use cases + mockup */}
-          <div className="max-w-4xl mx-auto space-y-8">
-            {/* Use cases - horizontal grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { market: 'Fed rate decisions', thesis: 'Your rate-sensitive plays' },
-                { market: 'Election outcomes', thesis: 'Your policy-exposed stocks' },
-                { market: 'Earnings surprises', thesis: 'Your earnings trades' },
-                { market: 'Crypto predictions', thesis: 'Your digital asset thesis' },
-              ].map((item, i) => (
-                <ScrollReveal key={item.market} delay={i * 0.1} direction="up">
-                  <div className="text-center p-4 rounded-xl bg-card/30 border border-border/30">
-                    <ChevronRight className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium mb-1">{item.market}</p>
-                    <p className="text-xs text-muted-foreground">{item.thesis}</p>
-                  </div>
-                </ScrollReveal>
-              ))}
-            </div>
-
-            {/* Platform logos - centered */}
-            <ScrollReveal delay={0.5}>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card/50 border border-border/30">
-                  <div className="w-6 h-6 rounded bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-400">K</div>
-                  <span className="text-sm font-medium">Kalshi</span>
-                  <span className="text-xs text-muted-foreground">CFTC-regulated</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card/50 border border-border/30">
-                  <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center text-xs font-bold text-purple-400">P</div>
-                  <span className="text-sm font-medium">Polymarket</span>
-                  <span className="text-xs text-muted-foreground">Crypto markets</span>
-                </div>
-              </div>
-            </ScrollReveal>
-
-            {/* Markets mockup - wider for centered */}
-            <ScaleOnScroll>
-              <div className="rounded-2xl bg-card/60 border border-border/50 backdrop-blur-md overflow-hidden shadow-2xl max-w-2xl mx-auto">
-                <div className="px-4 py-3 border-b border-border/30 text-center">
-                  <p className="font-medium">Trending Markets</p>
-                </div>
-                <div className="p-4 grid md:grid-cols-2 gap-3">
-                  {[
-                    { question: 'Fed cuts rates in January?', yes: 24, volume: '1.2M', platform: 'Kalshi' },
-                    { question: 'BTC above $100k by EOY?', yes: 45, volume: '8.5M', platform: 'Polymarket' },
-                    { question: 'NVDA earnings beat?', yes: 72, volume: '450K', platform: 'Kalshi' },
-                    { question: 'Recession in 2025?', yes: 18, volume: '2.1M', platform: 'Polymarket' },
-                  ].map((market) => (
-                    <div key={market.question} className="p-3 rounded-xl bg-muted/20 border border-border/20 hover:border-cyan-500/30 transition-colors cursor-pointer">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium mb-1">{market.question}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>${market.volume} vol</span>
-                            <span>·</span>
-                            <span>{market.platform}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-lg font-bold ${market.yes > 50 ? 'text-green-400' : 'text-muted-foreground'}`}>
-                            {market.yes}%
-                          </p>
-                          <p className="text-xs text-muted-foreground">Yes</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </ScaleOnScroll>
-          </div>
-        </StickySection>
-
-        {/* ================================================================== */}
-        {/* FEATURES GRID - Parallax Section */}
+        {/* FEATURES GRID - Full Toolkit */}
         {/* ================================================================== */}
         <StickySection
           id="features"
@@ -901,16 +619,26 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-50px' }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                  className="bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl p-5 hover:border-primary/50 hover:bg-card/60 transition-colors duration-300 group"
+                  whileHover={{
+                    y: -8,
+                    scale: 1.02,
+                    transition: { duration: 0.25, ease: 'easeOut' }
+                  }}
+                  className="relative bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl p-5 hover:border-primary/50 hover:bg-card/60 transition-all duration-300 group hover:shadow-[0_8px_30px_rgba(251,146,60,0.15)]"
                 >
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 ${feature.bgColor}`}>
-                    <div className={feature.color}>{feature.icon}</div>
-                  </div>
-                  <h3 className="text-base font-bold mb-2 group-hover:text-primary transition-colors">
+                  <motion.div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${feature.bgColor}`}
+                    whileHover={{ scale: 1.15, rotate: 5 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className={`${feature.color} group-hover:drop-shadow-[0_0_8px_currentColor] transition-all duration-300`}>
+                      {feature.icon}
+                    </div>
+                  </motion.div>
+                  <h3 className="text-base font-bold mb-2 group-hover:text-primary transition-colors duration-200">
                     {feature.title}
                   </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
+                  <p className="text-muted-foreground text-sm leading-relaxed group-hover:text-muted-foreground/90 transition-colors duration-200">
                     {feature.description}
                   </p>
                 </motion.div>
@@ -927,16 +655,26 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-50px' }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                  className="bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl p-5 hover:border-primary/50 hover:bg-card/60 transition-colors duration-300 group"
+                  whileHover={{
+                    y: -8,
+                    scale: 1.02,
+                    transition: { duration: 0.25, ease: 'easeOut' }
+                  }}
+                  className="relative bg-card/40 backdrop-blur-md border border-border/50 rounded-2xl p-5 hover:border-primary/50 hover:bg-card/60 transition-all duration-300 group hover:shadow-[0_8px_30px_rgba(251,146,60,0.15)]"
                 >
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 ${feature.bgColor}`}>
-                    <div className={feature.color}>{feature.icon}</div>
-                  </div>
-                  <h3 className="text-base font-bold mb-2 group-hover:text-primary transition-colors">
+                  <motion.div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${feature.bgColor}`}
+                    whileHover={{ scale: 1.15, rotate: 5 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className={`${feature.color} group-hover:drop-shadow-[0_0_8px_currentColor] transition-all duration-300`}>
+                      {feature.icon}
+                    </div>
+                  </motion.div>
+                  <h3 className="text-base font-bold mb-2 group-hover:text-primary transition-colors duration-200">
                     {feature.title}
                   </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
+                  <p className="text-muted-foreground text-sm leading-relaxed group-hover:text-muted-foreground/90 transition-colors duration-200">
                     {feature.description}
                   </p>
                 </motion.div>
@@ -946,89 +684,46 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* CREDIBILITY Section - Powered By */}
+        {/* TRUST BAR - Compact credibility */}
         {/* ================================================================== */}
-        <section id="credibility" className="py-20 px-4">
+        <section className="py-12 px-4 border-y border-border/20 bg-card/10">
           <div className="max-w-5xl mx-auto">
-            {/* AI Models Section */}
-            <ScrollReveal className="text-center mb-10">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-2">
-                Powered by leading AI models
+            <ScrollReveal>
+              <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-wider mb-6">
+                Powered by industry leaders
               </p>
-              <p className="text-xs text-muted-foreground/70">
-                Choose your reasoning engine
-              </p>
-            </ScrollReveal>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              {AI_MODELS.map((model, i) => (
-                <ScrollReveal key={model.name} delay={i * 0.1}>
-                  <div className="group p-5 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 hover:bg-card/50 transition-all duration-300">
-                    <div
-                      className={`${model.color} mb-3 flex justify-center opacity-70 group-hover:opacity-100 transition-opacity`}
-                    >
-                      {model.icon}
-                    </div>
-                    <p className="font-semibold mb-0.5">{model.name}</p>
-                    <p className="text-[10px] text-muted-foreground/70 mb-1">{model.company}</p>
-                    <p className="text-xs text-muted-foreground">{model.description}</p>
+              <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+                {[...AI_MODELS, ...DATA_SOURCES].slice(0, 6).map((item) => (
+                  <div key={item.name} className={`${item.color} opacity-50 hover:opacity-100 transition-opacity flex items-center gap-2`}>
+                    {item.icon}
+                    <span className="text-sm font-medium text-muted-foreground">{item.name}</span>
                   </div>
-                </ScrollReveal>
-              ))}
-            </div>
-
-            {/* Data Sources Section */}
-            <ScrollReveal className="text-center mb-10">
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mb-2">
-                Real-time data from
-              </p>
-            </ScrollReveal>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              {DATA_SOURCES.map((source, i) => (
-                <ScrollReveal key={source.name} delay={i * 0.1}>
-                  <div className="group p-5 rounded-xl bg-card/30 border border-border/30 text-center hover:border-primary/30 hover:bg-card/50 transition-all duration-300">
-                    <div
-                      className={`${source.color} mb-3 flex justify-center opacity-70 group-hover:opacity-100 transition-opacity`}
-                    >
-                      {source.icon}
-                    </div>
-                    <p className="font-semibold mb-1">{source.name}</p>
-                    <p className="text-xs text-muted-foreground">{source.description}</p>
-                  </div>
-                </ScrollReveal>
-              ))}
-            </div>
-
-            {/* Trust badges */}
-            <ScrollReveal delay={0.4}>
-              <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  <span>Enterprise-grade security</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  <span>SOC 2 compliant data handling</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  <span>Sub-100ms API latency</span>
-                </div>
+                ))}
               </div>
             </ScrollReveal>
           </div>
         </section>
 
         {/* ================================================================== */}
-        {/* Final CTA Section */}
+        {/* Final CTA Section with Founder Story */}
         {/* ================================================================== */}
         <section className="py-32 px-4 relative">
           {/* Glow effect */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
           <div className="max-w-3xl mx-auto text-center relative">
+            {/* Founder Story - emotional close */}
             <ScrollReveal>
+              <div className="mb-12 p-6 rounded-2xl bg-card/30 border border-primary/20 text-center max-w-xl mx-auto">
+                <Quote className="w-6 h-6 text-primary/40 mx-auto mb-3" />
+                <p className="text-base italic text-foreground/80 mb-3 leading-relaxed">
+                  &quot;I built this because I kept revenge trading after losses. I needed something to call me out before I sabotaged myself.&quot;
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">— Eddie, Founder</p>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={0.1}>
               <h2 className="text-4xl md:text-6xl font-bold mb-6">
                 Ready to trade
                 <br />
@@ -1036,28 +731,32 @@ export default function LandingPage() {
               </h2>
             </ScrollReveal>
 
-            <ScrollReveal delay={0.1}>
-              <p className="text-muted-foreground text-xl mb-10">
-                The only platform that protects you from yourself while making you smarter with every trade.
-              </p>
-            </ScrollReveal>
-
             <ScrollReveal delay={0.2}>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/app"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_50px_rgba(251,146,60,0.6)] hover:scale-105"
-                >
-                  Launch deepstack
-                  <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
+              <p className="text-muted-foreground text-xl mb-8">
+                The only platform that protects you from yourself.
+              </p>
             </ScrollReveal>
 
             <ScrollReveal delay={0.3}>
-              <p className="mt-6 text-sm text-muted-foreground">
-                Free forever · Upgrade when you&apos;re ready
-              </p>
+              <div className="flex flex-col items-center gap-4">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Link
+                    href="/app"
+                    className="relative inline-flex items-center justify-center gap-3 px-12 py-6 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_40px_rgba(251,146,60,0.5)] hover:shadow-[0_0_60px_rgba(251,146,60,0.7)]"
+                  >
+                    <span className="absolute inset-0 rounded-2xl border-2 border-primary/50 animate-ping opacity-20" />
+                    Start Trading Smarter
+                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </motion.div>
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  100% Free — No credit card required
+                </p>
+              </div>
             </ScrollReveal>
           </div>
         </section>

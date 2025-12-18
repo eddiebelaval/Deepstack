@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
 import { SidebarUpgradeBanner } from '@/components/ui/upgrade-banner';
+import { AffiliateWidget } from '@/components/ui/affiliate-widget';
 import { useUser } from '@/hooks/useUser';
 import { useChatLimit } from '@/hooks/useChatLimit';
 import {
@@ -438,6 +439,11 @@ export function LeftSidebar() {
                             minHeightGrowth={0}
                         />
                     )}
+                </div>
+
+                {/* Affiliate Widget */}
+                <div className={cn('px-2', showExpanded ? 'pb-2' : 'pb-1 flex justify-center')}>
+                    <AffiliateWidget isExpanded={showExpanded} />
                 </div>
 
                 {/* Upgrade Banner for Free Users */}

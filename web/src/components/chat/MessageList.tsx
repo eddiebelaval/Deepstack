@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 type Message = any; // import { Message } from '@ai-sdk/react';
 import { MessageBubble } from './MessageBubble';
 import { Loader2, Sparkles } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { detectContextualPrompts } from './ContextualPromptCard';
 
 type MessageListProps = {
   messages: Message[];
@@ -43,11 +44,29 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
     );
   }
 
+  // Count contextual prompts shown so far (to limit per conversation)
+  const promptCountByIndex = useMemo(() => {
+    let count = 0;
+    return messages.map((msg, idx) => {
+      const prevCount = count;
+      if (msg.role === 'assistant') {
+        const prompts = detectContextualPrompts(msg.content || '', idx, prevCount);
+        count += prompts.length;
+      }
+      return prevCount;
+    });
+  }, [messages]);
+
   return (
     <div className="flex-1 px-4">
       <div className="max-w-3xl mx-auto py-6">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+        {messages.map((message, index) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            messageIndex={index}
+            conversationPromptCount={promptCountByIndex[index]}
+          />
         ))}
 
         {isStreaming && (

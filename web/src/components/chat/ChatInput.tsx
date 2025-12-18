@@ -10,6 +10,8 @@ import { useChatStore } from '@/lib/stores/chat-store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useChatLimit } from '@/hooks/useChatLimit';
+import { useUser } from '@/hooks/useUser';
 import { CommandPalette } from './CommandPalette';
 import { cn } from '@/lib/utils';
 import { FirewallStatusDot } from '@/components/emotional-firewall';
@@ -29,6 +31,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { isMobile } = useIsMobile();
+  const { chatsToday, dailyLimit, isAtLimit, remaining, isLoading: limitLoading } = useChatLimit();
 
   // Tour integration
   const { isActive: isChatTourActive, step: chatTourStep, dismiss: dismissChatTour } = useTourStep('chat');
@@ -262,13 +265,53 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </div>
       )}
 
-      {/* Footer hint with status dot - desktop only */}
+      {/* Footer hint with status dot and usage counter - desktop only */}
       {!isMobile && (
         <div className="flex items-center justify-between mt-2 px-1">
           <span className="text-[10px] text-muted-foreground/40">
             Enter to send • Shift+Enter for new line • Shift+Tab for commands
           </span>
-          <FirewallStatusDot size="sm" />
+          <div className="flex items-center gap-3">
+            {/* Usage counter for free users */}
+            {user && !limitLoading && dailyLimit !== Infinity && (
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  <div className="w-16 h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-300",
+                        isAtLimit
+                          ? "bg-destructive"
+                          : remaining <= 2
+                            ? "bg-amber-500"
+                            : "bg-primary/60"
+                      )}
+                      style={{ width: `${Math.min(100, (chatsToday / dailyLimit) * 100)}%` }}
+                    />
+                  </div>
+                  <span className={cn(
+                    "text-[10px] tabular-nums",
+                    isAtLimit
+                      ? "text-destructive"
+                      : remaining <= 2
+                        ? "text-amber-500"
+                        : "text-muted-foreground/50"
+                  )}>
+                    {chatsToday}/{dailyLimit}
+                  </span>
+                </div>
+                {isAtLimit && (
+                  <button
+                    onClick={() => router.push('/pricing')}
+                    className="text-[10px] text-primary hover:underline"
+                  >
+                    Upgrade
+                  </button>
+                )}
+              </div>
+            )}
+            <FirewallStatusDot size="sm" />
+          </div>
         </div>
       )}
 
