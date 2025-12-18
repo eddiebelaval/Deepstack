@@ -47,17 +47,23 @@ export async function GET(
   } catch (error) {
     console.error('Market detail fetch error:', error);
 
-    // Return proper error response - no mock data
-    return NextResponse.json(
-      {
-        error: 'Unable to fetch market details',
-        message: 'The prediction markets service is currently unavailable. Please try again later.',
-        unavailable: true,
+    // Backend unavailable - generate synthetic price history using the current price
+    // This allows charts to still render when the Python backend is down
+    const title = searchParams.get('title') || 'Unknown Market';
+    const syntheticHistory = generatePriceHistory(currentYesPrice);
+
+    return NextResponse.json({
+      market: {
+        id: marketId,
         platform,
-        marketId,
+        title,
+        yesPrice: currentYesPrice,
+        noPrice: 1 - currentYesPrice,
+        priceHistory: syntheticHistory,
+        synthetic: true, // Flag that this is synthetic data
       },
-      { status: 503 }
-    );
+      source: 'synthetic',
+    });
   }
 }
 
