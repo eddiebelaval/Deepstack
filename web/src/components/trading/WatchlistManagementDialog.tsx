@@ -52,6 +52,7 @@ export function WatchlistManagementDialog({
         renameWatchlist,
         setActiveWatchlist,
         importSymbols,
+        addSymbol,
     } = useWatchlistSync();
 
     const [isCreating, setIsCreating] = useState(false);
@@ -59,6 +60,8 @@ export function WatchlistManagementDialog({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [addingSymbolId, setAddingSymbolId] = useState<string | null>(null);
+    const [symbolInput, setSymbolInput] = useState("");
 
     const handleCreate = async () => {
         if (newName.trim()) {
@@ -80,6 +83,14 @@ export function WatchlistManagementDialog({
         if (deleteId) {
             await deleteWatchlist(deleteId);
             setDeleteId(null);
+        }
+    };
+
+    const handleIndividualAdd = async (watchlistId: string) => {
+        if (symbolInput.trim()) {
+            await addSymbol(watchlistId, symbolInput.trim().toUpperCase());
+            setSymbolInput("");
+            setAddingSymbolId(null);
         }
     };
 
@@ -142,102 +153,145 @@ export function WatchlistManagementDialog({
                     <ScrollArea className="max-h-[400px] pr-4">
                         <div className="space-y-2">
                             {watchlists.map((watchlist) => (
-                                <div
-                                    key={watchlist.id}
-                                    className={cn(
-                                        "flex items-center gap-2 p-3 rounded-lg border",
-                                        activeWatchlistId === watchlist.id
-                                            ? "border-primary bg-accent"
-                                            : "border-border"
-                                    )}
-                                >
-                                    {editingId === watchlist.id ? (
-                                        <>
+                                <div key={watchlist.id} className="space-y-1">
+                                    <div
+                                        className={cn(
+                                            "flex items-center gap-2 p-3 rounded-lg border",
+                                            activeWatchlistId === watchlist.id
+                                                ? "border-primary bg-accent"
+                                                : "border-border"
+                                        )}
+                                    >
+                                        {editingId === watchlist.id ? (
+                                            <>
+                                                <Input
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter") handleRename(watchlist.id);
+                                                        if (e.key === "Escape") setEditingId(null);
+                                                    }}
+                                                    className="flex-1"
+                                                    autoFocus
+                                                />
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => handleRename(watchlist.id)}
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => setEditingId(null)}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div
+                                                    className="flex-1 cursor-pointer"
+                                                    onClick={() => {
+                                                        setActiveWatchlist(watchlist.id);
+                                                    }}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {activeWatchlistId === watchlist.id && (
+                                                            <Star className="h-3 w-3 fill-primary text-primary" />
+                                                        )}
+                                                        <span className="font-medium">{watchlist.name}</span>
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {watchlist.items.length} symbol
+                                                        {watchlist.items.length !== 1 ? "s" : ""}
+                                                    </span>
+                                                </div>
+
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setAddingSymbolId(watchlist.id);
+                                                        setSymbolInput("");
+                                                    }}
+                                                    title="Add Symbol"
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setEditingId(watchlist.id);
+                                                        setEditName(watchlist.name);
+                                                    }}
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => handleExport(watchlist.id)}
+                                                    title="Export to CSV"
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => handleImport(watchlist.id)}
+                                                    title="Import from CSV"
+                                                >
+                                                    <Upload className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => setDeleteId(watchlist.id)}
+                                                    disabled={watchlists.length === 1}
+                                                    title={
+                                                        watchlists.length === 1
+                                                            ? "Cannot delete the last watchlist"
+                                                            : "Delete watchlist"
+                                                    }
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                    {addingSymbolId === watchlist.id && (
+                                        <div className="flex items-center gap-2 p-2 mx-4 rounded-lg border border-dashed bg-accent/30">
                                             <Input
-                                                value={editName}
-                                                onChange={(e) => setEditName(e.target.value)}
+                                                value={symbolInput}
+                                                onChange={(e) => setSymbolInput(e.target.value)}
                                                 onKeyDown={(e) => {
-                                                    if (e.key === "Enter") handleRename(watchlist.id);
-                                                    if (e.key === "Escape") setEditingId(null);
+                                                    if (e.key === "Enter") handleIndividualAdd(watchlist.id);
+                                                    if (e.key === "Escape") setAddingSymbolId(null);
                                                 }}
-                                                className="flex-1"
+                                                placeholder="Symbol (e.g. AAPL)..."
+                                                className="flex-1 h-8 text-sm"
                                                 autoFocus
                                             />
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
-                                                onClick={() => handleRename(watchlist.id)}
+                                                className="h-8 w-8"
+                                                onClick={() => handleIndividualAdd(watchlist.id)}
                                             >
                                                 <Check className="h-4 w-4" />
                                             </Button>
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
-                                                onClick={() => setEditingId(null)}
+                                                className="h-8 w-8"
+                                                onClick={() => setAddingSymbolId(null)}
                                             >
                                                 <X className="h-4 w-4" />
                                             </Button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div
-                                                className="flex-1 cursor-pointer"
-                                                onClick={() => {
-                                                    setActiveWatchlist(watchlist.id);
-                                                }}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    {activeWatchlistId === watchlist.id && (
-                                                        <Star className="h-3 w-3 fill-primary text-primary" />
-                                                    )}
-                                                    <span className="font-medium">{watchlist.name}</span>
-                                                </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {watchlist.items.length} symbol
-                                                    {watchlist.items.length !== 1 ? "s" : ""}
-                                                </span>
-                                            </div>
-
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    setEditingId(watchlist.id);
-                                                    setEditName(watchlist.name);
-                                                }}
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                onClick={() => handleExport(watchlist.id)}
-                                                title="Export to CSV"
-                                            >
-                                                <Download className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                onClick={() => handleImport(watchlist.id)}
-                                                title="Import from CSV"
-                                            >
-                                                <Upload className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                onClick={() => setDeleteId(watchlist.id)}
-                                                disabled={watchlists.length === 1}
-                                                title={
-                                                    watchlists.length === 1
-                                                        ? "Cannot delete the last watchlist"
-                                                        : "Delete watchlist"
-                                                }
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             ))}

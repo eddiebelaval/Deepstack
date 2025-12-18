@@ -10,7 +10,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { config, endpoints } from './config.js';
-import { makeRequest, checkResponse, logTestInfo } from './utils.js';
+import { makeRequest, logTestInfo } from './utils.js';
 
 export const options = {
   vus: 1,
@@ -34,7 +34,7 @@ export function setup() {
   return { startTime: Date.now() };
 }
 
-export default function () {
+export default function smokeTest() {
   // Test each critical endpoint once
   const criticalEndpoints = [
     Object.assign({ name: 'quotes' }, endpoints.market.quotes),

@@ -29,7 +29,7 @@ const mockAlert: PriceAlert = {
   note: 'Buy signal',
   isActive: true,
   createdAt: '2024-01-01T00:00:00Z',
-  triggeredAt: null,
+  triggeredAt: undefined,
 };
 
 const mockTriggeredAlert: PriceAlert = {

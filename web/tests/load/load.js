@@ -7,9 +7,8 @@
  * Usage: k6 run tests/load/load.js
  */
 
-import { sleep } from 'k6';
-import { config, endpoints, getWeightedEndpoint } from './config.js';
-import { makeRequest, randomSleep, testData, logTestInfo, errorRate } from './utils.js';
+import { config } from './config.js';
+import { makeRequest, randomSleep, testData, logTestInfo } from './utils.js';
 
 export const options = {
   stages: config.scenarios.load.stages,
@@ -28,7 +27,7 @@ export function setup() {
   return { startTime: Date.now() };
 }
 
-export default function () {
+export default function loadTest() {
   // Simulate realistic user session
   const sessionType = Math.random();
 

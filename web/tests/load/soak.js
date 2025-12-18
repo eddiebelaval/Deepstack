@@ -8,15 +8,11 @@
  * Note: This test runs for 4+ hours - use with caution!
  */
 
-import { sleep } from 'k6';
-import { config, endpoints, getWeightedEndpoint } from './config.js';
+import { config } from './config.js';
 import { makeRequest, randomSleep, testData, logTestInfo } from './utils.js';
-import { Trend, Counter, Gauge } from 'k6/metrics';
+import { Counter } from 'k6/metrics';
 
 // Long-running metrics
-const memoryTrend = new Trend('estimated_memory_usage');
-const connectionCount = new Gauge('active_connections');
-const cumulativeErrors = new Counter('cumulative_errors');
 const hourlyRequests = new Counter('hourly_requests');
 
 export const options = {
@@ -45,7 +41,7 @@ export function setup() {
   };
 }
 
-export default function (data) {
+export default function soakTest() {
   // Normal mixed workload
   const sessionType = Math.random();
 

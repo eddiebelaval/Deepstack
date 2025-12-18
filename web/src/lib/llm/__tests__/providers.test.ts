@@ -159,7 +159,7 @@ describe('LLM Providers', () => {
         });
         // Model is returned from the function returned by createOpenAI
         expect(model).toBeDefined();
-        expect(model.model).toBe('grok-3');
+        expect((model as any).model).toBe('grok-3');
       });
 
       it('should throw error when XAI_API_KEY is not set', () => {

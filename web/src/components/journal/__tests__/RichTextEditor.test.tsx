@@ -6,7 +6,7 @@ import { RichTextEditor } from '../RichTextEditor';
 // Mock TipTap
 const mockEditor = {
   getHTML: vi.fn(() => '<p>Test content</p>'),
-  isActive: vi.fn(() => false),
+  isActive: vi.fn((_type?: string) => false),
   can: vi.fn(() => ({
     undo: vi.fn(() => true),
     redo: vi.fn(() => true),
@@ -288,9 +288,9 @@ describe('RichTextEditor', () => {
 
     it('disables undo button when cannot undo', () => {
       mockEditor.can.mockReturnValue({
-        undo: () => false,
-        redo: () => true,
-      });
+        undo: vi.fn(() => false),
+        redo: vi.fn(() => true),
+      } as any);
 
       render(<RichTextEditor {...defaultProps} />);
 
@@ -304,9 +304,9 @@ describe('RichTextEditor', () => {
 
     it('disables redo button when cannot redo', () => {
       mockEditor.can.mockReturnValue({
-        undo: () => true,
-        redo: () => false,
-      });
+        undo: vi.fn(() => true),
+        redo: vi.fn(() => false),
+      } as any);
 
       render(<RichTextEditor {...defaultProps} />);
 
@@ -321,7 +321,9 @@ describe('RichTextEditor', () => {
 
   describe('active state indication', () => {
     it('shows active state for bold when text is bold', () => {
-      mockEditor.isActive.mockImplementation((type: string) => type === 'bold');
+      (mockEditor.isActive as ReturnType<typeof vi.fn>).mockImplementation(
+        (type?: string): boolean => type === 'bold'
+      );
 
       render(<RichTextEditor {...defaultProps} />);
 
@@ -334,7 +336,9 @@ describe('RichTextEditor', () => {
     });
 
     it('shows active state for italic when text is italic', () => {
-      mockEditor.isActive.mockImplementation((type: string) => type === 'italic');
+      (mockEditor.isActive as ReturnType<typeof vi.fn>).mockImplementation(
+        (type?: string): boolean => type === 'italic'
+      );
 
       render(<RichTextEditor {...defaultProps} />);
 
@@ -347,7 +351,9 @@ describe('RichTextEditor', () => {
     });
 
     it('shows active state for bullet list when in bullet list', () => {
-      mockEditor.isActive.mockImplementation((type: string) => type === 'bulletList');
+      (mockEditor.isActive as ReturnType<typeof vi.fn>).mockImplementation(
+        (type?: string): boolean => type === 'bulletList'
+      );
 
       render(<RichTextEditor {...defaultProps} />);
 
@@ -360,7 +366,9 @@ describe('RichTextEditor', () => {
     });
 
     it('shows active state for ordered list when in ordered list', () => {
-      mockEditor.isActive.mockImplementation((type: string) => type === 'orderedList');
+      (mockEditor.isActive as ReturnType<typeof vi.fn>).mockImplementation(
+        (type?: string): boolean => type === 'orderedList'
+      );
 
       render(<RichTextEditor {...defaultProps} />);
 

@@ -7,8 +7,8 @@
  * Usage: node tests/load/analyze.js results/load-results.json
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
-const path = require('path');
 
 // Thresholds for bottleneck detection
 const THRESHOLDS = {
@@ -79,7 +79,7 @@ function analyzeResults(resultsPath) {
           }
         }
       }
-    } catch (e) {
+    } catch {
       // Skip non-JSON lines
     }
   }

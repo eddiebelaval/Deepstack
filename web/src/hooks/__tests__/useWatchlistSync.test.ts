@@ -178,7 +178,7 @@ describe('useWatchlistSync', () => {
         .mockResolvedValueOnce([mockWatchlist])
         .mockResolvedValueOnce([updatedWatchlist]);
 
-      let subscriptionCallback: (() => Promise<void>) | null = null;
+      let subscriptionCallback: (() => void | Promise<void>) | null = null;
       vi.mocked(watchlistsApi.subscribeToWatchlists).mockImplementation((cb) => {
         subscriptionCallback = cb;
         return () => {};
@@ -194,7 +194,7 @@ describe('useWatchlistSync', () => {
       // Trigger subscription callback
       if (subscriptionCallback) {
         await act(async () => {
-          await subscriptionCallback!();
+          await Promise.resolve(subscriptionCallback!());
         });
       }
 

@@ -121,7 +121,7 @@ export function checkResponse(response, endpoint = {}) {
       try {
         const body = JSON.parse(r.body);
         return endpoint.validateBody(body);
-      } catch (e) {
+      } catch {
         return false;
       }
     };

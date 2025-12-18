@@ -8,12 +8,11 @@
  */
 
 import { sleep } from 'k6';
-import { config, endpoints } from './config.js';
+import { config } from './config.js';
 import { makeRequest, testData, logTestInfo } from './utils.js';
-import { Trend, Counter } from 'k6/metrics';
+import { Counter } from 'k6/metrics';
 
 // Metrics for spike analysis
-const spikeRecoveryTime = new Trend('spike_recovery_time');
 const requestsDuringSpike = new Counter('requests_during_spike');
 const errorsDuringSpike = new Counter('errors_during_spike');
 
@@ -33,7 +32,7 @@ export function setup() {
   return { startTime: Date.now(), spikeStart: null, spikeEnd: null };
 }
 
-export default function () {
+export default function spikeTest() {
   // Simulate news-driven traffic - everyone checking quotes
   const isSpike = __VU > 50;  // During spike phase
 

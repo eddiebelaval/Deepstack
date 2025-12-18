@@ -8,12 +8,11 @@
  */
 
 import { sleep } from 'k6';
-import { config, endpoints } from './config.js';
-import { makeRequest, testData, logTestInfo, errorRate } from './utils.js';
-import { Trend, Counter, Rate } from 'k6/metrics';
+import { config } from './config.js';
+import { makeRequest, testData, logTestInfo } from './utils.js';
+import { Trend, Rate } from 'k6/metrics';
 
 // Custom metrics for stress analysis
-const breakingPointVUs = new Counter('breaking_point_vus');
 const responseTimeAtLoad = new Trend('response_time_at_load');
 const errorRateAtLoad = new Rate('error_rate_at_load');
 
@@ -35,7 +34,7 @@ export function setup() {
   return { startTime: Date.now(), errors: 0, requests: 0 };
 }
 
-export default function () {
+export default function stressTest() {
   // High-frequency endpoint testing
   const endpoints_to_test = [
     {

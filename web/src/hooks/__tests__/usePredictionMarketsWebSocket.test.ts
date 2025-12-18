@@ -87,15 +87,18 @@ function createPredictionMarket(overrides: Partial<PredictionMarket> = {}): Pred
     id: `market-${Date.now()}-${Math.random()}`,
     platform: 'polymarket',
     title: 'Test Market',
-    question: 'Will this happen?',
-    outcomes: ['Yes', 'No'],
-    currentPrices: [0.55, 0.45],
-    volume24h: 10000,
-    totalVolume: 100000,
-    createdAt: new Date().toISOString(),
-    endsAt: new Date(Date.now() + 86400000).toISOString(),
     category: 'Politics',
-    imageUrl: 'https://example.com/image.jpg',
+    marketType: 'binary',
+    outcomes: [
+      { name: 'Yes', price: 0.55 },
+      { name: 'No', price: 0.45 },
+    ],
+    yesPrice: 0.55,
+    noPrice: 0.45,
+    volume: 100000,
+    volume24h: 10000,
+    endDate: new Date(Date.now() + 86400000).toISOString(),
+    status: 'active',
     url: 'https://polymarket.com/market/test',
     ...overrides,
   };
@@ -640,7 +643,11 @@ describe('usePredictionMarketsWebSocket', () => {
     it('logs WebSocket errors in development', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true,
+      });
 
       renderHook(() => usePredictionMarketsWebSocket());
 
@@ -651,7 +658,11 @@ describe('usePredictionMarketsWebSocket', () => {
       expect(consoleSpy).toHaveBeenCalledWith('WebSocket error:', expect.any(Event));
 
       consoleSpy.mockRestore();
-      process.env.NODE_ENV = originalEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        writable: true,
+        configurable: true,
+      });
     });
   });
 

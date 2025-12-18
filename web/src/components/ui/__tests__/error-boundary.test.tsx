@@ -1,6 +1,6 @@
+import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { useState } from 'react';
 import { ErrorBoundary, ErrorFallback, useErrorHandler, withErrorHandling } from '../error-boundary';
 
 // Component that throws an error
@@ -12,12 +12,12 @@ function ThrowError({ shouldThrow = false }: { shouldThrow?: boolean }) {
 }
 
 // Component that throws network error
-function ThrowNetworkError() {
+function ThrowNetworkError(): React.ReactNode {
   throw new Error('Failed to fetch data from server');
 }
 
 // Component that throws server error
-function ThrowServerError() {
+function ThrowServerError(): React.ReactNode {
   throw new Error('500 server error occurred');
 }
 
@@ -314,7 +314,11 @@ describe('ErrorFallback', () => {
   describe('development mode', () => {
     it('shows error details in development', () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true,
+      });
 
       const error = new Error('Detailed error message');
       render(
@@ -328,12 +332,20 @@ describe('ErrorFallback', () => {
       const details = screen.getByText('Error details');
       expect(details).toBeInTheDocument();
 
-      process.env.NODE_ENV = originalEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        writable: true,
+        configurable: true,
+      });
     });
 
     it('hides error details in production', () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+        configurable: true,
+      });
 
       const error = new Error('Detailed error message');
       render(
@@ -346,7 +358,11 @@ describe('ErrorFallback', () => {
 
       expect(screen.queryByText('Error details')).not.toBeInTheDocument();
 
-      process.env.NODE_ENV = originalEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        writable: true,
+        configurable: true,
+      });
     });
   });
 

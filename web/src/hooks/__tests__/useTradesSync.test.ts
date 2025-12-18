@@ -164,7 +164,7 @@ describe('useTradesSync', () => {
         .mockResolvedValueOnce([mockTrade])
         .mockResolvedValueOnce([updatedTrade]);
 
-      let subscriptionCallback: (() => Promise<void>) | null = null;
+      let subscriptionCallback: (() => void | Promise<void>) | null = null;
       vi.mocked(tradesApi.subscribeToTradeEntries).mockImplementation((cb) => {
         subscriptionCallback = cb;
         return () => {};
@@ -180,7 +180,7 @@ describe('useTradesSync', () => {
       // Trigger subscription callback
       if (subscriptionCallback) {
         await act(async () => {
-          await subscriptionCallback!();
+          await Promise.resolve(subscriptionCallback!());
         });
       }
 
@@ -204,13 +204,13 @@ describe('useTradesSync', () => {
     it('creates trade locally when offline', async () => {
       const { result } = renderHook(() => useTradesSync());
 
-      let createdTrade: TradeEntry | null = null;
+      let createdTrade: TradeEntry | undefined;
       await act(async () => {
         createdTrade = await result.current.addTrade(newTradeData);
       });
 
       expect(createdTrade).toBeDefined();
-      expect(createdTrade?.symbol).toBe('TSLA');
+      expect(createdTrade!.symbol).toBe('TSLA');
       expect(result.current.trades).toHaveLength(1);
       expect(tradesApi.createTradeEntry).not.toHaveBeenCalled();
     });
@@ -232,13 +232,13 @@ describe('useTradesSync', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let createdTrade: TradeEntry | null = null;
+      let createdTrade: TradeEntry | undefined;
       await act(async () => {
         createdTrade = await result.current.addTrade(newTradeData);
       });
 
       expect(tradesApi.createTradeEntry).toHaveBeenCalledWith(newTradeData);
-      expect(createdTrade?.id).toBe('trade-789');
+      expect(createdTrade!.id).toBe('trade-789');
       expect(result.current.trades).toHaveLength(1);
     });
 

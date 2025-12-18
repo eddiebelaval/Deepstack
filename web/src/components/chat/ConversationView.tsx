@@ -256,7 +256,7 @@ export function ConversationView() {
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
             let assistantContent = '';
-            let thinkingContent = '';
+            const thinkingContent = '';
             const assistantId = crypto.randomUUID();
             const toolInvocations: any[] = [];
 

@@ -8,7 +8,6 @@
  */
 
 import { check, sleep } from 'k6';
-import { config, endpoints } from './config.js';
 import { makeRequest, testData, logTestInfo } from './utils.js';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
@@ -41,7 +40,7 @@ export function setup() {
   return { startTime: Date.now() };
 }
 
-export default function () {
+export default function ciTest() {
   // Test critical endpoints only
   const criticalTests = [
     () => testQuotes(),
@@ -71,7 +70,7 @@ function testQuotes() {
       try {
         const body = JSON.parse(r.body);
         return body && (Array.isArray(body) || typeof body === 'object');
-      } catch (e) {
+      } catch {
         return false;
       }
     },
@@ -97,7 +96,7 @@ function testBars() {
       try {
         const body = JSON.parse(r.body);
         return body && (Array.isArray(body.bars) || Array.isArray(body));
-      } catch (e) {
+      } catch {
         return false;
       }
     },
@@ -132,7 +131,7 @@ function testPredictions() {
       try {
         const body = JSON.parse(r.body);
         return body && (Array.isArray(body.markets) || Array.isArray(body));
-      } catch (e) {
+      } catch {
         return false;
       }
     },

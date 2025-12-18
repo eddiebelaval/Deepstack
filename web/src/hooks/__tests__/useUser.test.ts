@@ -6,9 +6,14 @@ import { useUser } from '../useUser';
 const mockUser = { id: 'user-123', email: 'test@example.com' };
 const mockProfile = {
   id: 'profile-123',
-  user_id: 'user-123',
-  tier: 'pro',
-  is_active: true,
+  email: 'test@example.com',
+  full_name: 'Test User',
+  avatar_url: null,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  subscription_tier: 'pro' as const,
+  subscription_status: 'active' as const,
+  subscription_ends_at: null,
 };
 
 vi.mock('../useSession', () => ({
@@ -19,6 +24,7 @@ vi.mock('../useProfile', () => ({
   useProfile: vi.fn(() => ({
     profile: mockProfile,
     isLoading: false,
+    error: null,
     tier: 'pro',
     isActive: true,
   })),
@@ -69,6 +75,7 @@ describe('useUser', () => {
       vi.mocked(useProfile).mockReturnValue({
         profile: null,
         isLoading: true,
+        error: null,
         tier: 'free',
         isActive: false,
       });
@@ -93,8 +100,9 @@ describe('useUser', () => {
   describe('handles different tiers', () => {
     it('should return free tier', () => {
       vi.mocked(useProfile).mockReturnValue({
-        profile: { ...mockProfile, tier: 'free' },
+        profile: { ...mockProfile, subscription_tier: 'free' },
         isLoading: false,
+        error: null,
         tier: 'free',
         isActive: true,
       });
@@ -104,25 +112,27 @@ describe('useUser', () => {
       expect(result.current.tier).toBe('free');
     });
 
-    it('should return premium tier', () => {
+    it('should return elite tier', () => {
       vi.mocked(useProfile).mockReturnValue({
-        profile: { ...mockProfile, tier: 'premium' },
+        profile: { ...mockProfile, subscription_tier: 'elite' },
         isLoading: false,
-        tier: 'premium',
+        error: null,
+        tier: 'elite',
         isActive: true,
       });
 
       const { result } = renderHook(() => useUser());
 
-      expect(result.current.tier).toBe('premium');
+      expect(result.current.tier).toBe('elite');
     });
   });
 
   describe('handles inactive users', () => {
     it('should return isActive false for inactive users', () => {
       vi.mocked(useProfile).mockReturnValue({
-        profile: { ...mockProfile, is_active: false },
+        profile: { ...mockProfile, subscription_status: 'inactive' },
         isLoading: false,
+        error: null,
         tier: 'pro',
         isActive: false,
       });

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MockDataWarning, useMockDataStore } from '../mock-data-warning';
 import { act } from '@testing-library/react';
