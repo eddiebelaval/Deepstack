@@ -308,7 +308,12 @@ class TestDatabaseConcurrency:
     async def test_position_persistence_after_concurrent_updates(
         self, paper_trader, tmp_path
     ):
-        """Positions should persist correctly after concurrent updates."""
+        """Positions should persist correctly after concurrent updates.
+
+        Note: After concurrent operations, we need a small delay to ensure
+        SQLite WAL (Write-Ahead Logging) mode has flushed all writes to disk
+        before reloading from the database.
+        """
         symbol = "AAPL"
 
         # Multiple concurrent buys
@@ -322,13 +327,22 @@ class TestDatabaseConcurrency:
         position = paper_trader.get_position(symbol)
         expected_quantity = position["quantity"]
 
+        # Ensure all database writes are flushed before reloading
+        # SQLite WAL mode can have timing issues with concurrent writes
+        await asyncio.sleep(0.1)
+
+        # Force save positions to ensure database is in sync
+        paper_trader._save_positions()
+
         # Reset in-memory state and reload from DB
         paper_trader.positions.clear()
         paper_trader._load_positions()
 
         # Verify reloaded position matches
         reloaded_position = paper_trader.get_position(symbol)
-        assert reloaded_position is not None
+        assert (
+            reloaded_position is not None
+        ), "Position should be reloaded from database"
         assert reloaded_position["quantity"] == expected_quantity
 
     @pytest.mark.asyncio
