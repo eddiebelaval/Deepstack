@@ -54,9 +54,9 @@ strategies:
 api:
   host: "127.0.0.1"
   port: 8000
-  # CORS origins - explicit list required when credentials are enabled
-  # For production, set via CORS_ORIGINS env var: "https://your-domain.com,https://app.your-domain.com"
-  cors_origins: ["http://localhost:3000", "http://127.0.0.1:3000"]
+  # CORS origins - configured via CORS_ORIGINS env var in production
+  # Defaults to localhost:3000 for local development
+  # Production: set CORS_ORIGINS="https://deepstack.trade,https://www.deepstack.trade,..."
   cors_allow_credentials: true
 
 # Logging
