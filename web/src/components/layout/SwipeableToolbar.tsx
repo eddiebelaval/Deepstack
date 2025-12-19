@@ -21,6 +21,9 @@ import {
   ChevronUp,
   Plus,
   X,
+  BookOpen,
+  Target,
+  Brain,
 } from 'lucide-react';
 
 export type ToolHubContentType = 'history' | ActiveContentType;
@@ -37,6 +40,9 @@ const TOOLS: ToolItem[] = [
   { id: 'history', icon: MessageSquare, label: 'History', color: 'text-slate-400' },
   { id: 'chart', icon: LineChart, label: 'Chart', color: 'text-blue-400' },
   { id: 'portfolio', icon: Briefcase, label: 'Portfolio', color: 'text-green-400' },
+  { id: 'journal', icon: BookOpen, label: 'Journal', color: 'text-rose-400' },
+  { id: 'thesis', icon: Target, label: 'Thesis', color: 'text-emerald-400' },
+  { id: 'insights', icon: Brain, label: 'Insights', color: 'text-violet-400' },
   { id: 'news', icon: Newspaper, label: 'News', color: 'text-amber-400' },
   { id: 'calendar', icon: Calendar, label: 'Calendar', color: 'text-purple-400' },
   { id: 'screener', icon: BarChart3, label: 'Screener', color: 'text-cyan-400' },

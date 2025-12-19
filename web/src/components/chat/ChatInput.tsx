@@ -7,6 +7,7 @@ import { PersonaSelector } from './PersonaSelector';
 import { ModelSelector } from './ModelSelector';
 import { OverflowMenu } from './OverflowMenu';
 import { useChatStore } from '@/lib/stores/chat-store';
+import { useUIStore, type ActiveContentType } from '@/lib/stores/ui-store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -28,6 +29,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { isStreaming, useExtendedThinking, setUseExtendedThinking } = useChatStore();
+  const { setActiveContent } = useUIStore();
   const { user, loading } = useAuth();
   const router = useRouter();
   const { isMobile } = useIsMobile();
@@ -36,14 +38,42 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   // Tour integration
   const { isActive: isChatTourActive, step: chatTourStep, dismiss: dismissChatTour } = useTourStep('chat');
 
+  // Map commands to panel content types
+  const COMMAND_TO_PANEL: Record<string, ActiveContentType> = {
+    '/journal': 'journal',
+    '/thesis': 'thesis',
+    '/insights': 'insights',
+    '/research': 'research-hub',
+    '/chart': 'chart',
+    '/portfolio': 'portfolio',
+    '/news': 'news',
+    '/calendar': 'calendar',
+    '/alerts': 'alerts',
+    '/screener': 'screener',
+    '/deep-value': 'deep-value',
+    '/options': 'options-screener',
+    '/hedged': 'hedged-positions',
+    '/builder': 'options-builder',
+    '/predictions': 'prediction-markets',
+    '/analyze': 'analysis',
+  };
+
   const handleCommand = useCallback(async (command: string) => {
-    // Populate input for visual feedback
+    // Check if this command maps to a panel
+    const panelType = COMMAND_TO_PANEL[command];
+    if (panelType) {
+      setActiveContent(panelType);
+      setInput(''); // Clear input since we handled it
+      return;
+    }
+
+    // For commands that need text input, populate the input field
     setInput(command + " ");
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
 
-    // Execute command via API
+    // Execute command via API for non-panel commands
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       const response = await fetch(`${apiUrl}/api/command`, {
@@ -68,7 +98,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     } catch (error) {
       console.error('Failed to execute command:', error);
     }
-  }, []);
+  }, [setActiveContent]);
 
   const handleSubmit = () => {
     if (!input.trim() || disabled || isStreaming) return;
