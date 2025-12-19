@@ -1726,6 +1726,19 @@ class DeepStackAPIServer:
             print(f"Alpaca client init failed: {e}")
             logger.error(f"Alpaca client init failed: {e}")
 
+        # Initialize Alpha Vantage client (for earnings calendar, fundamentals)
+        try:
+            av_key = self.config.alpha_vantage_api_key
+            if av_key:
+                self.av_client = AlphaVantageClient(api_key=av_key)
+                logger.info("Alpha Vantage client initialized")
+            else:
+                logger.info(
+                    "Alpha Vantage API key not configured - calendar will use mock data"
+                )
+        except Exception as e:
+            logger.warning(f"Alpha Vantage client init failed: {e}")
+
         # Initialize news aggregation clients
         self._initialize_news_clients()
 

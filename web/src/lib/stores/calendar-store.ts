@@ -72,14 +72,23 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       });
 
       const response = await fetch(`/api/calendar?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch calendar events');
-
       const data = await response.json();
-      set({ events: data.events || [], isLoading: false });
+
+      // Handle error responses
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch calendar events');
+      }
+
+      set({
+        events: data.events || [],
+        isLoading: false,
+        error: data.message || null, // Show info messages like "No events found"
+      });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to load calendar',
         isLoading: false,
+        events: [],
       });
     }
   },
