@@ -54,7 +54,6 @@ describe('Trading Tools', () => {
         'get_quote',
         'get_positions',
         'analyze_stock',
-        'place_order',
         'place_paper_trade',
         'calculate_position_size',
         'get_chart_data',
@@ -77,7 +76,6 @@ describe('Trading Tools', () => {
       const panelTools = [
         'show_chart',
         'show_portfolio',
-        'show_orders',
         'show_screener',
         'show_alerts',
         'show_calendar',
@@ -256,107 +254,6 @@ describe('Trading Tools', () => {
       expect(result.mock).toBe(true);
       expect(result.data.symbol).toBe('NVDA');
       expect(result.data.technicals).toBeDefined();
-    });
-  });
-
-  describe('place_order tool', () => {
-    it('should have correct schema definition', () => {
-      const tool = tradingTools.place_order;
-
-      expect(tool.description).toContain('order ticket');
-      expect(tool.description).toContain('DOES NOT execute');
-      expect(tool.inputSchema).toBeDefined();
-    });
-
-    it('should check emotional firewall before creating order', async () => {
-      global.fetch = vi.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ status: 'clear' }),
-        });
-
-      const { api } = await import('@/lib/api-extended');
-      (api.createOrderTicket as any).mockResolvedValue({
-        id: 'ticket-123',
-        symbol: 'AAPL',
-      });
-
-      const result = await tradingTools.place_order.execute!({
-        symbol: 'AAPL',
-        quantity: 10,
-        action: 'BUY',
-        order_type: 'MKT',
-      }, {} as any) as any;
-
-      expect(result.success).toBe(true);
-      expect((global.fetch as any).mock.calls[0][0]).toContain('emotional-firewall');
-    });
-
-    it('should block order when emotional firewall triggers', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          blocked: true,
-          status: 'blocked',
-          patterns_detected: ['revenge_trading'],
-          reasons: ['Multiple losses detected'],
-        }),
-      });
-
-      const result = await tradingTools.place_order.execute!({
-        symbol: 'TSLA',
-        quantity: 100,
-        action: 'BUY',
-        order_type: 'MKT',
-      }, {} as any) as any;
-
-      expect(result.success).toBe(false);
-      expect(result.blocked_by_firewall).toBe(true);
-      expect(result.reasons).toContain('Multiple losses detected');
-    });
-
-    it('should create warning ticket when firewall shows warning', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 'warning',
-          patterns_detected: ['overtrading'],
-          reasons: ['High trading frequency'],
-        }),
-      });
-
-      const result = await tradingTools.place_order.execute!({
-        symbol: 'AAPL',
-        quantity: 10,
-        action: 'BUY',
-        order_type: 'MKT',
-      }, {} as any) as any;
-
-      expect(result.success).toBe(true);
-      expect(result.firewall_warning).toBe(true);
-      expect(result.reasons).toContain('High trading frequency');
-    });
-
-    it('should create mock ticket when API unavailable', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ status: 'clear' }),
-      });
-
-      const { api } = await import('@/lib/api-extended');
-      (api.createOrderTicket as any).mockRejectedValue(new Error('API error'));
-
-      const result = await tradingTools.place_order.execute!({
-        symbol: 'NVDA',
-        quantity: 50,
-        action: 'BUY',
-        order_type: 'LMT',
-        limit_price: 140.00,
-      }, {} as any) as any;
-
-      expect(result.success).toBe(true);
-      expect(result.mock).toBe(true);
-      expect(result.data.symbol).toBe('NVDA');
     });
   });
 
@@ -598,14 +495,6 @@ describe('Trading Tools', () => {
       expect(result.panel).toBe('portfolio');
     });
 
-    it('show_orders should handle optional symbol', async () => {
-      const resultWithSymbol = await tradingTools.show_orders.execute!({ symbol: 'TSLA' }, {} as any) as any;
-      const resultWithoutSymbol = await tradingTools.show_orders.execute!({}, {} as any) as any;
-
-      expect(resultWithSymbol.symbol).toBe('TSLA');
-      expect(resultWithoutSymbol.symbol).toBeUndefined();
-    });
-
     it('show_screener should handle filters', async () => {
       const result = await tradingTools.show_screener.execute!({
         filters: { sector: 'Technology', priceMin: 50 },
@@ -725,7 +614,7 @@ describe('Trading Tools', () => {
     it('should return meaningful error messages', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Specific error message'));
 
-      const result = await tradingTools.place_order.execute!({
+      const result = await tradingTools.place_paper_trade.execute!({
         symbol: 'AAPL',
         quantity: 10,
         action: 'BUY',

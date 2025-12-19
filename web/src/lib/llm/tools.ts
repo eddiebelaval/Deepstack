@@ -164,101 +164,6 @@ export const tradingTools = {
     },
   }),
 
-  place_order: tool({
-    description: 'Create an order ticket for user confirmation. DOES NOT execute the order - user must approve. Checks emotional firewall first.',
-    inputSchema: z.object({
-      symbol: z.string().describe('Stock ticker symbol'),
-      quantity: z.number().int().positive().describe('Number of shares'),
-      action: z.enum(['BUY', 'SELL']).describe('Order action'),
-      order_type: z.enum(['MKT', 'LMT', 'STP']).default('MKT').describe('Order type'),
-      limit_price: z.number().optional().describe('Limit price for LMT orders'),
-      stop_price: z.number().optional().describe('Stop price for STP orders'),
-    }),
-    execute: async (params) => {
-      const upperSymbol = params.symbol.toUpperCase();
-      const baseUrl = getBaseUrl();
-
-      try {
-        // Check emotional firewall first
-        const firewallResponse = await fetch(`${baseUrl}/api/emotional-firewall/check`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'check_trade', symbol: upperSymbol }),
-        });
-
-        if (firewallResponse.ok) {
-          const firewallResult = await firewallResponse.json();
-
-          if (firewallResult.blocked) {
-            return {
-              success: false,
-              blocked_by_firewall: true,
-              patterns: firewallResult.patterns_detected,
-              reasons: firewallResult.reasons,
-              cooldown_expires: firewallResult.cooldown_expires,
-              message: `Trade blocked by Emotional Firewall: ${firewallResult.reasons.join(', ')}. Take a break and reassess.`,
-            };
-          }
-
-          if (firewallResult.status === 'warning') {
-            // Create mock ticket with warning
-            const estimatedPrice = SYMBOL_PRICES[upperSymbol] || 100;
-            return {
-              success: true,
-              data: {
-                id: crypto.randomUUID(),
-                symbol: upperSymbol,
-                quantity: params.quantity,
-                action: params.action,
-                order_type: params.order_type,
-                limit_price: params.limit_price,
-                estimated_value: estimatedPrice * params.quantity,
-                position_pct: 5,
-                risk_warnings: firewallResult.reasons || [],
-              },
-              firewall_warning: true,
-              patterns: firewallResult.patterns_detected,
-              reasons: firewallResult.reasons,
-              message: `Order ticket created with caution: ${firewallResult.reasons.join(', ')}. Please confirm carefully.`,
-            };
-          }
-        }
-
-        // Try to create ticket via backend, fall back to mock
-        try {
-          const ticket = await api.createOrderTicket(params);
-          return {
-            success: true,
-            data: ticket,
-            message: 'Order ticket created. User must confirm to execute.',
-          };
-        } catch {
-          // Create mock ticket
-          const estimatedPrice = SYMBOL_PRICES[upperSymbol] || 100;
-          return {
-            success: true,
-            data: {
-              id: crypto.randomUUID(),
-              symbol: upperSymbol,
-              quantity: params.quantity,
-              action: params.action,
-              order_type: params.order_type,
-              limit_price: params.limit_price,
-              estimated_value: estimatedPrice * params.quantity,
-              position_pct: 5,
-              risk_warnings: [],
-            },
-            message: 'Order ticket created (demo mode). User must confirm to execute.',
-            mock: true,
-          };
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to create order ticket';
-        return { success: false, error: message };
-      }
-    },
-  }),
-
   place_paper_trade: tool({
     description: 'Execute a paper trade and record it in the portfolio. Use this for confirmed trades that should be tracked.',
     inputSchema: z.object({
@@ -748,20 +653,6 @@ export const tradingTools = {
       action: 'show_panel',
       panel: 'portfolio',
       message: 'Showing portfolio positions',
-    }),
-  }),
-
-  show_orders: tool({
-    description: 'Display the orders panel for placing new trades or viewing order history',
-    inputSchema: z.object({
-      symbol: z.string().optional().describe('Optional: Pre-fill order form with this symbol'),
-    }),
-    execute: async ({ symbol }) => ({
-      success: true,
-      action: 'show_panel',
-      panel: 'orders',
-      symbol: symbol?.toUpperCase(),
-      message: symbol ? `Showing order form for ${symbol.toUpperCase()}` : 'Showing orders panel',
     }),
   }),
 
