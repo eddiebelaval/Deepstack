@@ -217,7 +217,7 @@ export const useCreditStore = create<CreditState>()(
         const { credits } = get();
         const limit = get().getTierLimit();
         if (limit === 0) return 100;
-        // Remaining credits as percent of limit (inverted for "used" display)
+        // Calculate percentage of credits USED (not remaining)
         const used = limit - credits;
         return Math.min(100, Math.max(0, (used / limit) * 100));
       },
