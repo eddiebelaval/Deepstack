@@ -59,9 +59,12 @@ class FinnhubClient:
         self.api_key = api_key
         self.max_retries = max_retries
 
-        # Cache TTL values (5 minutes for news)
+        # Cache TTL values
         self.cache_ttl = {
             "news": 300,  # 5 minutes (news should be fresh)
+            "eps_surprises": 86400,  # 24 hours (historical data doesn't change)
+            "quote": 60,  # 1 minute (stock prices change frequently)
+            "earnings_calendar": 3600,  # 1 hour
         }
 
         # Rate limiting
@@ -443,6 +446,296 @@ class FinnhubClient:
         except Exception as e:
             logger.error(f"Error getting news from Finnhub: {e}")
             return {"articles": [], "next_page_token": None}
+
+    async def get_eps_surprises(
+        self,
+        symbol: str,
+        limit: int = 4,
+    ) -> Dict[str, Any]:
+        """
+        Get EPS surprises (actual vs estimate) for a symbol.
+
+        This provides historical EPS data including:
+        - actual EPS reported
+        - estimated EPS
+        - surprise (beat/miss)
+        - surprise percentage
+
+        Args:
+            symbol: Stock ticker symbol (e.g., 'AAPL')
+            limit: Number of quarters to return (default 4)
+
+        Returns:
+            Dict with 'surprises' list containing EPS history
+
+            Example:
+            {
+                'symbol': 'AAPL',
+                'surprises': [
+                    {
+                        'actual': 2.18,
+                        'estimate': 2.10,
+                        'surprise': 0.08,
+                        'surprisePercent': 3.81,
+                        'period': '2024-01-01',
+                        'quarter': 1,
+                        'year': 2024
+                    },
+                    ...
+                ]
+            }
+        """
+        try:
+            symbol = self._validate_symbol(symbol)
+
+            cache_key = self._get_cache_key("EPS_SURPRISES", {"symbol": symbol})
+            cached = self._get_from_cache(cache_key, "eps_surprises")
+            if cached:
+                return cached
+
+            # Finnhub endpoint: /stock/earnings
+            endpoint = "/stock/earnings"
+            params = {"symbol": symbol, "limit": limit}
+
+            data = await self._make_request(endpoint, params)
+
+            if data is None or not isinstance(data, list):
+                logger.warning(f"No EPS surprises data for {symbol}")
+                return {"symbol": symbol, "surprises": []}
+
+            # Normalize the response
+            surprises = []
+            for item in data[:limit]:
+                surprises.append(
+                    {
+                        "actual": item.get("actual"),
+                        "estimate": item.get("estimate"),
+                        "surprise": item.get("surprise"),
+                        "surprisePercent": item.get("surprisePercent"),
+                        "period": item.get("period", ""),
+                        "quarter": item.get("quarter"),
+                        "year": item.get("year"),
+                    }
+                )
+
+            result = {"symbol": symbol, "surprises": surprises}
+            self._set_cache(cache_key, result)
+
+            logger.debug(f"Retrieved {len(surprises)} EPS surprises for {symbol}")
+            return result
+
+        except ValueError as e:
+            logger.error(f"Validation error: {e}")
+            return {"symbol": symbol, "surprises": []}
+        except Exception as e:
+            logger.error(f"Error getting EPS surprises for {symbol}: {e}")
+            return {"symbol": symbol, "surprises": []}
+
+    async def get_quote(self, symbol: str) -> Dict[str, Any]:
+        """
+        Get current stock quote for a symbol.
+
+        Args:
+            symbol: Stock ticker symbol (e.g., 'AAPL')
+
+        Returns:
+            Dict with quote data:
+            {
+                'symbol': 'AAPL',
+                'current': 185.50,
+                'change': 2.30,
+                'percentChange': 1.25,
+                'high': 186.00,
+                'low': 183.00,
+                'open': 184.00,
+                'previousClose': 183.20,
+                'timestamp': 1705334400
+            }
+        """
+        try:
+            symbol = self._validate_symbol(symbol)
+
+            cache_key = self._get_cache_key("QUOTE", {"symbol": symbol})
+            cached = self._get_from_cache(cache_key, "quote")
+            if cached:
+                return cached
+
+            # Finnhub endpoint: /quote
+            endpoint = "/quote"
+            params = {"symbol": symbol}
+
+            data = await self._make_request(endpoint, params)
+
+            if data is None or not isinstance(data, dict):
+                logger.warning(f"No quote data for {symbol}")
+                return {"symbol": symbol, "current": None}
+
+            result = {
+                "symbol": symbol,
+                "current": data.get("c"),  # Current price
+                "change": data.get("d"),  # Change
+                "percentChange": data.get("dp"),  # Percent change
+                "high": data.get("h"),  # High price of the day
+                "low": data.get("l"),  # Low price of the day
+                "open": data.get("o"),  # Open price
+                "previousClose": data.get("pc"),  # Previous close
+                "timestamp": data.get("t"),  # Timestamp
+            }
+
+            self._set_cache(cache_key, result)
+            logger.debug(f"Retrieved quote for {symbol}: ${result['current']}")
+            return result
+
+        except ValueError as e:
+            logger.error(f"Validation error: {e}")
+            return {"symbol": symbol, "current": None}
+        except Exception as e:
+            logger.error(f"Error getting quote for {symbol}: {e}")
+            return {"symbol": symbol, "current": None}
+
+    async def get_earnings_calendar(
+        self,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get earnings calendar from Finnhub.
+
+        Args:
+            from_date: Start date (YYYY-MM-DD), defaults to today
+            to_date: End date (YYYY-MM-DD), defaults to 1 month from now
+
+        Returns:
+            Dict with 'earnings' list containing calendar events
+        """
+        try:
+            # Default date range: today to 1 month from now
+            if not from_date:
+                from_date = datetime.now().strftime("%Y-%m-%d")
+            if not to_date:
+                to_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+
+            cache_key = self._get_cache_key(
+                "EARNINGS_CALENDAR", {"from": from_date, "to": to_date}
+            )
+            cached = self._get_from_cache(cache_key, "earnings_calendar")
+            if cached:
+                return cached
+
+            # Finnhub endpoint: /calendar/earnings
+            endpoint = "/calendar/earnings"
+            params = {"from": from_date, "to": to_date}
+
+            data = await self._make_request(endpoint, params)
+
+            if data is None or not isinstance(data, dict):
+                logger.warning("No earnings calendar data from Finnhub")
+                return {"earnings": []}
+
+            earnings_list = data.get("earningsCalendar", [])
+
+            result = {"earnings": earnings_list}
+            self._set_cache(cache_key, result)
+
+            logger.info(f"Retrieved {len(earnings_list)} earnings events from Finnhub")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error getting earnings calendar: {e}")
+            return {"earnings": []}
+
+    async def enrich_earnings_events(
+        self,
+        events: List[Dict[str, Any]],
+        include_quotes: bool = True,
+        include_eps_history: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """
+        Enrich earnings events with additional data from Finnhub.
+
+        Adds:
+        - Current stock price (from quotes)
+        - Prior quarter EPS actual (from EPS surprises)
+        - Last surprise percentage
+
+        Args:
+            events: List of earnings events with 'symbol' field
+            include_quotes: Whether to fetch current prices
+            include_eps_history: Whether to fetch EPS history
+
+        Returns:
+            Enriched events list
+        """
+        if not events:
+            return events
+
+        # Extract unique symbols
+        symbols = list(set(e.get("symbol") for e in events if e.get("symbol")))
+
+        if not symbols:
+            return events
+
+        logger.info(f"Enriching {len(events)} events for {len(symbols)} symbols")
+
+        # Fetch data in parallel for all symbols
+        enrichment_data: Dict[str, Dict[str, Any]] = {}
+
+        async def fetch_symbol_data(symbol: str):
+            data = {"symbol": symbol}
+
+            if include_quotes:
+                quote = await self.get_quote(symbol)
+                data["quote"] = quote
+
+            if include_eps_history:
+                eps = await self.get_eps_surprises(symbol, limit=4)
+                data["eps"] = eps
+
+            return symbol, data
+
+        # Batch fetch with rate limit awareness
+        tasks = [fetch_symbol_data(s) for s in symbols]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning(f"Failed to enrich symbol: {result}")
+                continue
+            symbol, data = result
+            enrichment_data[symbol] = data
+
+        # Apply enrichment to events
+        enriched_events = []
+        for event in events:
+            symbol = event.get("symbol")
+            enriched = event.copy()
+
+            if symbol and symbol in enrichment_data:
+                data = enrichment_data[symbol]
+
+                # Add current price
+                if "quote" in data and data["quote"].get("current"):
+                    enriched["currentPrice"] = data["quote"]["current"]
+                    enriched["priceChange"] = data["quote"].get("change")
+                    enriched["priceChangePercent"] = data["quote"].get("percentChange")
+
+                # Add prior EPS data
+                if "eps" in data and data["eps"].get("surprises"):
+                    surprises = data["eps"]["surprises"]
+                    if surprises:
+                        # Most recent completed quarter
+                        latest = surprises[0]
+                        enriched["prior"] = (
+                            f"${latest['actual']:.2f}"
+                            if latest.get("actual") is not None
+                            else None
+                        )
+                        enriched["epsSurprise"] = latest.get("surprisePercent")
+
+            enriched_events.append(enriched)
+
+        logger.info(f"Successfully enriched {len(enriched_events)} events")
+        return enriched_events
 
     def clear_cache(self, cache_type: Optional[str] = None) -> None:
         """
