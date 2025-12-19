@@ -23,6 +23,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -259,7 +260,7 @@ class DeepStackAPIServer:
         return 500
 
     def _setup_middleware(self):
-        """Setup CORS and other middleware."""
+        """Setup CORS, compression, and other middleware."""
         # Security: CORS origins are validated in config to prevent
         # wildcard (*) being used with credentials
         #
@@ -270,6 +271,11 @@ class DeepStackAPIServer:
         # Log CORS configuration at startup for debugging
         print(f"CORS Origins configured: {self.config.api.cors_origins}")
         print(f"CORS Regex: {vercel_preview_regex}")
+
+        # Add GZip compression for responses > 500 bytes
+        # This significantly reduces bandwidth for large JSON responses
+        # (e.g., calendar endpoint: 1.5MB -> ~100KB with gzip)
+        self.app.add_middleware(GZipMiddleware, minimum_size=500)
 
         self.app.add_middleware(
             CORSMiddleware,
@@ -463,6 +469,11 @@ class DeepStackAPIServer:
                     content={"error": "Failed to parse scraped data"},
                 )
 
+        # Calendar cache for expensive Alpha Vantage + Finnhub calls
+        # TTL: 15 minutes (earnings data doesn't change frequently)
+        _calendar_cache: Dict[str, tuple] = {}
+        _calendar_cache_ttl = 900  # 15 minutes
+
         @self.app.get("/api/calendar")
         async def get_calendar(
             start: Optional[str] = None,
@@ -481,6 +492,26 @@ class DeepStackAPIServer:
                 List of calendar events
             """
             try:
+                # Check cache first (key based on horizon, not date filters)
+                cache_key = f"calendar:{horizon}"
+                if cache_key in _calendar_cache:
+                    cached_events, cached_time = _calendar_cache[cache_key]
+                    if datetime.now() - cached_time < timedelta(
+                        seconds=_calendar_cache_ttl
+                    ):
+                        logger.debug(f"Calendar cache hit for {cache_key}")
+                        # Apply date filters to cached data
+                        filtered_events = cached_events
+                        if start:
+                            filtered_events = [
+                                e for e in filtered_events if e.get("date", "") >= start
+                            ]
+                        if end:
+                            filtered_events = [
+                                e for e in filtered_events if e.get("date", "") <= end
+                            ]
+                        return {"events": filtered_events, "cached": True}
+
                 events = []
 
                 # Try to fetch real earnings data from Alpha Vantage
@@ -556,7 +587,23 @@ class DeepStackAPIServer:
                         logger.warning(f"Finnhub enrichment failed: {e}")
                         # Continue with unenriched events
 
-                return {"events": events}
+                # Cache the full event list (before date filtering)
+                if events:
+                    _calendar_cache[cache_key] = (events, datetime.now())
+                    logger.info(f"Cached {len(events)} calendar events for {cache_key}")
+
+                # Apply date filters for the response
+                filtered_events = events
+                if start:
+                    filtered_events = [
+                        e for e in filtered_events if e.get("date", "") >= start
+                    ]
+                if end:
+                    filtered_events = [
+                        e for e in filtered_events if e.get("date", "") <= end
+                    ]
+
+                return {"events": filtered_events}
 
             except Exception as e:
                 logger.error(f"Calendar error: {e}")

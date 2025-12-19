@@ -88,9 +88,11 @@ class StockTwitsClient:
         )
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
-        """Ensure aiohttp session exists."""
+        """Ensure aiohttp session exists with timeout configuration."""
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
+            # 10 second timeout for API requests to prevent long hangs
+            timeout = aiohttp.ClientTimeout(total=10, connect=5)
+            self.session = aiohttp.ClientSession(timeout=timeout)
         return self.session
 
     async def close(self):
