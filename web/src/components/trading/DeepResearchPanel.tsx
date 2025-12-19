@@ -265,7 +265,7 @@ ${research.citations?.map((c, i) => `${i + 1}. ${c}`).join('\n') || 'No citation
               ) : (
                 <Sparkles className="h-3.5 w-3.5 mr-1" />
               )}
-              Generate Research (50 credits)
+              Generate Research
             </Button>
           </div>
         </CardContent>
@@ -393,7 +393,7 @@ ${research.citations?.map((c, i) => `${i + 1}. ${c}`).join('\n') || 'No citation
               </div>
               <div className="text-[10px] text-center text-muted-foreground/70 mt-2">
                 Deep research uses advanced AI to analyze multiple sources and generate
-                detailed, well-cited reports. This typically takes 1-2 minutes and costs 50 credits.
+                detailed, well-cited reports. This typically takes 1-2 minutes.
               </div>
             </div>
           </Card>

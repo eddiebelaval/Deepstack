@@ -405,10 +405,10 @@ export function LeftSidebar() {
                                 }}
                             >
                                 <Coins className="h-4 w-4 shrink-0" />
-                                {showExpanded && <span className="ml-2">Usage & Credits</span>}
+                                {showExpanded && <span className="ml-2">Usage</span>}
                             </Button>
                         </TooltipTrigger>
-                        {!showExpanded && <TooltipContent side="right">Usage & Credits</TooltipContent>}
+                        {!showExpanded && <TooltipContent side="right">Usage</TooltipContent>}
                     </Tooltip>
                 </div>
 

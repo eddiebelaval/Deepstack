@@ -23,7 +23,7 @@ import {
 import { PersonaSection } from '@/components/settings/PersonaSection';
 
 export function SettingsPanel() {
-    const { settingsOpen, toggleSettings, toggleUsage, credits } = useUIStore();
+    const { settingsOpen, toggleSettings, toggleUsage } = useUIStore();
     const { activeProvider, setActiveProvider, useExtendedThinking, setUseExtendedThinking } = useChatStore();
     const {
         autoRefreshEnabled,
@@ -102,7 +102,7 @@ export function SettingsPanel() {
                                     }}
                                     className="text-sm text-muted-foreground mt-1 text-left hover:text-foreground transition-colors group"
                                 >
-                                    Credits: <span className="font-mono text-primary font-bold group-hover:underline">{credits}</span>
+                                    <span className="group-hover:underline">View Usage</span>
                                 </button>
                             </div>
                             <Button variant="ghost" size="icon" onClick={toggleSettings}>
@@ -175,19 +175,19 @@ export function SettingsPanel() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="claude_haiku">Haiku (4c)</SelectItem>
-                                                    <SelectItem value="perplexity">Perplexity (6c)</SelectItem>
-                                                    <SelectItem value="sonar_reasoning">DeepSeek R1 (7c)</SelectItem>
-                                                    <SelectItem value="grok">Grok (12c)</SelectItem>
-                                                    <SelectItem value="claude">Sonnet (15c)</SelectItem>
-                                                    <SelectItem value="claude_opus">Opus (45c)</SelectItem>
+                                                    <SelectItem value="claude_haiku">Haiku (Fast)</SelectItem>
+                                                    <SelectItem value="perplexity">Perplexity (Search)</SelectItem>
+                                                    <SelectItem value="sonar_reasoning">DeepSeek R1 (Reasoning)</SelectItem>
+                                                    <SelectItem value="grok">Grok (Fast)</SelectItem>
+                                                    <SelectItem value="claude">Sonnet (Balanced)</SelectItem>
+                                                    <SelectItem value="claude_opus">Opus (Advanced)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-0.5">
                                                 <Label>Extended Thinking</Label>
-                                                <p className="text-xs text-muted-foreground">+50% credits for deeper reasoning</p>
+                                                <p className="text-xs text-muted-foreground">Enable deeper reasoning for complex questions</p>
                                             </div>
                                             <Switch
                                                 checked={useExtendedThinking}
@@ -195,7 +195,7 @@ export function SettingsPanel() {
                                             />
                                         </div>
                                         <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-                                            Credit costs vary by model. Use Haiku for quick tasks, Opus for complex analysis.
+                                            Use Haiku for quick tasks, Opus for complex analysis.
                                         </p>
                                     </div>
                                 </div>

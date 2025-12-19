@@ -97,9 +97,8 @@ export function ResearchHubPanel({
         </div>
       </Tabs>
 
-      {/* Footer with credit info */}
-      <div className="px-4 py-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground flex-shrink-0">
-        <span>SEC: 10 credits • Earnings: 15 credits • Company: 15 credits</span>
+      {/* Footer */}
+      <div className="px-4 py-2 border-t border-border/50 flex items-center justify-end text-[10px] text-muted-foreground flex-shrink-0">
         <span className="flex items-center gap-1">
           <Sparkles className="h-3 w-3" />
           AI-powered research

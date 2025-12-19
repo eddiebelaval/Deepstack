@@ -161,7 +161,6 @@ function ModelOption({ provider, isActive, onSelect }: ModelOptionProps) {
   const config = providerConfig[provider];
   const Icon = iconMap[config.icon];
   const letter = providerLetters[provider];
-  const cost = getModelCost(provider);
 
   return (
     <button
@@ -191,15 +190,6 @@ function ModelOption({ provider, isActive, onSelect }: ModelOptionProps) {
         <div className="flex items-center gap-2">
           <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-sm font-medium">{config.name}</span>
-          {/* Credit cost badge */}
-          <span className={cn(
-            "text-[10px] font-medium px-1.5 py-0.5 rounded",
-            cost <= 6 ? "bg-emerald-500/10 text-emerald-500" :
-            cost >= 45 ? "bg-amber-500/10 text-amber-500" :
-            "bg-muted text-muted-foreground"
-          )}>
-            {cost}c
-          </span>
           {isActive && (
             <motion.div
               initial={{ scale: 0 }}
