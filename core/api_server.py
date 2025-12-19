@@ -211,6 +211,7 @@ class DeepStackAPIServer:
         self._setup_exception_handlers()
         self._setup_routes()
         self._setup_websocket()
+        self._setup_events()
 
         # Initialize trading components synchronously
         self._initialize_components()
@@ -285,6 +286,37 @@ class DeepStackAPIServer:
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
         )
+
+    def _setup_events(self):
+        """Setup FastAPI startup and shutdown events."""
+
+        @self.app.on_event("startup")
+        async def startup_event():
+            """Start background tasks on server startup."""
+            # Start news prefetch in background to warm cache
+            if self.news_aggregator:
+                try:
+                    # Popular symbols to prefetch (major indices + popular stocks)
+                    popular_symbols = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA"]
+                    await self.news_aggregator.start_background_prefetch(
+                        interval_seconds=600,  # Refresh every 10 minutes
+                        symbols=popular_symbols,
+                    )
+                    logger.info(
+                        "Started background news prefetch "
+                        f"(symbols: {popular_symbols})"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to start news prefetch: {e}")
+
+        @self.app.on_event("shutdown")
+        async def shutdown_event():
+            """Stop background tasks on server shutdown."""
+            if self.news_aggregator:
+                try:
+                    self.news_aggregator.stop_background_prefetch()
+                except Exception as e:
+                    logger.warning(f"Error stopping news prefetch: {e}")
 
     def _setup_routes(self):
         """Setup API routes."""
