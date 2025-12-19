@@ -183,7 +183,7 @@ export function UsagePanel() {
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-bold tabular-nums">
-                        {usagePercent.toFixed(0)}%
+                        {(100 - usagePercent).toFixed(0)}%
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Remaining
