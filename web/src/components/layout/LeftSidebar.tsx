@@ -13,6 +13,7 @@ import { UserMenu } from '@/components/auth/UserMenu';
 import { WatchlistManagementDialog } from '@/components/trading/WatchlistManagementDialog';
 import { SidebarUpgradeBanner } from '@/components/ui/upgrade-banner';
 import { AffiliateWidget } from '@/components/ui/affiliate-widget';
+import { TrialStatusWidget, PostTrialReminderWidget } from '@/components/trial/TrialStatusWidget';
 import { useUser } from '@/hooks/useUser';
 import { useChatLimit } from '@/hooks/useChatLimit';
 import {
@@ -36,7 +37,7 @@ export function LeftSidebar() {
     const { leftSidebarOpen, toggleLeftSidebar, setLeftSidebarOpen, toggleProfile, toggleSettings, toggleUsage, profileOpen, settingsOpen, usageOpen, activeContent, setActiveContent } = useUIStore();
     const { conversations, currentConversationId, setCurrentConversation } = useChatStore();
     const { isMobile, isTablet, isDesktop } = useIsMobile();
-    const { tier } = useUser();
+    const { tier, trial } = useUser();
     const { chatsToday, dailyLimit, isLoading: chatLimitLoading } = useChatLimit();
     const chatHistoryRef = useRef<HTMLDivElement>(null);
     const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
@@ -45,8 +46,8 @@ export function LeftSidebar() {
     const { isActive: isThesisTourActive, step: thesisTourStep, dismiss: dismissThesisTour } = useTourStep('thesis');
     const { isActive: isJournalTourActive, step: journalTourStep, dismiss: dismissJournalTour } = useTourStep('journal');
 
-    // Show upgrade banner for free tier users
-    const showUpgradeBanner = tier === 'free';
+    // Show upgrade banner for free tier users who aren't trialing
+    const showUpgradeBanner = tier === 'free' && !trial.isTrialing && !trial.recentlyEndedTrial;
 
     const handleNewChat = () => {
         setCurrentConversation(null);
@@ -446,7 +447,24 @@ export function LeftSidebar() {
                     <AffiliateWidget isExpanded={showExpanded} />
                 </div>
 
-                {/* Upgrade Banner for Free Users */}
+                {/* Trial Status Widget for Trialing Users */}
+                {trial.isTrialing && (
+                    <div className="px-2 pb-2">
+                        <TrialStatusWidget
+                            variant={showExpanded ? 'sidebar' : 'minimal'}
+                            showProgress={showExpanded}
+                        />
+                    </div>
+                )}
+
+                {/* Post-Trial Reminder for Recently Ended Trials */}
+                {trial.recentlyEndedTrial && !trial.isTrialing && showExpanded && (
+                    <div className="px-2 pb-2">
+                        <PostTrialReminderWidget />
+                    </div>
+                )}
+
+                {/* Upgrade Banner for Free Users (non-trial) */}
                 {showUpgradeBanner && showExpanded && (
                     <div className="px-2 pb-2">
                         <SidebarUpgradeBanner

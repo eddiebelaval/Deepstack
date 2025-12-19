@@ -34,6 +34,11 @@ CREATE INDEX IF NOT EXISTS idx_market_bars_lookup
 -- Enable Row Level Security
 ALTER TABLE market_bars ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (idempotent)
+DROP POLICY IF EXISTS "Anyone can read market bars" ON market_bars;
+DROP POLICY IF EXISTS "Service role can insert market bars" ON market_bars;
+DROP POLICY IF EXISTS "Service role can update market bars" ON market_bars;
+
 -- Policy: Allow all authenticated users to read market bars (public market data)
 CREATE POLICY "Anyone can read market bars"
   ON market_bars

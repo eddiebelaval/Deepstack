@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from './useSession';
-import type { SubscriptionTier } from '@/lib/subscription';
+import type { SubscriptionTier, SubscriptionStatus } from '@/lib/subscription';
 
 // Profile from profiles table (basic user info)
 export interface UserProfile {
@@ -15,11 +15,18 @@ export interface UserProfile {
     updated_at: string;
 }
 
-// Combined profile with subscription data from subscriptions table
+// Combined profile with subscription and trial data
 export interface UserProfileWithSubscription extends UserProfile {
     subscription_tier: SubscriptionTier;
-    subscription_status: 'inactive' | 'active' | 'past_due' | 'canceled' | 'trialing';
+    subscription_status: SubscriptionStatus;
     subscription_ends_at: string | null;
+    // Trial fields
+    trial_started_at: string | null;
+    trial_ends_at: string | null;
+    trial_tier: SubscriptionTier | null;
+    has_used_trial: boolean;
+    trial_downgraded_at: string | null;
+    trial_converted_at: string | null;
 }
 
 export function useProfile() {
@@ -72,7 +79,7 @@ export function useProfile() {
                     .eq('user_id', user.id)
                     .maybeSingle();
 
-                // Build combined profile
+                // Build combined profile - prefer profiles table data over subscriptions table
                 const combinedProfile: UserProfileWithSubscription = {
                     id: user.id,
                     email: profileData?.email ?? user.email ?? null,
@@ -80,9 +87,19 @@ export function useProfile() {
                     avatar_url: profileData?.avatar_url ?? null,
                     created_at: profileData?.created_at ?? new Date().toISOString(),
                     updated_at: profileData?.updated_at ?? new Date().toISOString(),
-                    subscription_tier: (subData?.tier?.toLowerCase() as SubscriptionTier) ?? 'free',
-                    subscription_status: subData?.active ? 'active' : 'inactive',
-                    subscription_ends_at: subData?.current_period_end ?? null,
+                    // Use profiles table subscription fields first, fall back to subscriptions table
+                    subscription_tier: (profileData?.subscription_tier as SubscriptionTier) ??
+                        (subData?.tier?.toLowerCase() as SubscriptionTier) ?? 'free',
+                    subscription_status: (profileData?.subscription_status as SubscriptionStatus) ??
+                        (subData?.active ? 'active' : 'inactive'),
+                    subscription_ends_at: profileData?.subscription_ends_at ?? subData?.current_period_end ?? null,
+                    // Trial fields from profiles table
+                    trial_started_at: profileData?.trial_started_at ?? null,
+                    trial_ends_at: profileData?.trial_ends_at ?? null,
+                    trial_tier: (profileData?.trial_tier as SubscriptionTier) ?? null,
+                    has_used_trial: profileData?.has_used_trial ?? false,
+                    trial_downgraded_at: profileData?.trial_downgraded_at ?? null,
+                    trial_converted_at: profileData?.trial_converted_at ?? null,
                 };
 
                 setProfile(combinedProfile);
@@ -105,6 +122,13 @@ export function useProfile() {
                     subscription_tier: 'free',
                     subscription_status: 'inactive',
                     subscription_ends_at: null,
+                    // Trial fields default
+                    trial_started_at: null,
+                    trial_ends_at: null,
+                    trial_tier: null,
+                    has_used_trial: false,
+                    trial_downgraded_at: null,
+                    trial_converted_at: null,
                 });
             } finally {
                 setIsLoading(false);

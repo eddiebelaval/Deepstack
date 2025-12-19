@@ -8,6 +8,7 @@ import Providers from '@/components/providers'
 import { PaywallModal } from '@/components/ui/paywall-modal'
 import { DisclaimerBanner } from '@/components/ui/disclaimer-banner'
 import { TourProvider, TourOverlay } from '@/components/onboarding'
+import { TrialGlobalBanner } from '@/components/trial/TrialCountdownBanner'
 
 // Urbanist font for brand name - Regular 400 weight only
 const urbanist = localFont({
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Providers>
           <TourProvider>
             <PaywallModal />
+            <TrialGlobalBanner />
             <div className="h-full w-full overflow-hidden relative flex flex-col">
               {children}
             </div>
