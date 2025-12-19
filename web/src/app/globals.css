@@ -818,6 +818,18 @@ body:has(.landing-page) > div > div > div {
   animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Tour Ping - Mini radar animation for onboarding indicators */
+@keyframes radar-ping {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
 @keyframes float {
 
   0%,

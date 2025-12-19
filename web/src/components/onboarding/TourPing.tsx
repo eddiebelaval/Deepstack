@@ -17,7 +17,7 @@ interface TourPingProps {
 
 /**
  * Animated radar ping component for contextual tour guidance
- * Shows a pulsing green dot that expands to a tooltip when clicked
+ * Shows an orange pulsing ring (mini radar effect) that expands to a tooltip when clicked
  */
 export function TourPing({
     isActive,
@@ -68,15 +68,16 @@ export function TourPing({
                         exit={{ scale: 0, opacity: 0 }}
                         transition={{ type: 'spring', damping: 15, stiffness: 300 }}
                         onClick={handlePingClick}
-                        className="relative w-4 h-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
+                        className="relative w-6 h-6 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
                         aria-label={`Tour: ${title}`}
                     >
-                        {/* Outer pulsing ring */}
-                        <span className="absolute inset-0 rounded-full bg-profit/30 animate-ping" />
-                        <span className="absolute inset-0 rounded-full bg-profit/20 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                        {/* Expanding radar rings - mimics landing page ping */}
+                        <span className="absolute inset-0 rounded-full border-2 border-primary/60 animate-[radar-ping_2s_ease-out_infinite]" />
+                        <span className="absolute inset-0 rounded-full border-2 border-primary/40 animate-[radar-ping_2s_ease-out_infinite_0.6s]" />
+                        <span className="absolute inset-0 rounded-full border-2 border-primary/20 animate-[radar-ping_2s_ease-out_infinite_1.2s]" />
 
-                        {/* Inner solid dot */}
-                        <span className="absolute inset-1 rounded-full bg-profit shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                        {/* Center dot with glow */}
+                        <span className="absolute inset-[8px] rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
                     </motion.button>
                 )}
             </AnimatePresence>
@@ -102,7 +103,7 @@ export function TourPing({
                             {/* Header */}
                             <div className="flex items-start justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-profit animate-pulse shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_6px_var(--primary)]" />
                                     <h3 className="font-semibold text-sm text-foreground">{title}</h3>
                                 </div>
                                 <button
@@ -121,7 +122,7 @@ export function TourPing({
 
                             {/* Tip */}
                             {tip && (
-                                <div className="bg-profit/10 border border-profit/20 rounded-lg px-3 py-2 text-xs text-profit/90">
+                                <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 text-xs text-primary">
                                     <strong>Tip:</strong> {tip}
                                 </div>
                             )}
