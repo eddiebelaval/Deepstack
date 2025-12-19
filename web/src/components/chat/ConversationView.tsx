@@ -5,6 +5,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
+import { useAlertsStore } from '@/lib/stores/alerts-store';
 import { useThesisStore } from '@/lib/stores/thesis-store';
 import { useJournalStore } from '@/lib/stores/journal-store';
 import { usePersonaStore } from '@/lib/stores/persona-store';
@@ -58,6 +59,7 @@ export function ConversationView() {
     const { activeProvider, setIsStreaming, useExtendedThinking } = useChatStore();
     const { activeContent, setActiveContent } = useUIStore();
     const { activeSymbol, setActiveSymbol } = useTradingStore();
+    const { addAlert } = useAlertsStore();
     const { theses: thesisEntries } = useThesisStore();
     const { entries: journalEntries } = useJournalStore();
     const { activePersonaId } = usePersonaStore();
@@ -167,6 +169,7 @@ export function ConversationView() {
                 'options-screener': 'options-screener',
                 'options-builder': 'options-builder',
                 'prediction-markets': 'prediction-markets',
+                'thesis': 'thesis',
             };
 
             // Allow tool calls to switch content (including to 'chart')
@@ -179,7 +182,20 @@ export function ConversationView() {
             }
         }
 
-    }, []);
+        // Handle create_alert action from AI tools
+        if (result?.action === 'create_alert' && result.data) {
+            const { symbol, targetPrice, condition, note } = result.data;
+            addAlert({
+                symbol: symbol.toUpperCase(),
+                targetPrice,
+                condition,
+                note,
+            });
+            // Open alerts panel to show the new alert
+            setActiveContent('alerts');
+        }
+
+    }, [addAlert, setActiveContent, setActiveSymbol]);
 
     const handleSend = useCallback(async (content: string) => {
         // Require authentication to use AI Chat
@@ -261,14 +277,63 @@ export function ConversationView() {
             const toolInvocations: any[] = [];
 
             if (reader) {
+                let buffer = '';
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    // Decode the chunk and accumulate directly
-                    // toTextStreamResponse() sends raw UTF-8 text, not prefixed data stream
-                    const chunk = decoder.decode(value, { stream: true });
-                    assistantContent += chunk;
+                    // Decode chunk and add to buffer
+                    buffer += decoder.decode(value, { stream: true });
+
+                    // Process complete lines from the data stream
+                    // Format: "prefix:json_data\n"
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+
+                        // Parse data stream format: "prefix:data"
+                        const colonIndex = line.indexOf(':');
+                        if (colonIndex === -1) continue;
+
+                        const prefix = line.slice(0, colonIndex);
+                        const data = line.slice(colonIndex + 1);
+
+                        try {
+                            switch (prefix) {
+                                case '0': // Text delta
+                                    assistantContent += JSON.parse(data);
+                                    break;
+                                case '9': // Tool call
+                                    const toolCall = JSON.parse(data);
+                                    toolInvocations.push({
+                                        state: 'call',
+                                        toolCallId: toolCall.toolCallId,
+                                        toolName: toolCall.toolName,
+                                        args: toolCall.args,
+                                    });
+                                    break;
+                                case 'a': // Tool result
+                                    const toolResult = JSON.parse(data);
+                                    // Update tool invocation state
+                                    const existingCall = toolInvocations.find(
+                                        t => t.toolCallId === toolResult.toolCallId
+                                    );
+                                    if (existingCall) {
+                                        existingCall.state = 'result';
+                                        existingCall.result = toolResult.result;
+                                    }
+                                    // Handle tool result actions (alerts, panels, etc.)
+                                    handleToolResult(toolResult.toolName || '', toolResult.result);
+                                    break;
+                                // case 'e': error, case 'd': finish - can be added if needed
+                            }
+                        } catch {
+                            // Ignore parse errors for malformed lines
+                        }
+                    }
 
                     setMessages(prev => {
                         const existing = prev.find(m => m.id === assistantId);
@@ -277,7 +342,7 @@ export function ConversationView() {
                             role: 'assistant' as const,
                             content: assistantContent,
                             createdAt: new Date(),
-                            toolInvocations: toolInvocations.length > 0 ? toolInvocations : undefined,
+                            toolInvocations: toolInvocations.length > 0 ? [...toolInvocations] : undefined,
                             thinking: thinkingContent || undefined,
                         };
 
