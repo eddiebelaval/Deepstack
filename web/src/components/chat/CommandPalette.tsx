@@ -61,93 +61,81 @@ export function CommandPalette({ open, onOpenChange, onCommand }: CommandPalette
             <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>
 
-                {/* Core Tools */}
-                <CommandGroup heading="Core Tools">
-                    <CommandItem onSelect={() => runCommand("/journal")}>
-                        <BookOpen className="mr-2 h-4 w-4 text-rose-400" />
-                        <span>Trade Journal</span>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runCommand("/thesis")}>
-                        <Lightbulb className="mr-2 h-4 w-4 text-amber-500" />
-                        <span>Thesis Engine</span>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runCommand("/insights")}>
-                        <Brain className="mr-2 h-4 w-4 text-violet-400" />
-                        <span>AI Insights</span>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runCommand("/research")}>
-                        <FileSearch className="mr-2 h-4 w-4 text-blue-400" />
-                        <span>Research Hub</span>
-                    </CommandItem>
-                </CommandGroup>
-
-                <CommandSeparator />
-
-                {/* Market Data */}
-                <CommandGroup heading="Market Data">
+                {/* Free Tier Tools */}
+                <CommandGroup heading="Free">
                     <CommandItem onSelect={() => runCommand("/chart")}>
-                        <LineChart className="mr-2 h-4 w-4 text-blue-400" />
+                        <LineChart className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>Chart</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand("/portfolio")}>
-                        <Briefcase className="mr-2 h-4 w-4 text-green-400" />
+                        <Briefcase className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>Portfolio</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand("/news")}>
-                        <Newspaper className="mr-2 h-4 w-4 text-amber-400" />
+                        <Newspaper className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>News</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand("/calendar")}>
-                        <Calendar className="mr-2 h-4 w-4 text-purple-400" />
+                        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>Calendar</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand("/alerts")}>
-                        <Bell className="mr-2 h-4 w-4 text-red-400" />
+                        <Bell className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>Price Alerts</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand("/screener")}>
+                        <BarChart3 className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span>Stock Screener</span>
                     </CommandItem>
                 </CommandGroup>
 
                 <CommandSeparator />
 
-                {/* Screeners */}
-                <CommandGroup heading="Screeners">
-                    <CommandItem onSelect={() => runCommand("/screener")}>
-                        <BarChart3 className="mr-2 h-4 w-4 text-cyan-400" />
-                        <span>Stock Screener</span>
+                {/* Pro Tier Tools */}
+                <CommandGroup heading="Pro">
+                    <CommandItem onSelect={() => runCommand("/journal")}>
+                        <BookOpen className="mr-2 h-4 w-4 text-orange-400" />
+                        <span>Trade Journal</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand("/thesis")}>
+                        <Lightbulb className="mr-2 h-4 w-4 text-orange-400" />
+                        <span>Thesis Engine</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand("/insights")}>
+                        <Brain className="mr-2 h-4 w-4 text-orange-400" />
+                        <span>AI Insights</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand("/research")}>
+                        <FileSearch className="mr-2 h-4 w-4 text-orange-400" />
+                        <span>Research Hub</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand("/deep-value")}>
-                        <Diamond className="mr-2 h-4 w-4 text-pink-400" />
+                        <Diamond className="mr-2 h-4 w-4 text-orange-400" />
                         <span>Deep Value</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand("/options")}>
                         <Filter className="mr-2 h-4 w-4 text-orange-400" />
                         <span>Options Screener</span>
                     </CommandItem>
-                </CommandGroup>
-
-                <CommandSeparator />
-
-                {/* Trading */}
-                <CommandGroup heading="Trading">
+                    <CommandItem onSelect={() => runCommand("/builder")}>
+                        <Calculator className="mr-2 h-4 w-4 text-orange-400" />
+                        <span>Options Builder</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand("/hedged")}>
+                        <Shield className="mr-2 h-4 w-4 text-orange-400" />
+                        <span>Hedged Positions</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runCommand("/predictions")}>
+                        <Sparkles className="mr-2 h-4 w-4 text-orange-400" />
+                        <span>Prediction Markets</span>
+                    </CommandItem>
                     <CommandItem onSelect={() => runCommand("/analyze")}>
-                        <Activity className="mr-2 h-4 w-4 text-emerald-400" />
+                        <Activity className="mr-2 h-4 w-4 text-orange-400" />
                         <span>Analyze Ticker</span>
                     </CommandItem>
                     <CommandItem onSelect={() => runCommand("/order")}>
-                        <TrendingUp className="mr-2 h-4 w-4 text-green-400" />
+                        <TrendingUp className="mr-2 h-4 w-4 text-orange-400" />
                         <span>Place Order</span>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runCommand("/hedged")}>
-                        <Shield className="mr-2 h-4 w-4 text-teal-400" />
-                        <span>Hedged Positions</span>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runCommand("/builder")}>
-                        <Calculator className="mr-2 h-4 w-4 text-indigo-400" />
-                        <span>Options Builder</span>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runCommand("/predictions")}>
-                        <Sparkles className="mr-2 h-4 w-4 text-yellow-400" />
-                        <span>Prediction Markets</span>
                     </CommandItem>
                 </CommandGroup>
             </CommandList>

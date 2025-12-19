@@ -35,23 +35,25 @@ interface ToolItem {
   color: string;
 }
 
-// All tools with history first (default)
+// Free tier: white (text-muted-foreground), Pro tier: orange (text-orange-400)
 const TOOLS: ToolItem[] = [
-  { id: 'history', icon: MessageSquare, label: 'History', color: 'text-slate-400' },
-  { id: 'chart', icon: LineChart, label: 'Chart', color: 'text-blue-400' },
-  { id: 'portfolio', icon: Briefcase, label: 'Portfolio', color: 'text-green-400' },
-  { id: 'journal', icon: BookOpen, label: 'Journal', color: 'text-rose-400' },
-  { id: 'thesis', icon: Target, label: 'Thesis', color: 'text-emerald-400' },
-  { id: 'insights', icon: Brain, label: 'Insights', color: 'text-violet-400' },
-  { id: 'news', icon: Newspaper, label: 'News', color: 'text-amber-400' },
-  { id: 'calendar', icon: Calendar, label: 'Calendar', color: 'text-purple-400' },
-  { id: 'screener', icon: BarChart3, label: 'Screener', color: 'text-cyan-400' },
-  { id: 'alerts', icon: Bell, label: 'Alerts', color: 'text-red-400' },
-  { id: 'deep-value', icon: Diamond, label: 'Deep Value', color: 'text-pink-400' },
-  { id: 'hedged-positions', icon: Shield, label: 'Hedged', color: 'text-teal-400' },
+  // Free tier tools
+  { id: 'history', icon: MessageSquare, label: 'History', color: 'text-muted-foreground' },
+  { id: 'chart', icon: LineChart, label: 'Chart', color: 'text-muted-foreground' },
+  { id: 'portfolio', icon: Briefcase, label: 'Portfolio', color: 'text-muted-foreground' },
+  { id: 'news', icon: Newspaper, label: 'News', color: 'text-muted-foreground' },
+  { id: 'calendar', icon: Calendar, label: 'Calendar', color: 'text-muted-foreground' },
+  { id: 'screener', icon: BarChart3, label: 'Screener', color: 'text-muted-foreground' },
+  { id: 'alerts', icon: Bell, label: 'Alerts', color: 'text-muted-foreground' },
+  // Pro tier tools
+  { id: 'journal', icon: BookOpen, label: 'Journal', color: 'text-orange-400' },
+  { id: 'thesis', icon: Target, label: 'Thesis', color: 'text-orange-400' },
+  { id: 'insights', icon: Brain, label: 'Insights', color: 'text-orange-400' },
+  { id: 'deep-value', icon: Diamond, label: 'Deep Value', color: 'text-orange-400' },
+  { id: 'hedged-positions', icon: Shield, label: 'Hedged', color: 'text-orange-400' },
   { id: 'options-screener', icon: Filter, label: 'Options', color: 'text-orange-400' },
-  { id: 'options-builder', icon: Calculator, label: 'Builder', color: 'text-indigo-400' },
-  { id: 'prediction-markets', icon: Sparkles, label: 'Predictions', color: 'text-yellow-400' },
+  { id: 'options-builder', icon: Calculator, label: 'Builder', color: 'text-orange-400' },
+  { id: 'prediction-markets', icon: Sparkles, label: 'Predictions', color: 'text-orange-400' },
 ];
 
 interface SwipeableToolbarProps {
