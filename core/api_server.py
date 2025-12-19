@@ -267,6 +267,10 @@ class DeepStackAPIServer:
         # which have dynamic URLs like: deepstack-{hash}-{team}.vercel.app
         vercel_preview_regex = r"https://deepstack-.*\.vercel\.app"
 
+        # Log CORS configuration at startup for debugging
+        print(f"CORS Origins configured: {self.config.api.cors_origins}")
+        print(f"CORS Regex: {vercel_preview_regex}")
+
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=self.config.api.cors_origins,
