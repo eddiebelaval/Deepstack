@@ -97,9 +97,11 @@ class AlphaVantageClient:
         )
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
-        """Ensure aiohttp session exists."""
+        """Ensure aiohttp session exists with timeout configuration."""
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
+            # 15 second timeout for Alpha Vantage (can be slower)
+            timeout = aiohttp.ClientTimeout(total=15, connect=5)
+            self.session = aiohttp.ClientSession(timeout=timeout)
         return self.session
 
     async def close(self):

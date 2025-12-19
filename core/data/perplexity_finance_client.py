@@ -125,9 +125,11 @@ class PerplexityFinanceClient:
         return bool(self.api_key)
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
-        """Ensure aiohttp session exists."""
+        """Ensure aiohttp session exists with timeout configuration."""
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
+            # 60 second timeout for Perplexity (AI processing can take time)
+            timeout = aiohttp.ClientTimeout(total=60, connect=10)
+            self.session = aiohttp.ClientSession(timeout=timeout)
         return self.session
 
     async def close(self):
