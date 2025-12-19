@@ -22,7 +22,6 @@ import {
     Trash2,
     Heart,
     BarChart3,
-    ArrowLeft,
     Target,
     Activity,
     Calendar,
@@ -108,9 +107,6 @@ export function InsightsPanel() {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
                             <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
                                 <Brain className="h-5 w-5 text-purple-500" />
                             </div>
