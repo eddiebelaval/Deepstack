@@ -540,6 +540,80 @@ export const tradingTools = {
     },
   }),
 
+  create_journal_entry: tool({
+    description: 'Create a new trading journal entry. Use this when the user wants to log a trade, capture a lesson learned, or record their trading thoughts. You can create entries from natural conversation - extract the symbol, emotion, notes, and any other details mentioned.',
+    inputSchema: z.object({
+      symbol: z.string().describe('Stock ticker symbol (e.g., AAPL, TSLA). Required.'),
+      direction: z.enum(['long', 'short']).optional().default('long').describe('Trade direction: long or short'),
+      entryPrice: z.number().optional().describe('Entry price of the trade'),
+      exitPrice: z.number().optional().describe('Exit price if the trade is closed'),
+      quantity: z.number().optional().describe('Number of shares/contracts'),
+      emotionAtEntry: z.enum(['confident', 'anxious', 'greedy', 'fearful', 'fomo', 'regret', 'relief', 'neutral', 'excited', 'frustrated'])
+        .optional()
+        .default('neutral')
+        .describe('How the user felt when entering the trade'),
+      emotionAtExit: z.enum(['confident', 'anxious', 'greedy', 'fearful', 'fomo', 'regret', 'relief', 'neutral', 'excited', 'frustrated'])
+        .optional()
+        .describe('How the user felt when exiting the trade'),
+      notes: z.string().optional().describe('Trade notes, reasoning, market conditions, or any thoughts the user shared'),
+      lessonsLearned: z.string().optional().describe('What the user learned from this trade or wants to remember'),
+    }),
+    execute: async (params) => {
+      const baseUrl = getBaseUrl();
+      try {
+        const response = await fetch(`${baseUrl}/api/journal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol: params.symbol.toUpperCase(),
+            direction: params.direction || 'long',
+            entryPrice: params.entryPrice || 0,
+            exitPrice: params.exitPrice,
+            quantity: params.quantity || 0,
+            emotionAtEntry: params.emotionAtEntry || 'neutral',
+            emotionAtExit: params.emotionAtExit,
+            notes: params.notes,
+            lessonsLearned: params.lessonsLearned,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            success: true,
+            action: 'journal_created',
+            data: data.entry,
+            message: `Journal entry created for ${params.symbol.toUpperCase()}${params.lessonsLearned ? ' with lesson captured' : ''}`,
+          };
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: errorData.message || 'Failed to create journal entry',
+          message: 'Could not save the journal entry. Please try again.',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: 'Journal service unavailable',
+          message: 'Could not connect to journal service. The entry was not saved.',
+        };
+      }
+    },
+  }),
+
+  show_journal: tool({
+    description: 'Open the journal panel so the user can view their trading journal entries',
+    inputSchema: z.object({}),
+    execute: async () => ({
+      success: true,
+      action: 'show_panel',
+      panel: 'journal',
+      message: 'Showing trading journal',
+    }),
+  }),
+
   get_emotional_state: tool({
     description: 'Check the user emotional firewall status and any recent trading discipline alerts. Use this before suggesting trades to ensure the user is in a good mental state.',
     inputSchema: z.object({}),
