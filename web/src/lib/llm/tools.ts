@@ -948,6 +948,420 @@ export const tradingTools = {
     },
   }),
 
+  // =====================================================
+  // PROCESS INTEGRITY - Challenge thesis and manage friction
+  // =====================================================
+
+  challenge_thesis: tool({
+    description: 'Challenge the user\'s investment thesis by presenting the bearish case, risks, and assumptions that could be wrong. Use this to strengthen their conviction or reveal weak spots. This engages the devil\'s advocate mode and improves research quality score.',
+    inputSchema: z.object({
+      symbol: z.string().describe('Stock ticker symbol'),
+      hypothesis: z.string().describe('The user\'s current hypothesis or thesis statement'),
+      thesisId: z.string().optional().describe('Thesis ID if available'),
+    }),
+    execute: async ({ symbol, hypothesis }) => {
+      const upperSymbol = symbol.toUpperCase();
+      const baseUrl = getBaseUrl();
+
+      // Mark devil's advocate as engaged in the current session
+      try {
+        // Try to get active session and mark devil's advocate
+        const sessionResponse = await fetch(`${baseUrl}/api/process-integrity/session`, {
+          method: 'GET',
+        });
+
+        if (sessionResponse.ok) {
+          const { session } = await sessionResponse.json();
+          if (session?.id) {
+            await fetch(`${baseUrl}/api/process-integrity/session`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'set_devils_advocate',
+                sessionId: session.id,
+              }),
+            });
+          }
+        }
+      } catch {
+        // Continue even if session update fails
+      }
+
+      // Generate challenge points based on the hypothesis
+      const challenges = [
+        `What if ${upperSymbol}'s competitive moat is weaker than you think?`,
+        `Have you considered how rising rates or recession could impact this thesis?`,
+        `What's your exit plan if the thesis is wrong? At what price do you admit defeat?`,
+        `Are you anchoring to a specific price or outcome?`,
+        `What would the smartest bear say about ${upperSymbol}?`,
+      ];
+
+      return {
+        success: true,
+        data: {
+          symbol: upperSymbol,
+          originalHypothesis: hypothesis,
+          challenges,
+          devilsAdvocateEngaged: true,
+        },
+        action: 'devils_advocate_engaged',
+        message: `Let me challenge your thesis on ${upperSymbol}. Consider these counter-arguments carefully before proceeding.`,
+      };
+    },
+  }),
+
+  check_process_integrity: tool({
+    description: 'Check the user\'s process integrity before executing a trade. Returns friction level, research quality score, time-in-thesis, and conviction analysis. Use this when the user expresses intent to trade but you want to verify their process.',
+    inputSchema: z.object({
+      symbol: z.string().describe('Stock ticker symbol'),
+      action: z.enum(['BUY', 'SELL']).describe('Intended trade action'),
+      thesisId: z.string().optional().describe('Thesis ID if known'),
+    }),
+    execute: async ({ symbol, action, thesisId }) => {
+      const upperSymbol = symbol.toUpperCase();
+      const baseUrl = getBaseUrl();
+
+      try {
+        const response = await fetch(`${baseUrl}/api/process-integrity/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: upperSymbol, action, thesisId }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          return {
+            success: true,
+            data: result,
+            action: result.friction?.level !== 'none' ? 'show_friction' : 'clear_to_proceed',
+            message: result.friction?.message || 'Process integrity check complete.',
+          };
+        }
+
+        return {
+          success: false,
+          error: 'Failed to check process integrity',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  }),
+
+  override_process_friction: tool({
+    description: 'Allow user to override process integrity friction after they acknowledge the risks. This logs the override for future learning. Use this when the user explicitly confirms they want to proceed despite warnings.',
+    inputSchema: z.object({
+      frictionLevel: z.enum(['soft', 'medium', 'hard']).describe('The friction level being overridden'),
+      frictionReason: z.string().describe('Why friction was triggered'),
+      dimension: z.enum(['research_quality', 'time_in_thesis', 'conviction_integrity', 'combined']).describe('Which dimension triggered friction'),
+      symbol: z.string().describe('Stock ticker symbol'),
+      thesisId: z.string().optional().describe('Thesis ID if available'),
+      userReasoning: z.string().optional().describe('User\'s reason for overriding (required for hard friction)'),
+      scoresSnapshot: z.object({
+        researchQuality: z.number(),
+        timeInThesisHours: z.number(),
+        conviction: z.number(),
+      }).describe('Current scores at time of override'),
+    }),
+    execute: async ({ frictionLevel, frictionReason, dimension, symbol, thesisId, userReasoning, scoresSnapshot }) => {
+      const upperSymbol = symbol.toUpperCase();
+      const baseUrl = getBaseUrl();
+
+      try {
+        const response = await fetch(`${baseUrl}/api/process-integrity/override`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            frictionLevel,
+            frictionReason,
+            dimension,
+            symbol: upperSymbol,
+            thesisId,
+            userReasoning,
+            scoresSnapshot,
+            confirm: true,
+            actionAttempted: 'place_paper_trade',
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          return {
+            success: true,
+            data: result,
+            action: 'override_confirmed',
+            message: `Override confirmed for ${upperSymbol}. You may now proceed with your trade. Remember: this override is logged for your learning.`,
+            warning: frictionLevel === 'hard'
+              ? 'You overrode a hard friction warning. Please review the outcome of this trade carefully.'
+              : undefined,
+          };
+        }
+
+        return {
+          success: false,
+          error: 'Failed to process override',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    },
+  }),
+
+  record_assumption: tool({
+    description: 'Record an explicit assumption the user is making about their thesis. This improves research quality score by documenting what must be true for the thesis to work.',
+    inputSchema: z.object({
+      assumption: z.string().describe('The assumption being made (e.g., "Revenue will grow 20% YoY")'),
+      thesisId: z.string().optional().describe('Thesis ID if available'),
+    }),
+    execute: async ({ assumption }) => {
+      const baseUrl = getBaseUrl();
+
+      try {
+        // Get active session
+        const sessionResponse = await fetch(`${baseUrl}/api/process-integrity/session`, {
+          method: 'GET',
+        });
+
+        if (sessionResponse.ok) {
+          const { session } = await sessionResponse.json();
+          if (session?.id) {
+            await fetch(`${baseUrl}/api/process-integrity/session`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'record_assumption',
+                sessionId: session.id,
+              }),
+            });
+
+            return {
+              success: true,
+              data: { assumption, recorded: true },
+              message: `Assumption recorded: "${assumption}". Documenting assumptions strengthens your thesis.`,
+            };
+          }
+        }
+
+        return {
+          success: true,
+          data: { assumption, recorded: false },
+          message: `Noted assumption: "${assumption}". Start a research session to track this for your quality score.`,
+        };
+      } catch {
+        return {
+          success: true,
+          data: { assumption, recorded: false },
+          message: `Noted assumption: "${assumption}"`,
+        };
+      }
+    },
+  }),
+
+  update_thesis_status: tool({
+    description: 'Update the status of a thesis. When promoting to "active" or "validated", this will check process integrity and may return friction that requires acknowledgment. Use this instead of directly updating thesis status.',
+    inputSchema: z.object({
+      thesisId: z.string().describe('The thesis ID to update'),
+      newStatus: z.enum(['drafting', 'active', 'validated', 'invalidated', 'archived']).describe('The new status'),
+      symbol: z.string().describe('The symbol for the thesis'),
+      force: z.boolean().optional().describe('If true, skip process integrity check (user has acknowledged friction)'),
+      overrideReason: z.string().optional().describe('Reason for overriding friction (required if force=true and friction was hard)'),
+    }),
+    execute: async ({ thesisId, newStatus, symbol, force, overrideReason }) => {
+      const baseUrl = getBaseUrl();
+      const upperSymbol = symbol.toUpperCase();
+
+      // Statuses that require process integrity check
+      const commitmentStatuses = ['active', 'validated'];
+
+      // Check if this is a commitment status change
+      if (commitmentStatuses.includes(newStatus) && !force) {
+        try {
+          // Check process integrity before allowing status change
+          const integrityResponse = await fetch(`${baseUrl}/api/process-integrity/check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              symbol: upperSymbol,
+              action: `promote_to_${newStatus}`,
+              thesisId,
+            }),
+          });
+
+          if (integrityResponse.ok) {
+            const integrityResult = await integrityResponse.json();
+
+            // If friction is triggered, return it instead of updating
+            if (integrityResult.friction?.level && integrityResult.friction.level !== 'none') {
+              return {
+                success: false,
+                friction_triggered: true,
+                friction: integrityResult.friction,
+                integrity: {
+                  researchQuality: integrityResult.researchQuality,
+                  timeInThesis: integrityResult.timeInThesis,
+                  conviction: integrityResult.conviction,
+                },
+                message: integrityResult.friction.message,
+                suggested_action: integrityResult.friction.suggestedAction,
+                can_override: integrityResult.friction.canOverride,
+                override_warning: integrityResult.friction.overrideWarning,
+                action: 'status_change_blocked',
+                data: {
+                  thesisId,
+                  requestedStatus: newStatus,
+                  symbol: upperSymbol,
+                },
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Process integrity check failed:', error);
+          // Continue with update if integrity check fails (fail open)
+        }
+      }
+
+      // If force=true and there was friction, log the override
+      if (force && commitmentStatuses.includes(newStatus)) {
+        try {
+          await fetch(`${baseUrl}/api/process-integrity/override`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              frictionLevel: 'unknown', // We don't know the original level
+              frictionReason: `User overrode friction to promote thesis to ${newStatus}`,
+              dimension: 'combined',
+              symbol: upperSymbol,
+              thesisId,
+              userReasoning: overrideReason,
+            }),
+          });
+        } catch {
+          // Log override failure but continue
+        }
+      }
+
+      // Proceed with status update
+      try {
+        const response = await fetch(`${baseUrl}/api/thesis`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: thesisId,
+            status: newStatus,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const statusMessages: Record<string, string> = {
+            active: `Thesis promoted to active. You've committed to this trade idea for ${upperSymbol}.`,
+            validated: `Thesis validated. Your hypothesis for ${upperSymbol} has been confirmed.`,
+            invalidated: `Thesis invalidated. Important learning moment - what did you miss?`,
+            archived: `Thesis archived for ${upperSymbol}.`,
+            drafting: `Thesis moved back to drafting for ${upperSymbol}.`,
+          };
+
+          return {
+            success: true,
+            action: 'thesis_status_updated',
+            data: data.thesis,
+            message: statusMessages[newStatus] || `Thesis status updated to ${newStatus}.`,
+          };
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          return {
+            success: false,
+            error: errorData.message || 'Failed to update thesis status',
+          };
+        }
+      } catch {
+        return {
+          success: false,
+          error: 'Could not connect to thesis service',
+        };
+      }
+    },
+  }),
+
+  detect_trading_intent: tool({
+    description: 'Use this when you detect the user expressing intent to trade or act on a position externally. This triggers a process integrity check. Call this when you hear phrases like "I\'m going to buy", "ready to enter", "pulling the trigger", "placing the order", "about to execute", etc.',
+    inputSchema: z.object({
+      symbol: z.string().describe('The symbol they intend to trade'),
+      intentStatement: z.string().describe('The user\'s statement expressing trading intent'),
+      thesisId: z.string().optional().describe('Related thesis ID if known'),
+    }),
+    execute: async ({ symbol, intentStatement, thesisId }) => {
+      const baseUrl = getBaseUrl();
+      const upperSymbol = symbol.toUpperCase();
+
+      try {
+        // Check process integrity when intent is detected
+        const integrityResponse = await fetch(`${baseUrl}/api/process-integrity/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol: upperSymbol,
+            action: 'external_trade_intent',
+            thesisId,
+          }),
+        });
+
+        if (integrityResponse.ok) {
+          const integrityResult = await integrityResponse.json();
+
+          // Always return the integrity check result
+          const hasFriction = integrityResult.friction?.level && integrityResult.friction.level !== 'none';
+
+          return {
+            success: true,
+            intent_detected: true,
+            intent_statement: intentStatement,
+            symbol: upperSymbol,
+            friction_triggered: hasFriction,
+            friction: integrityResult.friction,
+            integrity: {
+              researchQuality: integrityResult.researchQuality,
+              timeInThesis: integrityResult.timeInThesis,
+              conviction: integrityResult.conviction,
+            },
+            message: hasFriction
+              ? integrityResult.friction.message
+              : `Process integrity check passed for ${upperSymbol}. Your research and conviction appear solid.`,
+            suggested_action: hasFriction
+              ? integrityResult.friction.suggestedAction
+              : 'You may proceed with your intended action.',
+            can_override: integrityResult.friction?.canOverride ?? true,
+          };
+        }
+
+        // If check fails, return neutral response
+        return {
+          success: true,
+          intent_detected: true,
+          intent_statement: intentStatement,
+          symbol: upperSymbol,
+          friction_triggered: false,
+          message: `I noticed you're ready to act on ${upperSymbol}. Make sure you've done your due diligence.`,
+        };
+      } catch {
+        return {
+          success: true,
+          intent_detected: true,
+          intent_statement: intentStatement,
+          symbol: upperSymbol,
+          friction_triggered: false,
+          message: `I noticed you're ready to act on ${upperSymbol}. Make sure you've done your due diligence.`,
+        };
+      }
+    },
+  }),
+
   // Prediction Market Tools
   ...predictionMarketTools,
 
