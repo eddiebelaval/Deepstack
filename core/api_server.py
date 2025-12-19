@@ -532,6 +532,30 @@ class DeepStackAPIServer:
                 # Sort events by date
                 events.sort(key=lambda x: x.get("date", ""))
 
+                # Enrich events with Finnhub data (prior EPS, current price)
+                # Only enrich first 25 events to stay within Finnhub rate limits
+                # (25 symbols × 2 calls each = 50 calls, well under 60/min limit)
+                if events and self.finnhub_client:
+                    try:
+                        # Limit enrichment to first 25 events (nearest upcoming)
+                        events_to_enrich = events[:25]
+                        remaining_events = events[25:]
+
+                        enriched = await self.finnhub_client.enrich_earnings_events(
+                            events_to_enrich,
+                            include_quotes=True,
+                            include_eps_history=True,
+                        )
+
+                        # Combine enriched events with unenriched remaining
+                        events = enriched + remaining_events
+                        logger.info(
+                            f"Enriched {len(events_to_enrich)} of {len(events)} events"
+                        )
+                    except Exception as e:
+                        logger.warning(f"Finnhub enrichment failed: {e}")
+                        # Continue with unenriched events
+
                 return {"events": events}
 
             except Exception as e:
