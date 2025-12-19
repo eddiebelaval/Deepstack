@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { JournalEntryDialog } from './JournalEntryDialog';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
-import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, ArrowLeft, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sanitizeImageUrl } from '@/lib/utils/url-validator';
 import { SafeHtml } from '@/components/ui/safe-html';
@@ -65,9 +65,6 @@ export function JournalList() {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
                             <div>
                                 <h1 className="text-2xl font-bold">Trade Journal</h1>
                                 <p className="text-muted-foreground text-sm flex items-center gap-2">

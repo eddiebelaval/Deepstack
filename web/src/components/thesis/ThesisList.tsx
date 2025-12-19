@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThesisCard } from './ThesisCard';
 import { ThesisDialog } from './ThesisDialog';
 import { ThesisDashboard } from './ThesisDashboard';
-import { Plus, Lightbulb, Target, CheckCircle, XCircle, ArrowLeft, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Plus, Lightbulb, Target, CheckCircle, XCircle, Loader2, Cloud, CloudOff } from 'lucide-react';
 
 export function ThesisList() {
     const { theses, addThesis, updateThesis, isLoading, isOnline, error } = useThesisSync();
@@ -67,9 +67,6 @@ export function ThesisList() {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="icon" onClick={() => window.location.href = '/'}>
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
                             <div>
                                 <h1 className="text-2xl font-bold flex items-center gap-2">
                                     <Lightbulb className="h-6 w-6 text-amber-500" />
