@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef, useEffect } from 'react';
+import { useState, useEffect as useEffectReact } from 'react';
 import {
   MessageSquare,
   TrendingUp,
@@ -25,6 +26,14 @@ import {
   Eye,
   Lock,
   Quote,
+  Target,
+  Search,
+  XCircle,
+  CheckCircle,
+  Scale,
+  ArrowRight,
+  Play,
+  RotateCcw,
 } from 'lucide-react';
 
 import { IntelligentBackground } from '@/components/landing/IntelligentBackground';
@@ -37,12 +46,87 @@ import {
   ParallaxSection,
 } from '@/components/landing/StickySection';
 
+// The Three Pillars
+const THREE_PILLARS = [
+  {
+    icon: <Target className="w-8 h-8" />,
+    title: 'Knowing When to Act',
+    subtitle: 'Signal vs. Noise',
+    description: 'Most platforms drown you in data. DeepStack helps you recognize what actually matters for your specific thesis.',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/30',
+  },
+  {
+    icon: <Scale className="w-8 h-8" />,
+    title: 'Closing the Distance',
+    subtitle: 'Research to Conviction',
+    description: 'The gap between having information and having conviction. We help you bridge it through structured thinking.',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/30',
+  },
+  {
+    icon: <Zap className="w-8 h-8" />,
+    title: 'Grounded Action',
+    subtitle: 'Knowledge in Motion',
+    description: 'Knowledge without action is trivia. Action without knowledge is gambling. We help you act with foundation.',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/10',
+    borderColor: 'border-orange-500/30',
+  },
+];
+
+// Process Integrity Dimensions
+const INTEGRITY_DIMENSIONS = [
+  {
+    icon: <BookOpen className="w-5 h-5" />,
+    name: 'Research Quality',
+    description: 'Did you do the work? Tool usage, devil\'s advocate, assumptions documented.',
+    score: 72,
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/15',
+  },
+  {
+    icon: <Clock className="w-5 h-5" />,
+    name: 'Time in Thesis',
+    description: 'How long have you been developing this idea? Good ideas survive overnight.',
+    score: 'Nascent',
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-500/15',
+  },
+  {
+    icon: <Target className="w-5 h-5" />,
+    name: 'Conviction Integrity',
+    description: 'How certain are you? Are you hedging or committed?',
+    score: 85,
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/15',
+  },
+];
+
+// What DeepStack is NOT vs IS
+const NOT_IS_COMPARISON = {
+  not: [
+    { icon: <XCircle className="w-5 h-5" />, text: 'A signal service telling you what to buy' },
+    { icon: <XCircle className="w-5 h-5" />, text: 'A screener finding "hot stocks"' },
+    { icon: <XCircle className="w-5 h-5" />, text: 'A news aggregator with sentiment' },
+    { icon: <XCircle className="w-5 h-5" />, text: 'A crystal ball predicting prices' },
+  ],
+  is: [
+    { icon: <CheckCircle className="w-5 h-5" />, text: 'A thinking partner that validates your process' },
+    { icon: <CheckCircle className="w-5 h-5" />, text: 'A system that tracks research quality' },
+    { icon: <CheckCircle className="w-5 h-5" />, text: 'Friction that reveals weak conviction' },
+    { icon: <CheckCircle className="w-5 h-5" />, text: 'A journal of your evolving understanding' },
+  ],
+};
+
 // Feature grid - now with 8 items including Options
 const FEATURES = [
   {
     icon: <MessageSquare className="w-6 h-6" />,
     title: 'AI Research Assistant',
-    description: '30+ tools for instant stock analysis, news synthesis, and thesis validation.',
+    description: 'Challenge your thesis, find the bearish case, stress-test your assumptions.',
     color: 'text-blue-400',
     bgColor: 'bg-blue-500/10',
   },
@@ -55,8 +139,8 @@ const FEATURES = [
   },
   {
     icon: <Shield className="w-6 h-6" />,
-    title: 'Emotional Firewall',
-    description: 'Detects revenge trading, overtrading, and emotional patterns in real-time.',
+    title: 'Process Integrity Engine',
+    description: 'Creates friction at commitment points. Pause, not block. Override with reasoning.',
     color: 'text-orange-400',
     bgColor: 'bg-orange-500/10',
   },
@@ -70,7 +154,7 @@ const FEATURES = [
   {
     icon: <Lightbulb className="w-6 h-6" />,
     title: 'Thesis Engine',
-    description: 'Structured hypotheses with entry/exit targets and auto-validation scoring.',
+    description: 'Structured hypotheses that mature over time. Track evolution, not just entry/exit.',
     color: 'text-yellow-400',
     bgColor: 'bg-yellow-500/10',
   },
@@ -235,6 +319,361 @@ const DATA_SOURCES = [
   },
 ];
 
+// ============================================
+// ANIMATED FEATURE DEMOS
+// ============================================
+
+// Process Integrity Flow Demo
+function ProcessIntegrityDemo() {
+  const [step, setStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  useEffectReact(() => {
+    if (!isPlaying) return;
+    const timer = setInterval(() => {
+      setStep((s) => (s + 1) % 5);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [isPlaying]);
+
+  const steps = [
+    { label: 'User declares intent', sublabel: '"I\'m going to buy NVDA"', color: 'text-blue-400' },
+    { label: 'Research Quality Check', sublabel: 'Score: 72%', color: 'text-green-400' },
+    { label: 'Time in Thesis Check', sublabel: '1.5 hours (Nascent)', color: 'text-yellow-400' },
+    { label: 'Friction Generated', sublabel: 'Medium: "Thesis is young"', color: 'text-orange-400' },
+    { label: 'User Decides', sublabel: 'Override or Wait', color: 'text-purple-400' },
+  ];
+
+  return (
+    <div className="relative p-6 rounded-2xl bg-card/40 border border-border/50 backdrop-blur-sm h-full">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-orange-400" />
+          <span className="font-bold text-sm">Process Integrity Flow</span>
+        </div>
+        <button
+          onClick={() => setIsPlaying(!isPlaying)}
+          className="p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+        >
+          {isPlaying ? <RotateCcw className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {steps.map((s, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0.4, x: -10 }}
+            animate={{
+              opacity: step >= i ? 1 : 0.4,
+              x: step >= i ? 0 : -10,
+              scale: step === i ? 1.02 : 1,
+            }}
+            transition={{ duration: 0.3 }}
+            className={`p-3 rounded-lg border ${
+              step === i
+                ? 'bg-card/80 border-orange-500/50 shadow-lg shadow-orange-500/10'
+                : step > i
+                  ? 'bg-card/40 border-border/30'
+                  : 'bg-card/20 border-transparent'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                  step > i
+                    ? 'bg-green-500/20 text-green-400'
+                    : step === i
+                      ? 'bg-orange-500/20 text-orange-400'
+                      : 'bg-muted/30 text-muted-foreground'
+                }`}
+              >
+                {step > i ? <CheckCircle className="w-4 h-4" /> : i + 1}
+              </div>
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${step >= i ? s.color : 'text-muted-foreground'}`}>
+                  {s.label}
+                </p>
+                <p className="text-xs text-muted-foreground">{s.sublabel}</p>
+              </div>
+              {step === i && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"
+                />
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex gap-1">
+        {steps.map((_, i) => (
+          <div
+            key={i}
+            className={`h-1 flex-1 rounded-full transition-colors ${
+              step >= i ? 'bg-orange-400' : 'bg-muted/30'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Thesis Evolution Demo
+function ThesisEvolutionDemo() {
+  const [stage, setStage] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  useEffectReact(() => {
+    if (!isPlaying) return;
+    const timer = setInterval(() => {
+      setStage((s) => (s + 1) % 4);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [isPlaying]);
+
+  const stages = [
+    {
+      status: 'Nascent',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/20',
+      borderColor: 'border-yellow-500/30',
+      thesis: 'NVDA looks bullish',
+      details: 'Initial idea, no research',
+      score: 25,
+    },
+    {
+      status: 'Developing',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/20',
+      borderColor: 'border-blue-500/30',
+      thesis: 'NVDA: AI demand + data center growth',
+      details: 'Analysis started, thesis forming',
+      score: 55,
+    },
+    {
+      status: 'Active',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/20',
+      borderColor: 'border-green-500/30',
+      thesis: 'NVDA: Dominant AI infrastructure play',
+      details: 'Full analysis, assumptions documented',
+      score: 82,
+    },
+    {
+      status: 'Validated',
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/20',
+      borderColor: 'border-purple-500/30',
+      thesis: 'NVDA: Entry at $138, thesis confirmed',
+      details: 'Conviction proven, position taken',
+      score: 95,
+    },
+  ];
+
+  const current = stages[stage];
+
+  return (
+    <div className="relative p-6 rounded-2xl bg-card/40 border border-border/50 backdrop-blur-sm h-full">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Lightbulb className="w-5 h-5 text-purple-400" />
+          <span className="font-bold text-sm">Thesis Evolution</span>
+        </div>
+        <button
+          onClick={() => setIsPlaying(!isPlaying)}
+          className="p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+        >
+          {isPlaying ? <RotateCcw className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {/* Status badge */}
+      <motion.div
+        key={stage}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4"
+      >
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${current.bgColor} ${current.color} border ${current.borderColor}`}>
+          <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+          {current.status}
+        </span>
+      </motion.div>
+
+      {/* Thesis content */}
+      <motion.div
+        key={`thesis-${stage}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className={`p-4 rounded-xl border ${current.borderColor} ${current.bgColor.replace('/20', '/10')} mb-4`}
+      >
+        <p className="font-medium text-sm mb-1">{current.thesis}</p>
+        <p className="text-xs text-muted-foreground">{current.details}</p>
+      </motion.div>
+
+      {/* Research score bar */}
+      <div className="mb-2">
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-muted-foreground">Research Score</span>
+          <span className={current.color}>{current.score}%</span>
+        </div>
+        <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${current.score}%` }}
+            transition={{ duration: 0.5 }}
+            className={`h-full rounded-full ${current.bgColor.replace('/20', '')}`}
+          />
+        </div>
+      </div>
+
+      {/* Stage indicator */}
+      <div className="flex gap-2 mt-4">
+        {stages.map((s, i) => (
+          <button
+            key={i}
+            onClick={() => {
+              setStage(i);
+              setIsPlaying(false);
+            }}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              stage === i
+                ? `${s.bgColor} ${s.color} border ${s.borderColor}`
+                : 'bg-muted/20 text-muted-foreground hover:bg-muted/40'
+            }`}
+          >
+            {s.status}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Research Quality Building Demo
+function ResearchQualityDemo() {
+  const [activities, setActivities] = useState<{ action: string; points: number; done: boolean }[]>([
+    { action: 'Analyzed fundamentals', points: 15, done: false },
+    { action: 'Checked bearish case', points: 20, done: false },
+    { action: 'Documented assumptions', points: 15, done: false },
+    { action: 'Reviewed news sentiment', points: 10, done: false },
+    { action: 'Calculated position size', points: 12, done: false },
+  ]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  useEffectReact(() => {
+    if (!isPlaying) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => {
+        const next = prev + 1;
+        if (next >= activities.length) {
+          // Reset after showing all
+          setTimeout(() => {
+            setActivities((acts) => acts.map((a) => ({ ...a, done: false })));
+            setCurrentIndex(-1);
+          }, 1500);
+          return prev;
+        }
+        setActivities((acts) =>
+          acts.map((a, i) => (i === next ? { ...a, done: true } : a))
+        );
+        return next;
+      });
+    }, 1200);
+    return () => clearInterval(timer);
+  }, [isPlaying, activities.length]);
+
+  const totalScore = activities.reduce((sum, a) => sum + (a.done ? a.points : 0), 0);
+  const maxScore = activities.reduce((sum, a) => sum + a.points, 0);
+
+  return (
+    <div className="relative p-6 rounded-2xl bg-card/40 border border-border/50 backdrop-blur-sm h-full">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-green-400" />
+          <span className="font-bold text-sm">Research Quality Score</span>
+        </div>
+        <button
+          onClick={() => setIsPlaying(!isPlaying)}
+          className="p-1.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+        >
+          {isPlaying ? <RotateCcw className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {/* Score display */}
+      <div className="text-center mb-4">
+        <motion.div
+          key={totalScore}
+          initial={{ scale: 1.2 }}
+          animate={{ scale: 1 }}
+          className="text-4xl font-bold"
+        >
+          <span className={totalScore > 50 ? 'text-green-400' : totalScore > 25 ? 'text-yellow-400' : 'text-red-400'}>
+            {totalScore}
+          </span>
+          <span className="text-muted-foreground text-lg">/{maxScore}</span>
+        </motion.div>
+        <p className="text-xs text-muted-foreground">Research Points</p>
+      </div>
+
+      {/* Activities */}
+      <div className="space-y-2">
+        {activities.map((activity, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0.5 }}
+            animate={{
+              opacity: activity.done ? 1 : 0.5,
+              scale: currentIndex === i ? 1.02 : 1,
+            }}
+            className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
+              activity.done ? 'bg-green-500/10 border border-green-500/30' : 'bg-muted/20'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                  activity.done ? 'bg-green-500/20 text-green-400' : 'bg-muted/30 text-muted-foreground'
+                }`}
+              >
+                {activity.done ? <CheckCircle className="w-3 h-3" /> : <div className="w-2 h-2 rounded-full bg-current" />}
+              </div>
+              <span className={`text-sm ${activity.done ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {activity.action}
+              </span>
+            </div>
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: activity.done ? 1 : 0.3 }}
+              className={`text-xs font-bold ${activity.done ? 'text-green-400' : 'text-muted-foreground'}`}
+            >
+              +{activity.points}
+            </motion.span>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div className="mt-4">
+        <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${(totalScore / maxScore) * 100}%` }}
+            transition={{ duration: 0.3 }}
+            className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -315,8 +754,8 @@ export default function LandingPage() {
               transition={{ duration: 0.6 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 border border-primary/20 backdrop-blur-sm"
             >
-              <Zap className="w-4 h-4" />
-              <span>Free AI Research Platform</span>
+              <Scale className="w-4 h-4" />
+              <span>Process Integrity Platform</span>
             </motion.div>
 
             {/* Headline */}
@@ -326,9 +765,9 @@ export default function LandingPage() {
               transition={{ duration: 0.7, delay: 0.1 }}
               className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-[1.1]"
             >
-              Research Smarter.
+              Know. Refine.
               <br />
-              <span className="text-gradient-shimmer">Trade with Discipline.</span>
+              <span className="text-gradient-shimmer">Act with Foundation.</span>
             </motion.h1>
 
             {/* Evocative tagline */}
@@ -338,7 +777,7 @@ export default function LandingPage() {
               transition={{ duration: 0.7, delay: 0.15 }}
               className="text-2xl md:text-3xl text-foreground/90 mb-4 font-medium"
             >
-              Stop trading against yourself.
+              Knowledge without action is trivia. Action without knowledge is gambling.
             </motion.p>
 
             {/* Subheadline */}
@@ -348,7 +787,7 @@ export default function LandingPage() {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
             >
-              AI that knows your thesis, detects emotional blind spots, and validates your ideas with prediction markets.
+              DeepStack tracks your research quality, thesis maturity, and conviction integrity. Friction at commitment points, not blocks.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -380,7 +819,7 @@ export default function LandingPage() {
                   >
                     {/* Animated ring */}
                     <span className="absolute inset-0 rounded-2xl border-2 border-primary/50 animate-ping opacity-20" />
-                    Start Trading Smarter
+                    Ground Your Process
                     <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </motion.div>
@@ -433,79 +872,107 @@ export default function LandingPage() {
         </section>
 
         {/* ================================================================== */}
-        {/* THE PROBLEM - CENTERED (fast flow - punchy stats) */}
+        {/* THE THREE PILLARS */}
         {/* ================================================================== */}
         <StickySection
-          id="problem"
-          title="80% of retail traders lose money."
-          subtitle="Not because they're stupid. Because they're human."
-          badge="The Hard Truth"
-          badgeIcon={<AlertTriangle className="w-4 h-4" />}
-          badgeColor="bg-red-500/10 text-red-400 border-red-500/20"
-          titleAccent="text-red-400"
+          id="pillars"
+          title="Three Pillars of Grounded Trading"
+          subtitle="Not more data. Better process."
+          badge="Philosophy"
+          badgeIcon={<Target className="w-4 h-4" />}
+          badgeColor="bg-primary/10 text-primary border-primary/20"
           scrollHeight="min-h-fit"
           align="center"
         >
-          {/* Pain points - horizontal grid for centered layout */}
-          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {[
-              {
-                icon: <Flame className="w-6 h-6" />,
-                title: 'Revenge Trading',
-                stat: '62%',
-                description: 'of traders chase losses immediately after a bad trade',
-              },
-              {
-                icon: <Clock className="w-6 h-6" />,
-                title: 'Overtrading',
-                stat: '3.5x',
-                description: 'more trades than necessary due to FOMO and boredom',
-              },
-              {
-                icon: <Eye className="w-6 h-6" />,
-                title: 'Confirmation Bias',
-                stat: '78%',
-                description: 'ignore information that contradicts their thesis',
-              },
-            ].map((pain, i) => (
-              <ScrollReveal key={pain.title} delay={i * 0.1} direction="up">
-                <div className="p-5 rounded-2xl bg-card/30 border border-border/30 backdrop-blur-sm text-center">
-                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 mx-auto mb-3">
-                    {pain.icon}
+          {/* Three Pillars */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {THREE_PILLARS.map((pillar, i) => (
+              <ScrollReveal key={pillar.title} delay={i * 0.1} direction="up">
+                <div className={`p-6 rounded-2xl bg-card/30 border ${pillar.borderColor} backdrop-blur-sm text-center h-full`}>
+                  <div className={`w-16 h-16 rounded-2xl ${pillar.bgColor} flex items-center justify-center ${pillar.color} mx-auto mb-4`}>
+                    {pillar.icon}
                   </div>
-                  <p className="text-3xl font-bold text-red-400 mb-1">{pain.stat}</p>
-                  <h3 className="font-semibold mb-2">{pain.title}</h3>
-                  <p className="text-sm text-muted-foreground">{pain.description}</p>
+                  <p className={`text-xs font-bold uppercase tracking-wider ${pillar.color} mb-2`}>{pillar.subtitle}</p>
+                  <h3 className="text-xl font-bold mb-3">{pillar.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{pillar.description}</p>
                 </div>
               </ScrollReveal>
             ))}
           </div>
-
-          <ScrollReveal delay={0.4} className="mt-10 text-center max-w-2xl mx-auto">
-            <p className="text-muted-foreground text-lg">
-              The tools you use don&apos;t help. They give you more data, more charts, more noise.
-              <span className="text-foreground font-medium block mt-2">What you need is discipline.</span>
-            </p>
-          </ScrollReveal>
         </StickySection>
 
         {/* ================================================================== */}
-        {/* HOW IT WORKS - Combined Demo + Firewall */}
+        {/* WHAT WE'RE NOT / WHAT WE ARE */}
+        {/* ================================================================== */}
+        <section className="py-20 px-4 relative">
+          <div className="max-w-4xl mx-auto">
+            <ScrollReveal className="text-center mb-12">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground text-sm font-medium border border-border/30 mb-4">
+                <Search className="w-4 h-4" />
+                Clear Positioning
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Let&apos;s be clear about what DeepStack is.
+              </h2>
+            </ScrollReveal>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* NOT Column */}
+              <ScrollReveal direction="left">
+                <div className="p-6 rounded-2xl bg-red-500/5 border border-red-500/20">
+                  <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                    <XCircle className="w-5 h-5" />
+                    DeepStack is NOT
+                  </h3>
+                  <ul className="space-y-3">
+                    {NOT_IS_COMPARISON.not.map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-muted-foreground">
+                        <span className="text-red-400/60 mt-0.5">{item.icon}</span>
+                        <span>{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </ScrollReveal>
+
+              {/* IS Column */}
+              <ScrollReveal direction="right" delay={0.1}>
+                <div className="p-6 rounded-2xl bg-green-500/5 border border-green-500/20">
+                  <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    DeepStack IS
+                  </h3>
+                  <ul className="space-y-3">
+                    {NOT_IS_COMPARISON.is.map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-foreground/80">
+                        <span className="text-green-400 mt-0.5">{item.icon}</span>
+                        <span>{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================== */}
+        {/* HOW IT WORKS - Process Integrity Engine */}
         {/* ================================================================== */}
         <section id="how-it-works" className="py-24 px-4 relative bg-gradient-to-b from-transparent via-orange-950/5 to-transparent">
           <div className="max-w-6xl mx-auto">
             {/* Section Header */}
             <ScrollReveal className="text-center mb-16">
               <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20 mb-4">
-                <Zap className="w-4 h-4" />
-                How It Works
+                <Shield className="w-4 h-4" />
+                Process Integrity Engine
               </span>
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Two powerful systems.{' '}
-                <span className="text-gradient-shimmer">One disciplined trader.</span>
+                Friction at commitment points.{' '}
+                <span className="text-gradient-shimmer">Not blocks.</span>
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                AI that researches for you + guardrails that protect you from yourself.
+                When you&apos;re about to act, we check three dimensions. If your process is weak, you&apos;ll know — and you can still proceed.
               </p>
             </ScrollReveal>
 
@@ -520,14 +987,14 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h3 className="font-bold">AI Research Assistant</h3>
-                      <p className="text-xs text-muted-foreground">Catches your blind spots</p>
+                      <p className="text-xs text-muted-foreground">Challenge your thesis, find the bearish case</p>
                     </div>
                   </div>
                   <TypewriterChatDemo />
                 </div>
               </ScrollReveal>
 
-              {/* Panel 2: Emotional Firewall */}
+              {/* Panel 2: Process Integrity */}
               <ScrollReveal direction="right" delay={0.1}>
                 <div className="h-full p-6 rounded-2xl bg-card/30 border border-orange-500/20 backdrop-blur-sm">
                   <div className="flex items-center gap-3 mb-4">
@@ -535,57 +1002,53 @@ export default function LandingPage() {
                       <Shield className="w-5 h-5 text-orange-400" />
                     </div>
                     <div>
-                      <h3 className="font-bold">Emotional Firewall</h3>
-                      <p className="text-xs text-muted-foreground">Stops destructive patterns</p>
+                      <h3 className="font-bold">Process Integrity Check</h3>
+                      <p className="text-xs text-muted-foreground">Three dimensions before commitment</p>
                     </div>
                   </div>
 
-                  {/* Compact pattern list */}
+                  {/* Three Dimensions */}
                   <div className="space-y-3 mb-4">
-                    {FIREWALL_PATTERNS.map((pattern) => (
-                      <div key={pattern.name} className={`p-3 rounded-lg ${pattern.bgColor} border ${pattern.borderColor} flex items-center gap-3`}>
-                        <div className={`${pattern.color} shrink-0`}>{pattern.icon}</div>
+                    {INTEGRITY_DIMENSIONS.map((dim) => (
+                      <div key={dim.name} className={`p-3 rounded-lg ${dim.bgColor} border border-border/30 flex items-center gap-3`}>
+                        <div className={`${dim.color} shrink-0`}>{dim.icon}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{pattern.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{pattern.description}</p>
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-sm">{dim.name}</p>
+                            <span className={`text-xs font-bold ${dim.color}`}>
+                              {typeof dim.score === 'number' ? `${dim.score}%` : dim.score}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{dim.description}</p>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Compact firewall mockup */}
-                  <div className="rounded-xl bg-card/60 border border-border/50 p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm font-medium">Status</span>
+                  {/* Friction mockup */}
+                  <div className="rounded-xl bg-card/60 border border-orange-500/30 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium">Friction Level</span>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                        <span className="text-xs text-orange-400 font-medium">Warning Active</span>
+                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                        <span className="text-xs text-yellow-400 font-medium">Medium</span>
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Revenge Risk</span>
-                          <span className="text-orange-400">High</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            whileInView={{ width: '75%' }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 1 }}
-                            className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
-                          />
-                        </div>
-                      </div>
+                    <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 mb-3">
+                      <p className="text-sm text-foreground/90 mb-1">
+                        &quot;Your thesis is still young. You&apos;ve been developing it for less than 2 hours.&quot;
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Good ideas survive the overnight test.
+                      </p>
                     </div>
-                    <div className="mt-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
-                      <div className="flex items-center gap-2">
-                        <Ban className="w-4 h-4 text-orange-400 shrink-0" />
-                        <p className="text-xs text-muted-foreground">
-                          <span className="text-orange-400 font-medium">Cooldown:</span> 48 min remaining
-                        </p>
-                      </div>
+                    <div className="flex gap-2">
+                      <button className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-muted/50 text-muted-foreground border border-border/50">
+                        Wait & Research
+                      </button>
+                      <button className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                        Override with Reason
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -684,21 +1147,131 @@ export default function LandingPage() {
         </StickySection>
 
         {/* ================================================================== */}
-        {/* TRUST BAR - Compact credibility */}
+        {/* FEATURES IN ACTION - 3 Animated Demos */}
         {/* ================================================================== */}
-        <section className="py-12 px-4 border-y border-border/20 bg-card/10">
-          <div className="max-w-5xl mx-auto">
-            <ScrollReveal>
-              <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-wider mb-6">
-                Powered by industry leaders
+        <section className="py-24 px-4 relative bg-gradient-to-b from-transparent via-primary/5 to-transparent">
+          <div className="max-w-6xl mx-auto">
+            {/* Section Header */}
+            <ScrollReveal className="text-center mb-16">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20 mb-4">
+                <Play className="w-4 h-4" />
+                Features in Action
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                See How It{' '}
+                <span className="text-gradient-shimmer">Actually Works</span>
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Three core features that turn scattered research into grounded conviction.
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-                {[...AI_MODELS, ...DATA_SOURCES].slice(0, 6).map((item) => (
-                  <div key={item.name} className={`${item.color} opacity-50 hover:opacity-100 transition-opacity flex items-center gap-2`}>
-                    {item.icon}
-                    <span className="text-sm font-medium text-muted-foreground">{item.name}</span>
-                  </div>
-                ))}
+            </ScrollReveal>
+
+            {/* Three Animated Demos */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              <ScrollReveal direction="up" delay={0}>
+                <ProcessIntegrityDemo />
+              </ScrollReveal>
+              <ScrollReveal direction="up" delay={0.1}>
+                <ThesisEvolutionDemo />
+              </ScrollReveal>
+              <ScrollReveal direction="up" delay={0.2}>
+                <ResearchQualityDemo />
+              </ScrollReveal>
+            </div>
+
+            {/* Feature descriptions */}
+            <div className="grid lg:grid-cols-3 gap-6 mt-8">
+              <ScrollReveal delay={0.1}>
+                <div className="text-center p-4">
+                  <h3 className="font-bold text-orange-400 mb-2">Process Integrity</h3>
+                  <p className="text-sm text-muted-foreground">
+                    When you declare intent to act, we check your research quality, time-in-thesis, and conviction. Friction reveals weak process.
+                  </p>
+                </div>
+              </ScrollReveal>
+              <ScrollReveal delay={0.15}>
+                <div className="text-center p-4">
+                  <h3 className="font-bold text-purple-400 mb-2">Thesis Evolution</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Track how your thesis matures from nascent idea to validated conviction. Good ideas survive overnight.
+                  </p>
+                </div>
+              </ScrollReveal>
+              <ScrollReveal delay={0.2}>
+                <div className="text-center p-4">
+                  <h3 className="font-bold text-green-400 mb-2">Research Score</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Every research action builds your score. Analysis, devil&apos;s advocate, assumptions — all tracked.
+                  </p>
+                </div>
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================== */}
+        {/* POWERED BY - Full Services Section */}
+        {/* ================================================================== */}
+        <section className="py-20 px-4 border-y border-border/20 bg-card/10">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal className="text-center mb-12">
+              <h3 className="text-2xl font-bold mb-2">Powered by Industry Leaders</h3>
+              <p className="text-sm text-muted-foreground">Enterprise-grade AI and real-time market data</p>
+            </ScrollReveal>
+
+            {/* AI Models */}
+            <ScrollReveal delay={0.1}>
+              <div className="mb-10">
+                <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-wider mb-6">
+                  AI Models
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {AI_MODELS.map((model, i) => (
+                    <motion.div
+                      key={model.name}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.05 }}
+                      whileHover={{ scale: 1.05, y: -4 }}
+                      className="p-4 rounded-xl bg-card/40 border border-border/50 backdrop-blur-sm text-center hover:border-primary/30 transition-colors group"
+                    >
+                      <div className={`${model.color} opacity-60 group-hover:opacity-100 transition-opacity mx-auto mb-2 flex justify-center`}>
+                        {model.icon}
+                      </div>
+                      <p className="font-medium text-sm">{model.name}</p>
+                      <p className="text-xs text-muted-foreground">{model.description}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Data Sources */}
+            <ScrollReveal delay={0.2}>
+              <div>
+                <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-wider mb-6">
+                  Data Sources
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {DATA_SOURCES.map((source, i) => (
+                    <motion.div
+                      key={source.name}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.05 }}
+                      whileHover={{ scale: 1.05, y: -4 }}
+                      className="p-4 rounded-xl bg-card/40 border border-border/50 backdrop-blur-sm text-center hover:border-primary/30 transition-colors group"
+                    >
+                      <div className={`${source.color} opacity-60 group-hover:opacity-100 transition-opacity mx-auto mb-2 flex justify-center`}>
+                        {source.icon}
+                      </div>
+                      <p className="font-medium text-sm">{source.name}</p>
+                      <p className="text-xs text-muted-foreground">{source.description}</p>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </ScrollReveal>
           </div>
@@ -717,7 +1290,7 @@ export default function LandingPage() {
               <div className="mb-12 p-6 rounded-2xl bg-card/30 border border-primary/20 text-center max-w-xl mx-auto">
                 <Quote className="w-6 h-6 text-primary/40 mx-auto mb-3" />
                 <p className="text-base italic text-foreground/80 mb-3 leading-relaxed">
-                  &quot;I built this because I kept revenge trading after losses. I needed something to call me out before I sabotaged myself.&quot;
+                  &quot;I kept making impulsive trades with half-baked theses. I needed a system to show me when my process was weak — not block me, just make me confront it.&quot;
                 </p>
                 <p className="text-xs text-muted-foreground font-medium">— Eddie, Founder</p>
               </div>
@@ -725,15 +1298,15 @@ export default function LandingPage() {
 
             <ScrollReveal delay={0.1}>
               <h2 className="text-4xl md:text-6xl font-bold mb-6">
-                Ready to trade
+                Ready to act
                 <br />
-                <span className="text-gradient-shimmer">with discipline?</span>
+                <span className="text-gradient-shimmer">with foundation?</span>
               </h2>
             </ScrollReveal>
 
             <ScrollReveal delay={0.2}>
               <p className="text-muted-foreground text-xl mb-8">
-                The only platform that protects you from yourself.
+                Ground your process. Know when you&apos;re ready.
               </p>
             </ScrollReveal>
 
@@ -748,7 +1321,7 @@ export default function LandingPage() {
                     className="relative inline-flex items-center justify-center gap-3 px-12 py-6 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold transition-all text-xl group shadow-[0_0_40px_rgba(251,146,60,0.5)] hover:shadow-[0_0_60px_rgba(251,146,60,0.7)]"
                   >
                     <span className="absolute inset-0 rounded-2xl border-2 border-primary/50 animate-ping opacity-20" />
-                    Start Trading Smarter
+                    Ground Your Process
                     <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </motion.div>
@@ -769,7 +1342,7 @@ export default function LandingPage() {
                 <Brain className="w-5 h-5 text-primary" />
                 <span className="font-semibold tracking-tight">deepstack</span>
                 <span className="text-muted-foreground text-sm ml-2 px-2 py-0.5 bg-muted rounded-full">
-                  Research Platform
+                  Process Integrity
                 </span>
               </div>
               <div className="flex items-center gap-8 text-sm font-medium">
