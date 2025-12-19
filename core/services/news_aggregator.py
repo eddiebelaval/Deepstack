@@ -49,7 +49,7 @@ class NewsAggregator:
         stocktwits_client=None,
         stocktwits_scraper=None,
         perplexity_intelligence=None,
-        cache_ttl: int = 300,
+        cache_ttl: int = 900,
     ):
         """
         Initialize the news aggregator.
@@ -63,7 +63,7 @@ class NewsAggregator:
             stocktwits_client: StockTwitsClient instance (optional)
             stocktwits_scraper: StockTwitsScraper instance for hybrid mode (optional)
             perplexity_intelligence: PerplexityIntelligence instance (optional)
-            cache_ttl: Cache time-to-live in seconds (default: 5 minutes)
+            cache_ttl: Cache time-to-live in seconds (default: 15 minutes)
         """
         self.finnhub_client = finnhub_client
         self.newsapi_client = newsapi_client
@@ -645,3 +645,105 @@ class NewsAggregator:
         self.pending_scrapes.clear()
 
         logger.info("NewsAggregator closed all client connections")
+
+    async def prefetch_news(
+        self,
+        symbols: Optional[List[str]] = None,
+        include_general: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Pre-fetch news to warm the cache for faster subsequent requests.
+
+        Args:
+            symbols: Optional list of symbols to prefetch news for
+            include_general: Whether to also prefetch general market news
+
+        Returns:
+            Dict with prefetch results and timing
+        """
+        import time
+
+        start_time = time.time()
+        results = {"prefetched": [], "errors": [], "duration_seconds": 0}
+
+        try:
+            # Prefetch general market news (no symbol filter)
+            if include_general:
+                try:
+                    await self.get_aggregated_news(
+                        symbol=None, limit=50, include_social=True
+                    )
+                    results["prefetched"].append("general")
+                    logger.info("Prefetched general market news")
+                except Exception as e:
+                    results["errors"].append(f"general: {str(e)}")
+                    logger.warning(f"Failed to prefetch general news: {e}")
+
+            # Prefetch news for specific symbols
+            if symbols:
+                for symbol in symbols[:10]:  # Limit to 10 symbols to avoid overload
+                    try:
+                        await self.get_aggregated_news(
+                            symbol=symbol, limit=20, include_social=True
+                        )
+                        results["prefetched"].append(symbol)
+                        logger.debug(f"Prefetched news for {symbol}")
+                    except Exception as e:
+                        results["errors"].append(f"{symbol}: {str(e)}")
+                        logger.warning(f"Failed to prefetch news for {symbol}: {e}")
+
+        except Exception as e:
+            logger.error(f"Prefetch error: {e}")
+            results["errors"].append(f"prefetch: {str(e)}")
+
+        results["duration_seconds"] = round(time.time() - start_time, 2)
+        logger.info(
+            f"News prefetch complete: {len(results['prefetched'])} cached, "
+            f"{len(results['errors'])} errors, {results['duration_seconds']}s"
+        )
+        return results
+
+    async def start_background_prefetch(
+        self,
+        interval_seconds: int = 600,
+        symbols: Optional[List[str]] = None,
+    ) -> asyncio.Task:
+        """
+        Start a background task that periodically prefetches news.
+
+        Args:
+            interval_seconds: Time between prefetch runs (default: 10 minutes)
+            symbols: Optional list of symbols to prefetch
+
+        Returns:
+            The background task (can be cancelled with task.cancel())
+        """
+        self._prefetch_running = True
+        self._prefetch_symbols = symbols or []
+
+        async def _prefetch_loop():
+            logger.info(
+                f"Starting news prefetch loop (interval: {interval_seconds}s, "
+                f"symbols: {len(self._prefetch_symbols)})"
+            )
+            while self._prefetch_running:
+                try:
+                    await self.prefetch_news(
+                        symbols=self._prefetch_symbols, include_general=True
+                    )
+                except Exception as e:
+                    logger.error(f"Background prefetch error: {e}")
+
+                # Wait for next interval
+                await asyncio.sleep(interval_seconds)
+
+        task = asyncio.create_task(_prefetch_loop())
+        self._prefetch_task = task
+        return task
+
+    def stop_background_prefetch(self) -> None:
+        """Stop the background prefetch task."""
+        self._prefetch_running = False
+        if hasattr(self, "_prefetch_task") and self._prefetch_task:
+            self._prefetch_task.cancel()
+            logger.info("Background news prefetch stopped")
