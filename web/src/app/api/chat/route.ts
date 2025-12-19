@@ -264,9 +264,44 @@ export async function POST(req: Request) {
     }
 
     // Stream the response with tools enabled
-    const result = await streamText(streamOptions);
+    const result = streamText(streamOptions);
 
-    return result.toTextStreamResponse();
+    // Create a custom stream that includes tool results
+    // Format: "0:text" for text, "9:toolCall" for tool calls, "a:toolResult" for results
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const part of result.fullStream) {
+            if (part.type === 'text-delta') {
+              controller.enqueue(encoder.encode(`0:${JSON.stringify(part.text)}\n`));
+            } else if (part.type === 'tool-call') {
+              controller.enqueue(encoder.encode(`9:${JSON.stringify({
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                args: part.input,
+              })}\n`));
+            } else if (part.type === 'tool-result') {
+              controller.enqueue(encoder.encode(`a:${JSON.stringify({
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                result: part.output,
+              })}\n`));
+            }
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    });
   } catch (error: any) {
     // Log full error server-side only
     console.error('Chat API error details:', error.stack || error);
