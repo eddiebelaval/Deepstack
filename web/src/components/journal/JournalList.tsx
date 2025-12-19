@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { JournalEntryDialog } from './JournalEntryDialog';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
-import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
 import { ChatTip } from '@/components/ui/chat-tip';
 import { cn } from '@/lib/utils';
 import { sanitizeImageUrl } from '@/lib/utils/url-validator';
@@ -92,12 +92,8 @@ export function JournalList() {
                                 />
                             </div>
                         </div>
-                        <Button onClick={handleNew} disabled={isLoading} variant={isAtLimit ? 'outline' : 'default'}>
-                            {isLoading ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Plus className="h-4 w-4 mr-2" />
-                            )}
+                        <Button onClick={handleNew} disabled={isAtLimit} variant={isAtLimit ? 'outline' : 'default'}>
+                            <Plus className="h-4 w-4 mr-2" />
                             {isAtLimit ? 'Limit Reached' : 'New Entry'}
                         </Button>
                     </div>
