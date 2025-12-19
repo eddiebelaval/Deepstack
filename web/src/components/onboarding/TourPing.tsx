@@ -68,7 +68,7 @@ export function TourPing({
                         exit={{ scale: 0, opacity: 0 }}
                         transition={{ type: 'spring', damping: 15, stiffness: 300 }}
                         onClick={handlePingClick}
-                        className="relative w-6 h-6 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
+                        className="relative w-[72px] h-[72px] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
                         aria-label={`Tour: ${title}`}
                     >
                         {/* Expanding radar rings - mimics landing page ping */}
@@ -77,7 +77,7 @@ export function TourPing({
                         <span className="absolute inset-0 rounded-full border-2 border-primary/20 animate-[radar-ping_2s_ease-out_infinite_1.2s]" />
 
                         {/* Center dot with glow */}
-                        <span className="absolute inset-[8px] rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
+                        <span className="absolute inset-[28px] rounded-full bg-primary shadow-[0_0_20px_var(--primary)]" />
                     </motion.button>
                 )}
             </AnimatePresence>
