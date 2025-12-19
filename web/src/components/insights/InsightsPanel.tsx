@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { ChatTip } from '@/components/ui/chat-tip';
 
 const PATTERN_ICONS = {
     emotion: Heart,
@@ -113,6 +114,11 @@ export function InsightsPanel() {
                             <div>
                                 <h2 className="text-xl font-bold">Trading Insights</h2>
                                 <p className="text-sm text-muted-foreground">Performance analysis and AI pattern recognition</p>
+                                <ChatTip
+                                    example="What are my trading patterns?"
+                                    moreExamples={['Analyze my win rate', 'When do I trade best?']}
+                                    className="mt-1"
+                                />
                             </div>
                         </div>
                     </div>

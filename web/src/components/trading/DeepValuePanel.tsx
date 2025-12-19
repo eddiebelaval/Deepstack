@@ -8,6 +8,7 @@ import { DotScrollIndicator } from '@/components/ui/DotScrollIndicator';
 import { Badge } from '@/components/ui/badge';
 import { Play, TrendingUp, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ChatTip } from '@/components/ui/chat-tip';
 
 type ValueOpportunity = {
     symbol: string;
@@ -62,6 +63,11 @@ export function DeepValuePanel() {
                     <p className="text-muted-foreground text-sm mt-1">
                         Find asymmetric opportunities trading significantly below intrinsic value.
                     </p>
+                    <ChatTip
+                        example="Find undervalued stocks with strong cash flow"
+                        moreExamples={['Analyze INTC fundamentals', 'What stocks are trading below book value?']}
+                        className="mt-1"
+                    />
                 </div>
                 <Button
                     onClick={runScreen}

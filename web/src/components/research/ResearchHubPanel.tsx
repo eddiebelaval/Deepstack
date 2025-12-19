@@ -7,6 +7,7 @@ import { EarningsTranscriptViewer } from '@/components/trading/EarningsTranscrip
 import { CompanyProfilePanel } from '@/components/trading/CompanyProfilePanel';
 import { cn } from '@/lib/utils';
 import { FileText, Mic, Building2, Sparkles } from 'lucide-react';
+import { ChatTip } from '@/components/ui/chat-tip';
 
 /**
  * ResearchHubPanel - Unified panel for Perplexity Finance research tools
@@ -32,9 +33,16 @@ export function ResearchHubPanel({
     <div className={cn('h-full flex flex-col', className)}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Research Hub</h2>
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Research Hub</h2>
+          </div>
+          <ChatTip
+            example="Research NVDA earnings and guidance"
+            moreExamples={['Summarize Tesla 10-K', 'What did CEO say about AI?']}
+            className="mt-0.5 ml-7"
+          />
         </div>
         <span className="text-[10px] px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
           Powered by Perplexity

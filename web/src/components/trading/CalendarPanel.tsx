@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Loader2, RefreshCw } from 'lucide-react';
+import { ChatTip } from '@/components/ui/chat-tip';
 import { useCalendarStore } from '@/lib/stores/calendar-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { TimelineCalendar } from './TimelineCalendar';
@@ -39,9 +40,16 @@ export function CalendarPanel() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0 p-4 pb-2">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Market Calendar</h2>
+        <div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Market Calendar</h2>
+          </div>
+          <ChatTip
+            example="What earnings are coming this week?"
+            moreExamples={['When does NVDA report?', 'Any Fed meetings soon?']}
+            className="mt-0.5 ml-7"
+          />
         </div>
         <Button
           variant="outline"
