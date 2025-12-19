@@ -875,6 +875,188 @@ export const tradingTools = {
     }),
   }),
 
+  // =====================================================
+  // THESIS CREATION - Create new investment theses via chat
+  // =====================================================
+
+  create_thesis: tool({
+    description: 'Create a new investment thesis. Use this when the user wants to document a trading idea, hypothesis, or investment thesis for tracking.',
+    inputSchema: z.object({
+      symbol: z.string().describe('Stock ticker symbol (e.g., AAPL, NVDA)'),
+      hypothesis: z.string().describe('The core thesis or hypothesis (e.g., "NVDA will benefit from AI infrastructure buildout")'),
+      timeframe: z.string().describe('Expected timeframe for the thesis to play out (e.g., "3-6 months", "Q1 2025", "long-term")'),
+      entryTarget: z.number().optional().describe('Target entry price'),
+      exitTarget: z.number().optional().describe('Target exit/profit price'),
+      stopLoss: z.number().optional().describe('Stop loss price'),
+      keyConditions: z.array(z.string()).optional().describe('Key conditions that must be true for the thesis'),
+      status: z.enum(['drafting', 'active']).optional().default('drafting').describe('Initial status: drafting or active'),
+    }),
+    execute: async (params) => {
+      const baseUrl = getBaseUrl();
+      const upperSymbol = params.symbol.toUpperCase();
+
+      try {
+        const response = await fetch(`${baseUrl}/api/thesis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: `${upperSymbol} - ${params.hypothesis.slice(0, 50)}${params.hypothesis.length > 50 ? '...' : ''}`,
+            symbol: upperSymbol,
+            hypothesis: params.hypothesis,
+            timeframe: params.timeframe,
+            entryTarget: params.entryTarget,
+            exitTarget: params.exitTarget,
+            stopLoss: params.stopLoss,
+            keyConditions: params.keyConditions || [],
+            status: params.status || 'drafting',
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            success: true,
+            action: 'thesis_created',
+            data: data.thesis,
+            message: `Created ${params.status || 'draft'} thesis for ${upperSymbol}: "${params.hypothesis}"`,
+          };
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: errorData.message || 'Failed to create thesis',
+          message: 'Could not save the thesis. Please try again.',
+        };
+      } catch {
+        return {
+          success: false,
+          error: 'Thesis service unavailable',
+          message: 'Could not connect to thesis service. The thesis was not saved.',
+        };
+      }
+    },
+  }),
+
+  show_thesis: tool({
+    description: 'Open the thesis panel so the user can view and manage their investment theses',
+    inputSchema: z.object({
+      symbol: z.string().optional().describe('Optional: Filter to theses for a specific symbol'),
+    }),
+    execute: async ({ symbol }) => ({
+      success: true,
+      action: 'show_panel',
+      panel: 'thesis',
+      symbol: symbol?.toUpperCase(),
+      message: symbol ? `Showing theses for ${symbol.toUpperCase()}` : 'Showing Thesis Engine',
+    }),
+  }),
+
+  // =====================================================
+  // PRICE ALERTS - Create and manage price alerts via chat
+  // =====================================================
+
+  create_price_alert: tool({
+    description: 'Create a price alert for a stock. Use this when the user wants to be notified when a stock reaches a certain price level.',
+    inputSchema: z.object({
+      symbol: z.string().describe('Stock ticker symbol (e.g., SPY, AAPL)'),
+      targetPrice: z.number().positive().describe('The price level to alert at'),
+      condition: z.enum(['above', 'below', 'crosses']).describe('Alert condition: "above" for price going up to target, "below" for price dropping to target, "crosses" for any crossing'),
+      note: z.string().optional().describe('Optional note for the alert (e.g., "support level", "resistance break")'),
+    }),
+    execute: async (params) => {
+      const upperSymbol = params.symbol.toUpperCase();
+
+      // Return action for the client to create the alert in the store
+      return {
+        success: true,
+        action: 'create_alert',
+        data: {
+          symbol: upperSymbol,
+          targetPrice: params.targetPrice,
+          condition: params.condition,
+          note: params.note,
+        },
+        message: `Alert created: Notify when ${upperSymbol} goes ${params.condition} $${params.targetPrice.toFixed(2)}${params.note ? ` (${params.note})` : ''}`,
+      };
+    },
+  }),
+
+  // =====================================================
+  // CALENDAR - Get market calendar events via chat
+  // =====================================================
+
+  get_calendar_events: tool({
+    description: 'Get upcoming market calendar events including earnings, economic releases, dividends, and IPOs. Use this when the user asks about upcoming earnings, Fed meetings, economic data releases, etc.',
+    inputSchema: z.object({
+      startDate: z.string().optional().describe('Start date in YYYY-MM-DD format (defaults to today)'),
+      endDate: z.string().optional().describe('End date in YYYY-MM-DD format (defaults to 2 weeks from start)'),
+      eventType: z.enum(['earnings', 'economic', 'dividend', 'ipo', 'all']).optional().default('all').describe('Type of events to fetch'),
+      symbol: z.string().optional().describe('Filter by specific stock symbol'),
+    }),
+    execute: async ({ startDate, endDate, eventType, symbol }) => {
+      const baseUrl = getBaseUrl();
+
+      // Default dates
+      const start = startDate || new Date().toISOString().split('T')[0];
+      const defaultEnd = new Date(new Date(start).getTime() + 14 * 24 * 60 * 60 * 1000);
+      const end = endDate || defaultEnd.toISOString().split('T')[0];
+
+      try {
+        const params = new URLSearchParams({ start, end });
+        if (eventType && eventType !== 'all') params.append('type', eventType);
+        if (symbol) params.append('symbol', symbol.toUpperCase());
+
+        const response = await fetch(`${baseUrl}/api/calendar?${params}`, {
+          cache: 'no-store',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const events = data.events || [];
+
+          // Filter by symbol if specified
+          const filtered = symbol
+            ? events.filter((e: any) => e.symbol?.toUpperCase() === symbol.toUpperCase())
+            : events;
+
+          // Group by type for better presentation
+          const grouped = {
+            earnings: filtered.filter((e: any) => e.type === 'earnings'),
+            economic: filtered.filter((e: any) => e.type === 'economic'),
+            dividend: filtered.filter((e: any) => e.type === 'dividend'),
+            ipo: filtered.filter((e: any) => e.type === 'ipo'),
+          };
+
+          return {
+            success: true,
+            data: {
+              events: filtered,
+              grouped,
+              dateRange: { start, end },
+              totalCount: filtered.length,
+            },
+            message: filtered.length > 0
+              ? `Found ${filtered.length} calendar events from ${start} to ${end}`
+              : `No calendar events found for the selected period`,
+          };
+        }
+
+        return {
+          success: true,
+          data: { events: [], grouped: {}, dateRange: { start, end }, totalCount: 0 },
+          message: 'Calendar data temporarily unavailable',
+        };
+      } catch {
+        return {
+          success: true,
+          data: { events: [], grouped: {}, dateRange: { start, end }, totalCount: 0 },
+          message: 'Could not connect to calendar service',
+        };
+      }
+    },
+  }),
+
   // Prediction Market Tools
   ...predictionMarketTools,
 
