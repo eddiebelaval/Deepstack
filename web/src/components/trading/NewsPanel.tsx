@@ -32,6 +32,7 @@ import { DiscoverFeed } from '@/components/discover/DiscoverFeed';
 import { DiscoverHeader } from '@/components/discover/DiscoverHeader';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChatTip } from '@/components/ui/chat-tip';
 
 // Perplexity-style category tabs
 const CATEGORY_TABS = [
@@ -193,7 +194,14 @@ export function NewsPanel() {
       <div className="flex-shrink-0 p-4 pb-2 space-y-3">
         {/* Title Row */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Discover</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Discover</h1>
+            <ChatTip
+              example="What's the latest news on AAPL?"
+              moreExamples={['Summarize Tesla news', 'Any market-moving headlines?']}
+              className="mt-0.5"
+            />
+          </div>
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}
             <div className="flex items-center bg-muted rounded-lg p-0.5">

@@ -42,6 +42,7 @@ import {
     Bell,
     Loader2,
 } from 'lucide-react';
+import { ChatTip } from '@/components/ui/chat-tip';
 
 type PlatformFilter = 'all' | 'kalshi' | 'polymarket';
 type CategoryFilter = 'all' | 'Economics' | 'Crypto' | 'Politics' | 'Stocks' | 'Sports';
@@ -155,10 +156,17 @@ export function PredictionMarketsPanel() {
                 {/* Top row: Title + Status + Refresh */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5 text-primary" />
-                            Prediction Markets
-                        </h2>
+                        <div>
+                            <h2 className="text-lg font-semibold flex items-center gap-2">
+                                <TrendingUp className="h-5 w-5 text-primary" />
+                                Prediction Markets
+                            </h2>
+                            <ChatTip
+                                example="What are the odds on the Fed rate decision?"
+                                moreExamples={['Show crypto prediction markets', 'Election betting odds?']}
+                                className="mt-0.5 ml-7"
+                            />
+                        </div>
                         {/* Live indicator */}
                         {autoRefreshEnabled && !isUnavailable && (
                             <div className="flex items-center gap-1.5">

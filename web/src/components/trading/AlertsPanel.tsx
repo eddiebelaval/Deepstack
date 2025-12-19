@@ -31,6 +31,7 @@ import { AlertCondition, PriceAlert } from '@/lib/stores/alerts-store';
 import { useTradingStore } from '@/lib/stores/trading-store';
 import { Loader2, Cloud, CloudOff } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChatTip } from '@/components/ui/chat-tip';
 
 export function AlertsPanel() {
   const { alerts, addAlert, removeAlert, clearTriggered, isLoading, isOnline, error } = useAlertsSync();
@@ -73,25 +74,32 @@ export function AlertsPanel() {
     <div className="h-full flex flex-col p-4 gap-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Price Alerts</h2>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  {isOnline ? (
-                    <Cloud className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <CloudOff className="h-3 w-3 text-yellow-500" />
-                  )}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isOnline ? 'Synced with cloud' : 'Using local storage'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <div>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Price Alerts</h2>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    {isOnline ? (
+                      <Cloud className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <CloudOff className="h-3 w-3 text-yellow-500" />
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isOnline ? 'Synced with cloud' : 'Using local storage'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <ChatTip
+            example="Alert me when SPY hits 500"
+            moreExamples={['Set alert for AAPL below 170']}
+            className="mt-0.5 ml-7"
+          />
         </div>
         <Badge variant="outline" className="text-xs">
           {activeAlerts.length} active

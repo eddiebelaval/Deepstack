@@ -11,6 +11,7 @@ import { ThesisCard } from './ThesisCard';
 import { ThesisDialog } from './ThesisDialog';
 import { ThesisDashboard } from './ThesisDashboard';
 import { Plus, Lightbulb, Target, CheckCircle, XCircle, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { ChatTip } from '@/components/ui/chat-tip';
 
 export function ThesisList() {
     const { theses, addThesis, updateThesis, isLoading, isOnline, error } = useThesisSync();
@@ -84,6 +85,11 @@ export function ThesisList() {
                                         </span>
                                     )}
                                 </p>
+                                <ChatTip
+                                    example="Create a thesis for NVDA bullish on AI"
+                                    moreExamples={['Show my active theses', 'What are my best performing ideas?']}
+                                    className="mt-1"
+                                />
                             </div>
                         </div>
                         <Button onClick={handleNew} disabled={isLoading}>

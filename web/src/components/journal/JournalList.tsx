@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { JournalEntryDialog } from './JournalEntryDialog';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Plus, TrendingUp, TrendingDown, Calendar, Trash2, Edit, Loader2, Cloud, CloudOff, Link2, ImageIcon } from 'lucide-react';
+import { ChatTip } from '@/components/ui/chat-tip';
 import { cn } from '@/lib/utils';
 import { sanitizeImageUrl } from '@/lib/utils/url-validator';
 import { SafeHtml } from '@/components/ui/safe-html';
@@ -84,6 +85,11 @@ export function JournalList() {
                                         </Badge>
                                     )}
                                 </p>
+                                <ChatTip
+                                    example="Log my AAPL trade, bought at 180"
+                                    moreExamples={['Show my recent trades', 'What patterns do I have?']}
+                                    className="mt-1"
+                                />
                             </div>
                         </div>
                         <Button onClick={handleNew} disabled={isLoading} variant={isAtLimit ? 'outline' : 'default'}>
