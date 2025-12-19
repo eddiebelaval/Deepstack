@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Brain, LogIn, Mic } from 'lucide-react';
+import { Send, Loader2, Brain, LogIn, Mic, Info } from 'lucide-react';
 import { PersonaSelector } from './PersonaSelector';
 import { ModelSelector } from './ModelSelector';
 import { OverflowMenu } from './OverflowMenu';
@@ -125,6 +125,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   return (
     <div ref={containerRef} className={cn("relative", isMobile ? "p-3" : "p-4")}>
+      {/* AI Disclaimer Banner */}
+      <div className="flex items-center justify-center gap-1.5 mb-2 px-3 py-1.5 bg-muted/30 border border-border/30 rounded-full mx-auto w-fit">
+        <Info className="h-3 w-3 text-muted-foreground/60" />
+        <span className="text-[10px] text-muted-foreground/60">
+          AI can make mistakes. Verify important information.
+        </span>
+      </div>
+
       {/* Mobile: Stacked two-row layout */}
       {isMobile ? (
         <div
