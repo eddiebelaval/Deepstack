@@ -12,6 +12,7 @@ import { usePersonaStore } from '@/lib/stores/persona-store';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useUser } from '@/hooks/useUser';
+import { createConversation, saveMessage, fetchMessages } from '@/lib/supabase/conversations';
 import { useChatLimit } from '@/hooks/useChatLimit';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { ChatLimitBanner } from '@/components/ui/upgrade-banner';
@@ -36,6 +37,7 @@ import { ThesisList } from '@/components/thesis/ThesisList';
 import { InsightsPanel } from '@/components/insights/InsightsPanel';
 import { ResearchHubPanel } from '@/components/research/ResearchHubPanel';
 import { DeepResearchPanel } from '@/components/trading/DeepResearchPanel';
+import { StockDeepDivePanel } from '@/components/stock';
 import { PresetGrid } from './PresetGrid';
 // HomeWidgets moved to global MarketWatchPanel in DeepStackLayout
 import { cn } from '@/lib/utils';
@@ -70,6 +72,29 @@ export function ConversationView() {
     const [showChatLimitPrompt, setShowChatLimitPrompt] = useState(false);
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const chatScrollRef = useRef<HTMLDivElement>(null);
+    const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+    const { currentConversationId: storeConversationId, setCurrentConversation } = useChatStore();
+
+    // Load messages when a conversation is selected from the sidebar
+    useEffect(() => {
+        if (storeConversationId && storeConversationId !== currentConversationId) {
+            setCurrentConversationId(storeConversationId);
+            // Load messages for this conversation
+            fetchMessages(storeConversationId)
+                .then((loadedMessages) => {
+                    setMessages(loadedMessages.map(m => ({
+                        id: m.id,
+                        role: m.role as 'user' | 'assistant' | 'system',
+                        content: m.content,
+                        createdAt: m.createdAt,
+                        toolInvocations: m.toolInvocations,
+                    })));
+                })
+                .catch((err) => {
+                    console.error('Failed to load messages:', err);
+                });
+        }
+    }, [storeConversationId, currentConversationId]);
 
     // Track scroll position to show/hide scroll-to-bottom button
     useEffect(() => {
@@ -170,6 +195,7 @@ export function ConversationView() {
                 'options-builder': 'options-builder',
                 'prediction-markets': 'prediction-markets',
                 'thesis': 'thesis',
+                'stock-deep-dive': 'stock-deep-dive',
             };
 
             // Allow tool calls to switch content (including to 'chart')
@@ -219,6 +245,36 @@ export function ConversationView() {
         setMessages(prev => [...prev, userMessage]);
         setIsLoading(true);
         setIsStreaming(true);
+
+        // Create or get conversation ID for message persistence
+        let conversationId = currentConversationId;
+        if (!conversationId) {
+            try {
+                // Generate title from first message (first 50 chars)
+                const title = content.length > 50 ? content.slice(0, 47) + '...' : content;
+                const conversation = await createConversation(title, activeProvider);
+                conversationId = conversation.id;
+                setCurrentConversationId(conversationId);
+                setCurrentConversation(conversationId);
+            } catch (err) {
+                console.warn('Could not create conversation:', err);
+                // Continue without persistence if conversation creation fails
+            }
+        }
+
+        // Save user message to database
+        if (conversationId) {
+            try {
+                await saveMessage(conversationId, {
+                    id: userMessage.id,
+                    role: userMessage.role,
+                    content: userMessage.content,
+                    createdAt: userMessage.createdAt,
+                }, activeProvider);
+            } catch (err) {
+                console.warn('Could not save user message:', err);
+            }
+        }
 
         try {
             // Build context for the AI with full semantic awareness
@@ -353,6 +409,21 @@ export function ConversationView() {
                         }
                     });
                 }
+
+                // Save assistant message to database after streaming completes
+                if (conversationId && assistantContent) {
+                    try {
+                        await saveMessage(conversationId, {
+                            id: assistantId,
+                            role: 'assistant',
+                            content: assistantContent,
+                            createdAt: new Date(),
+                            toolInvocations: toolInvocations.length > 0 ? toolInvocations : undefined,
+                        }, activeProvider);
+                    } catch (err) {
+                        console.warn('Could not save assistant message:', err);
+                    }
+                }
             }
         } catch (error) {
             console.error('Chat error:', error);
@@ -366,7 +437,7 @@ export function ConversationView() {
             setIsLoading(false);
             setIsStreaming(false);
         }
-    }, [messages, activeProvider, activeSymbol, activeContent, thesisEntries, journalEntries, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult, requireAuth, canChat, tier, detectIntent, useExtendedThinking, activePersonaId]);
+    }, [messages, activeProvider, activeSymbol, activeContent, thesisEntries, journalEntries, setIsStreaming, setActiveContent, setActiveSymbol, handleToolResult, requireAuth, canChat, tier, detectIntent, useExtendedThinking, activePersonaId, currentConversationId, setCurrentConversation]);
 
     const hasMessages = messages.length > 0;
     const hasActiveContent = activeContent !== 'none';
@@ -505,6 +576,13 @@ export function ConversationView() {
                 </div>
             );
         }
+        if (activeContent === 'stock-deep-dive') {
+            return (
+                <div className="h-full overflow-hidden bg-card border-t border-border/50">
+                    <StockDeepDivePanel />
+                </div>
+            );
+        }
         return null;
     };
 
@@ -614,6 +692,7 @@ export function ConversationView() {
                             {activeContent === 'insights' && 'Insights'}
                             {activeContent === 'research-hub' && 'Research Hub'}
                             {activeContent === 'deep-research' && 'Deep Research'}
+                            {activeContent === 'stock-deep-dive' && 'Stock Deep Dive'}
                         </span>
                         <Button
                             variant="ghost"
@@ -655,6 +734,7 @@ export function ConversationView() {
                                     {activeContent === 'insights' && 'AI Insights'}
                                     {activeContent === 'research-hub' && 'Research Hub'}
                                     {activeContent === 'deep-research' && 'Deep Research'}
+                                    {activeContent === 'stock-deep-dive' && 'Stock Deep Dive'}
                                 </span>
                                 <Button
                                     variant="ghost"
