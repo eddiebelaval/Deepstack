@@ -33,6 +33,7 @@ export const metadata: Metadata = {
   description: 'AI-powered trading assistant with emotional discipline frameworks',
   keywords: ['trading', 'AI', 'stock analysis', 'portfolio tracker', 'options', 'emotional firewall'],
   authors: [{ name: 'deepstack' }],
+  metadataBase: new URL('https://deepstack.trade'),
 
   // PWA manifest
   manifest: '/manifest.json',
@@ -51,17 +52,26 @@ export const metadata: Metadata = {
   },
 
   openGraph: {
-    title: 'deepstack',
-    description: 'AI-powered trading assistant with emotional discipline frameworks',
+    title: 'deepstack - Process Integrity Platform',
+    description: 'Know. Refine. Act with Foundation. AI-powered trading assistant that tracks research quality, thesis maturity, and conviction integrity.',
     type: 'website',
     locale: 'en_US',
-    images: [{ url: '/landing-preview.png', width: 1280, height: 720 }],
+    url: 'https://deepstack.trade',
+    siteName: 'deepstack',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'deepstack - Process Integrity Platform',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'deepstack',
-    description: 'AI-powered trading assistant with emotional discipline frameworks',
-    images: ['/landing-preview.png'],
+    title: 'deepstack - Process Integrity Platform',
+    description: 'Know. Refine. Act with Foundation. AI-powered trading assistant that tracks research quality, thesis maturity, and conviction integrity.',
+    images: ['/og-image.png'],
   },
 
   // PWA / iOS home screen app
