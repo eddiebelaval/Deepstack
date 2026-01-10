@@ -57,22 +57,22 @@ function useTradeJournal() {
   const [error] = useState<string | null>(null);
 
   const addEntry = (entry: Omit<TradeEntry, 'id' | 'createdAt'>) => {
-    setEntries([
+    setEntries((prev) => [
       {
         ...entry,
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
       },
-      ...entries,
+      ...prev,
     ]);
   };
 
   const removeEntry = (id: string) => {
-    setEntries(entries.filter((e) => e.id !== id));
+    setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
   const updateEntry = (id: string, updates: Partial<TradeEntry>) => {
-    setEntries(entries.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
   };
 
   return {
