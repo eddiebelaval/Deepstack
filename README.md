@@ -54,7 +54,7 @@ Visit **[deepstack.trade](https://deepstack.trade)** - no installation required!
 
 ```bash
 # Clone the repo
-git clone https://github.com/eddiebe147/Deepstack.git
+git clone https://github.com/eddiebelaval/Deepstack.git
 cd deepstack
 
 # Install backend
