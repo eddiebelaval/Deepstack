@@ -27,42 +27,69 @@ from config.voice_config import (
     BRAIN_MAX_TOKENS,
     BRAIN_MODEL,
     BRAIN_TIMEOUT,
+    SOUL_PATH,
     TRADING_BRAIN_PATH,
 )
-from core.voice.context_gatherer import format_context_for_prompt, gather_full_context
+from core.voice.context_gatherer import (
+    format_context_for_prompt,
+    gather_full_context,
+)
 
 logger = logging.getLogger("deepstack.voice.brain")
 
-# Cache the brain document (static knowledge, loaded once)
+# Cache static documents (loaded once, reused across calls)
 _brain_document: Optional[str] = None
+_soul_document: Optional[str] = None
+
+
+def _load_document(path: str, label: str, fallback: str) -> str:
+    """Load a markdown document from disk with caching."""
+    if not os.path.exists(path):
+        logger.warning("%s not found at %s", label, path)
+        return fallback
+
+    with open(path, "r") as f:
+        content = f.read()
+
+    logger.info("Loaded %s (%d chars)", label, len(content))
+    return content
 
 
 def _load_brain_document() -> str:
-    """Load TRADING_BRAIN.md from disk. Cached after first load."""
+    """Load TRADING_BRAIN.md. Cached after first load."""
     global _brain_document
-    if _brain_document is not None:
-        return _brain_document
-
-    if not os.path.exists(TRADING_BRAIN_PATH):
-        logger.warning("TRADING_BRAIN.md not found at %s", TRADING_BRAIN_PATH)
-        _brain_document = (
+    if _brain_document is None:
+        _brain_document = _load_document(
+            TRADING_BRAIN_PATH,
+            "TRADING_BRAIN.md",
             "No trading brain document found. "
-            "Answer based on general trading knowledge."
+            "Answer based on general trading knowledge.",
         )
-        return _brain_document
-
-    with open(TRADING_BRAIN_PATH, "r") as f:
-        _brain_document = f.read()
-
-    logger.info("Loaded TRADING_BRAIN.md (%d chars)", len(_brain_document))
     return _brain_document
 
 
+def _load_soul_document() -> str:
+    """Load SOUL.md. Cached after first load."""
+    global _soul_document
+    if _soul_document is None:
+        _soul_document = _load_document(
+            SOUL_PATH,
+            "SOUL.md",
+            "",
+        )
+    return _soul_document
+
+
 def _build_system_prompt(live_context: str) -> str:
-    """Build the full system prompt: brain document + live context."""
+    """Build the full system prompt: soul + brain + live context."""
+    soul = _load_soul_document()
     brain = _load_brain_document()
 
-    return f"""{brain}
+    return f"""{soul}
+
+---
+
+{brain}
 
 ---
 
@@ -75,11 +102,8 @@ RESPONSE RULES:
 - Use **bold** for emphasis, `backticks` for tickers/numbers.
 - Be direct and specific. Use actual data from the live context above.
 - If data is missing or unavailable, say so honestly.
-- Think in risk/reward. Always consider downside.
-- Use trader vernacular but remain clear.
 - When citing numbers, always specify units (cents, dollars, percentage).
-- For Telegram HTML: convert **bold** to <b>bold</b>, `code` to <code>code</code>.
-  Output as markdown — the system handles conversion.
+- For Telegram HTML: output as markdown, the system handles conversion.
 """
 
 

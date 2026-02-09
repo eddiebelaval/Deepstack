@@ -11,6 +11,7 @@ import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV_FILE = os.path.join(PROJECT_ROOT, "deepstack-voice.env")
 TRADING_BRAIN_PATH = os.path.join(PROJECT_ROOT, "docs", "TRADING_BRAIN.md")
+SOUL_PATH = os.path.join(PROJECT_ROOT, "docs", "SOUL.md")
 TRADE_JOURNAL_DB = os.path.join(
     os.path.expanduser("~"),
     "clawd",
