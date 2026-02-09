@@ -12,7 +12,9 @@ Target accuracy: 80%+ squeeze detection on historical data
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+from core.signals.gex_calculator import TotalGEX
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +57,10 @@ class Catalyst:
 
     def __post_init__(self):
         """Validate catalyst data"""
-        valid_types = ["earnings", "news", "insider_buying", "technical", "sentiment"]
+        valid_types = [
+            "earnings", "news", "insider_buying", "technical", "sentiment",
+            "options_flow", "dark_pool_accumulation",
+        ]
         if self.catalyst_type not in valid_types:
             raise ValueError(
                 f"catalyst_type must be one of {valid_types}, got {self.catalyst_type}"
@@ -443,6 +448,94 @@ class SqueezeHunterStrategy:
         )
 
         return combined_score
+
+    def enhance_with_signals(
+        self,
+        opportunity: SqueezeOpportunity,
+        gex_data: Optional[TotalGEX] = None,
+        flow_alerts: Optional[List[Dict[str, Any]]] = None,
+    ) -> SqueezeOpportunity:
+        """
+        Enhance a squeeze opportunity with GEX and flow confirmation signals.
+
+        Adjusts the squeeze_score based on options market structure:
+        - Short gamma regime + high SI = stronger squeeze setup (+10)
+        - Large OTM call sweeps = institutional squeeze bet (+15)
+        - Bearish put flow = reduces squeeze probability (-10)
+
+        All enhancements are additive/subtractive. Score is capped at 0-100.
+        If no signal data is provided, the opportunity is returned unchanged.
+
+        Args:
+            opportunity: Existing squeeze opportunity to enhance
+            gex_data: Optional TotalGEX from GEXCalculator
+            flow_alerts: Optional list of flow alert dicts with keys:
+                         'option_type' (str), 'sweep' (bool), 'otm' (bool),
+                         'sentiment' (str: "bullish"/"bearish"), 'symbol' (str)
+
+        Returns:
+            The same SqueezeOpportunity with adjusted squeeze_score and
+            signal metadata added
+        """
+        adjustment = 0.0
+        signals_applied: List[str] = []
+
+        # GEX confirmation: short gamma + high SI = squeeze fuel
+        if gex_data is not None and gex_data.regime == "short_gamma":
+            adjustment += 10
+            signals_applied.append(
+                f"short_gamma_regime (GEX={gex_data.total_gex:,.0f})"
+            )
+            logger.info(
+                f"{opportunity.symbol}: Short gamma regime detected, +10 squeeze"
+            )
+
+        # Flow confirmation
+        if flow_alerts:
+            symbol = opportunity.symbol
+            symbol_alerts = [
+                a for a in flow_alerts
+                if a.get("symbol", "").upper() == symbol.upper()
+            ]
+
+            # Check for large OTM call sweeps (institutional squeeze bet)
+            has_bullish_sweep = any(
+                a.get("option_type") == "call"
+                and a.get("sweep") is True
+                and a.get("otm") is True
+                for a in symbol_alerts
+            )
+            if has_bullish_sweep:
+                adjustment += 15
+                signals_applied.append("otm_call_sweeps")
+                logger.info(
+                    f"{opportunity.symbol}: OTM call sweeps detected, +15 squeeze"
+                )
+
+            # Check for bearish put flow
+            has_bearish_puts = any(
+                a.get("option_type") == "put"
+                and a.get("sentiment") == "bearish"
+                for a in symbol_alerts
+            )
+            if has_bearish_puts:
+                adjustment -= 10
+                signals_applied.append("bearish_put_flow")
+                logger.info(
+                    f"{opportunity.symbol}: Bearish put flow detected, -10 squeeze"
+                )
+
+        if adjustment != 0:
+            new_score = max(0.0, min(100.0, opportunity.squeeze_score + adjustment))
+            opportunity.squeeze_score = new_score
+            opportunity.metadata["signal_adjustment"] = adjustment
+            opportunity.metadata["signals_applied"] = signals_applied
+            logger.info(
+                f"{opportunity.symbol}: Signal adjustment={adjustment:+.0f}, "
+                f"new_score={new_score:.1f}"
+            )
+
+        return opportunity
 
     def _calculate_value_score(self, value_metrics: Dict[str, float]) -> float:
         """

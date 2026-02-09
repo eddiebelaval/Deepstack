@@ -22,6 +22,9 @@ const ThesisActiveWidget = lazy(() => import('./ThesisActiveWidget'));
 const JournalRecentWidget = lazy(() => import('./JournalRecentWidget'));
 const InsightsLatestWidget = lazy(() => import('./InsightsLatestWidget'));
 const MarketSummaryWidget = lazy(() => import('./MarketSummaryWidget'));
+const GammaExposureChart = lazy(() => import('./GammaExposureChart'));
+const DarkPoolWidget = lazy(() => import('./DarkPoolWidget'));
+const InsiderTradesWidget = lazy(() => import('./InsiderTradesWidget'));
 
 // Loading fallback
 function WidgetLoading() {
@@ -74,6 +77,12 @@ export function WidgetRenderer({ type }: WidgetRendererProps) {
         return <HedgedSummaryWidget />;
       case 'options-opportunities':
         return <OptionsOpportunitiesWidget />;
+      case 'gamma-exposure':
+        return <GammaExposureChart symbol="SPY" />;
+      case 'dark-pool':
+        return <DarkPoolWidget symbol="SPY" />;
+      case 'insider-trades':
+        return <InsiderTradesWidget />;
       case 'prediction-markets':
         return <PredictionMarketsWidget />;
       case 'thesis-active':

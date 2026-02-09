@@ -14,6 +14,7 @@ Complete guide for deploying DeepStack Trading System to production.
 6. [Monitoring](#monitoring)
 7. [Rollback Procedures](#rollback-procedures)
 8. [Maintenance](#maintenance)
+9. [DeepSignals Module Deployment](#deepsignals-module-deployment)
 
 ---
 
@@ -697,6 +698,101 @@ Final checklist before going live:
 
 ---
 
-**Last Updated**: November 2024
-**Version**: 1.0.0
+## DeepSignals Module Deployment
+
+DeepSignals is the market intelligence layer that provides options flow alerts, GEX levels,
+dark pool data, insider trading, congressional trading, IV tracking, and sentiment aggregation.
+
+### Architecture
+
+```
+Frontend (Next.js / Vercel)
+  -> /api/signals/[...path] catch-all proxy route
+  -> Python backend (FastAPI / Railway)
+     -> core/api/deepsignals_router.py (REST endpoints)
+        -> core/signals/ (GEX, flow, IV, sentiment engines)
+        -> core/data/ (SEC EDGAR, FINRA, CBOE, Quiver clients)
+        -> Supabase (historical IV, flow alerts, dark pool, insider/congress trades)
+```
+
+### Required Environment Variables
+
+Add these to your Railway/server environment in addition to the base DeepStack vars:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SUPABASE_URL` | Yes | Supabase project URL (already used by auth) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Service role key for DeepSignals table writes (RLS) |
+| `QUIVER_API_KEY` | No | Quiver Quantitative API key for congressional trades. Gracefully degrades if missing. |
+| `ALPACA_API_KEY` | Yes | Already configured. Used for options chain data (flow, GEX). |
+| `ALPACA_SECRET_KEY` | Yes | Already configured. |
+| `ALPACA_OPTIONS_FEED` | No | `indicative` (free, default) or `opra` (paid, real-time) |
+
+### Supabase Setup
+
+Run the migration to create DeepSignals tables:
+
+```bash
+# Apply via Supabase CLI
+supabase db push
+
+# Or manually apply:
+# supabase/migrations/017_deepsignals_tables.sql
+```
+
+Tables created:
+- `deepsignals_historical_iv` - IV percentile tracking
+- `deepsignals_flow_alerts` - Options flow alerts
+- `deepsignals_dark_pool` - FINRA short volume data
+- `deepsignals_insider_trades` - SEC Form 4 filings
+- `deepsignals_congress_trades` - Congressional disclosures
+
+All tables have RLS enabled with `service_role` write access and `authenticated` read access.
+
+### Vercel (Frontend)
+
+No additional Vercel configuration needed. The `/api/signals/[...path]` catch-all route
+proxies to the Python backend using `NEXT_PUBLIC_API_URL`.
+
+Ensure this env var is set in Vercel:
+
+```
+NEXT_PUBLIC_API_URL=https://your-railway-backend.up.railway.app
+```
+
+### Railway (Backend)
+
+The FastAPI server at `core/api_server.py` automatically registers the DeepSignals router.
+No additional Railway configuration is needed beyond setting the env vars listed above.
+
+Verify after deployment:
+
+```bash
+# Health check
+curl https://your-backend/api/signals/congress?limit=1
+
+# Should return JSON with trades array (or empty array if no Quiver key)
+```
+
+### Data Sources (No API Keys Required)
+
+These clients scrape/query free public APIs and need no credentials:
+- **SEC EDGAR** (`sec_edgar_client.py`) - Insider trading Form 4 filings
+- **FINRA** (`finra_client.py`) - Short volume / dark pool data
+- **CBOE** (`cboe_client.py`) - Options volume and VIX data
+
+### Rate Limits
+
+| Source | Limit | Notes |
+|--------|-------|-------|
+| Quiver Quantitative | 100 req/day (free tier) | Client enforces daily counter |
+| SEC EDGAR | 10 req/sec | Fair use policy, User-Agent required |
+| FINRA | None documented | Be respectful |
+| CBOE | None documented | Be respectful |
+| Alpaca Options | 200 req/min | Existing Alpaca rate limits |
+
+---
+
+**Last Updated**: February 2026
+**Version**: 2.0.0
 **Maintainer**: DeepStack Engineering Team

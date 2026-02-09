@@ -19,7 +19,9 @@ Tactical Scaling Table:
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
+
+from core.signals.gex_calculator import TotalGEX
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +189,108 @@ class HedgedPositionManager:
             pass
 
         return action
+
+    def adjust_for_gex_regime(
+        self,
+        symbol: str,
+        gex_data: Optional[TotalGEX] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Adjust position parameters based on GEX regime.
+
+        Gamma exposure tells us how dealers will hedge, which directly
+        affects price behavior:
+        - Short gamma: dealers amplify moves -> wider stops, reduced tactical size
+        - Long gamma: dealers dampen moves -> tighter stops, standard tactical size
+
+        This adjusts the HedgedPositionConfig exit targets and split ratios.
+        If no gex_data is provided, the position is left unchanged.
+
+        Args:
+            symbol: Stock symbol
+            gex_data: Optional TotalGEX from GEXCalculator
+
+        Returns:
+            Dict describing adjustments made, or None if no position/no gex_data
+        """
+        if gex_data is None:
+            return None
+
+        pos = self.positions.get(symbol)
+        if pos is None:
+            return None
+
+        config = pos.config
+        adjustments: Dict[str, Any] = {
+            "symbol": symbol,
+            "regime": gex_data.regime,
+            "total_gex": gex_data.total_gex,
+            "changes": [],
+        }
+
+        if gex_data.regime == "short_gamma":
+            # Short gamma = trending, high vol: widen exits, reduce tactical
+            # Push tactical targets out by 20% (need more room to breathe)
+            old_targets = (
+                config.target_1_mult, config.target_2_mult,
+                config.target_3_mult, config.target_4_mult,
+            )
+            config.target_1_mult *= 1.20
+            config.target_2_mult *= 1.20
+            config.target_3_mult *= 1.20
+            config.target_4_mult *= 1.20
+            adjustments["changes"].append(
+                f"Widened tactical targets by 20% "
+                f"(was {old_targets[0]:.1f}x, now {config.target_1_mult:.1f}x)"
+            )
+
+            # Shift more weight to conviction (hold through vol)
+            if config.conviction_pct < 0.70:
+                old_conv = config.conviction_pct
+                config.conviction_pct = 0.70
+                config.tactical_pct = 0.30
+                adjustments["changes"].append(
+                    f"Shifted to 70/30 conviction/tactical "
+                    f"(was {old_conv:.0%}/{1-old_conv:.0%})"
+                )
+
+            logger.info(
+                f"{symbol}: Short gamma regime — widened stops, "
+                f"increased conviction weight"
+            )
+
+        elif gex_data.regime == "long_gamma":
+            # Long gamma = mean-reverting, low vol: tighten exits, standard split
+            # Pull tactical targets in by 10% (capture gains faster)
+            old_targets = (
+                config.target_1_mult, config.target_2_mult,
+                config.target_3_mult, config.target_4_mult,
+            )
+            config.target_1_mult *= 0.90
+            config.target_2_mult *= 0.90
+            config.target_3_mult *= 0.90
+            config.target_4_mult *= 0.90
+            adjustments["changes"].append(
+                f"Tightened tactical targets by 10% "
+                f"(was {old_targets[0]:.1f}x, now {config.target_1_mult:.1f}x)"
+            )
+
+            # Standard or slightly more tactical (capture mean reversion)
+            if config.conviction_pct > 0.60:
+                old_conv = config.conviction_pct
+                config.conviction_pct = 0.55
+                config.tactical_pct = 0.45
+                adjustments["changes"].append(
+                    f"Shifted to 55/45 conviction/tactical "
+                    f"(was {old_conv:.0%}/{1-old_conv:.0%})"
+                )
+
+            logger.info(
+                f"{symbol}: Long gamma regime — tightened stops, "
+                f"standard split"
+            )
+
+        return adjustments
 
     def get_position(self, symbol: str) -> Optional[HedgedPosition]:
         return self.positions.get(symbol)

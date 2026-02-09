@@ -171,7 +171,7 @@
 - [x] Create EmotionalFirewallBanner component
 - [x] Wire detection to pre-trade checks in chat
 - [x] Add warning modals before risky trades
-- [x] Show cooldown timers when blocked
+- [x] Show cooldown timers when actions are rate-limited
 - [x] Display win/loss streak notifications
 
 #### 5.6 Trade Journal (40% → 100%) ✅ COMPLETE

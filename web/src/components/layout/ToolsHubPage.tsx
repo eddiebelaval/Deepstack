@@ -62,6 +62,7 @@ export function ToolsHubPage({ onSelectConversation, onNewChat }: ToolsHubPagePr
       insights: 'Insights',
       'research-hub': 'Research Hub',
       'deep-research': 'Deep Research',
+      'stock-deep-dive': 'Stock Deep Dive',
       none: 'Tools Hub',
     };
     return toolNames[toolId] || 'Tools Hub';
