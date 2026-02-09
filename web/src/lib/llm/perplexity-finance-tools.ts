@@ -1,12 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-
-// Get the base URL for API calls - needed for edge runtime
-const getBaseUrl = () => {
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  return 'http://localhost:3000';
-};
+import { getBaseUrl } from './utils';
 
 // Types for Perplexity Finance data
 export interface SECFiling {

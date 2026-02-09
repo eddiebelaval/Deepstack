@@ -1,13 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { PredictionMarket } from '@/lib/types/prediction-markets';
-
-// Get the base URL for API calls - needed for edge runtime
-const getBaseUrl = () => {
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  return 'http://localhost:3000';
-};
+import { getBaseUrl } from './utils';
 
 // Mock prediction market data for development/fallback
 const MOCK_MARKETS: PredictionMarket[] = [

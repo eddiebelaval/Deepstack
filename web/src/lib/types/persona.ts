@@ -12,6 +12,7 @@ export type PersonaId =
   | 'day-trader'
   | 'risk-manager'
   | 'research-analyst'
+  | 'desk-analyst'
   | 'mentor'
   | 'coach'
   | 'analyst';

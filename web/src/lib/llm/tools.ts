@@ -4,13 +4,8 @@ import { api } from '@/lib/api-extended';
 import { createTradeEntry } from '@/lib/supabase/trades';
 import { predictionMarketTools } from './prediction-market-tools';
 import { perplexityFinanceTools } from './perplexity-finance-tools';
-
-// Get the base URL for API calls - needed for edge runtime
-const getBaseUrl = () => {
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  return 'http://localhost:3000';
-};
+import { deepstackVoiceTools } from './deepstack-voice-tools';
+import { getBaseUrl } from './utils';
 
 // Realistic base prices for common symbols (for mock data)
 const SYMBOL_PRICES: Record<string, number> = {
@@ -1367,6 +1362,9 @@ export const tradingTools = {
 
   // Perplexity Finance Tools (SEC filings, earnings transcripts, market summaries, deep research)
   ...perplexityFinanceTools,
+
+  // DeepStack Voice Tools (portfolio, strategy, signals, trade history)
+  ...deepstackVoiceTools,
 };
 
 // Export all tools combined (for convenience)
