@@ -28,16 +28,27 @@ interface GEXStrike {
   put_gex: number;
 }
 
+interface GEXLevels {
+  gamma_flip: number | null;
+  call_wall: number | null;
+  put_wall: number | null;
+  max_gamma_strike: number | null;
+}
+
 interface GEXData {
-  ticker: string;
-  spot_price: number;
+  symbol: string;
   total_gex: number;
-  regime: string;
+  call_gex: number;
+  put_gex: number;
+  net_gex: number;
+  gex_by_strike: GEXStrike[];
   flip_point: number | null;
+  // Merged from /gex/levels
+  spot_price: number;
+  regime: string;
   max_gamma_strike: number;
   put_wall: number;
   call_wall: number;
-  strikes: GEXStrike[];
 }
 
 interface GammaExposureChartProps {
@@ -104,14 +115,37 @@ export function GammaExposureChart({
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/signals/gex?ticker=${symbol}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch GEX data (${response.status})`);
+        // Fetch both GEX data and levels in parallel
+        const [gexRes, levelsRes] = await Promise.all([
+          fetch(`/api/signals/gex?ticker=${symbol}`),
+          fetch(`/api/signals/gex/levels?ticker=${symbol}`).catch(() => null),
+        ]);
+
+        if (!gexRes.ok) {
+          throw new Error(`Failed to fetch GEX data (${gexRes.status})`);
         }
 
-        const json = await response.json();
+        const gex = await gexRes.json();
+        const levels: GEXLevels | null = levelsRes?.ok
+          ? await levelsRes.json()
+          : null;
+
         if (!cancelled) {
-          setData(json);
+          // Merge GEX data + levels into the shape the chart expects
+          setData({
+            symbol: gex.symbol,
+            total_gex: gex.total_gex ?? 0,
+            call_gex: gex.call_gex ?? 0,
+            put_gex: gex.put_gex ?? 0,
+            net_gex: gex.net_gex ?? 0,
+            gex_by_strike: gex.gex_by_strike ?? [],
+            flip_point: gex.flip_point ?? levels?.gamma_flip ?? null,
+            spot_price: 0, // Not available from API — chart highlights row nearest 0
+            regime: gex.total_gex >= 0 ? 'Long Gamma' : 'Short Gamma',
+            max_gamma_strike: levels?.max_gamma_strike ?? 0,
+            put_wall: levels?.put_wall ?? 0,
+            call_wall: levels?.call_wall ?? 0,
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -131,10 +165,10 @@ export function GammaExposureChart({
 
   // Filter and sort strikes around spot price
   const visibleStrikes = useMemo(() => {
-    if (!data?.strikes?.length) return [];
+    if (!data?.gex_by_strike?.length) return [];
 
     // Sort by strike ascending
-    const sorted = [...data.strikes].sort((a, b) => a.strike - b.strike);
+    const sorted = [...data.gex_by_strike].sort((a, b) => a.strike - b.strike);
 
     // If too many, center around spot price
     if (sorted.length <= maxBars) return sorted;

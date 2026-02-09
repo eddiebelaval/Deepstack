@@ -76,7 +76,7 @@ class SupabaseREST:
         if self._client is None:
             import httpx
             self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(total=30, connect=10),
+                timeout=httpx.Timeout(30, connect=10),
             )
         return self._client
 

@@ -17,14 +17,16 @@ import { Skeleton } from '@/components/ui/skeleton';
  */
 
 interface InsiderTrade {
-  insider_name: string;
-  ticker: string;
-  company_name: string;
-  transaction_type: string; // "purchase" | "sale" | "P-Purchase" | "S-Sale"
+  filer_name: string;
+  symbol: string;
+  company: string;
+  transaction_type: string;
   shares: number;
-  value: number;
+  total_value: number | null;
+  price_per_share: number | null;
   filing_date: string;
   source_url?: string;
+  ownership_type?: string;
 }
 
 interface InsiderTradesWidgetProps {
@@ -151,7 +153,7 @@ export function InsiderTradesWidget({ className, symbol }: InsiderTradesWidgetPr
                 const buy = isBuy(trade.transaction_type);
                 return (
                   <tr
-                    key={`${trade.ticker}-${trade.insider_name}-${idx}`}
+                    key={`${trade.symbol}-${trade.filer_name}-${idx}`}
                     className={cn(
                       'border-b border-border/20 hover:bg-muted/30 transition-colors',
                       buy ? 'border-l-2 border-l-green-500/50' : 'border-l-2 border-l-red-500/50',
@@ -159,7 +161,7 @@ export function InsiderTradesWidget({ className, symbol }: InsiderTradesWidgetPr
                   >
                     <td className="px-3 py-1.5 max-w-[140px] truncate">
                       <div className="flex items-center gap-1">
-                        <span className="truncate">{trade.insider_name}</span>
+                        <span className="truncate">{trade.filer_name || 'Unknown'}</span>
                         {trade.source_url && (
                           <a
                             href={trade.source_url}
@@ -173,9 +175,9 @@ export function InsiderTradesWidget({ className, symbol }: InsiderTradesWidgetPr
                       </div>
                     </td>
                     <td className="px-2 py-1.5">
-                      <span className="font-mono font-medium">{trade.ticker}</span>
+                      <span className="font-mono font-medium">{trade.symbol}</span>
                       <span className="text-muted-foreground ml-1 hidden sm:inline">
-                        {trade.company_name}
+                        {trade.company}
                       </span>
                     </td>
                     <td className={cn(
@@ -188,7 +190,7 @@ export function InsiderTradesWidget({ className, symbol }: InsiderTradesWidgetPr
                       {formatShares(trade.shares)}
                     </td>
                     <td className="px-2 py-1.5 text-right font-mono">
-                      {trade.value ? formatValue(trade.value) : '—'}
+                      {trade.total_value ? formatValue(trade.total_value) : '—'}
                     </td>
                     <td className="px-3 py-1.5 text-right text-muted-foreground">
                       {formatDate(trade.filing_date)}
