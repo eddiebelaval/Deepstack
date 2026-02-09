@@ -17,9 +17,10 @@ Target: Find asymmetric opportunities with limited downside and high upside.
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from core.data.alphavantage_client import AlphaVantageClient
+from core.data.sec_edgar_client import InsiderTrade
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +201,92 @@ class DeepValueStrategy:
             conviction=conviction,
             target_price=target_price,
         )
+
+    def enhance_with_insider_signal(
+        self,
+        opportunity: ValueOpportunity,
+        insider_trades: Optional[List[InsiderTrade]] = None,
+    ) -> ValueOpportunity:
+        """
+        Enhance a value opportunity with SEC Form 4 insider trading data.
+
+        Cluster insider buying (multiple insiders buying within a short window)
+        is one of the strongest conviction signals in value investing. A single
+        buy may be routine; 3+ insiders buying is a signal.
+
+        Scoring:
+        - 3+ distinct insider buys (cluster buying): +15 to value_score
+        - 1-2 insider buys: +10 to value_score
+        - Any insider sells present: reduce boost by 5
+        - No insider data: opportunity returned unchanged
+
+        Args:
+            opportunity: Existing value opportunity to enhance
+            insider_trades: Optional list of InsiderTrade from SECEdgarClient
+
+        Returns:
+            The same ValueOpportunity with adjusted value_score and thesis
+        """
+        if not insider_trades:
+            return opportunity
+
+        # Filter trades for this symbol
+        symbol_trades = [
+            t for t in insider_trades
+            if t.ticker.upper() == opportunity.symbol.upper()
+        ]
+
+        if not symbol_trades:
+            return opportunity
+
+        buys = [t for t in symbol_trades if t.transaction_type == "buy"]
+        sells = [t for t in symbol_trades if t.transaction_type == "sell"]
+
+        adjustment = 0.0
+
+        # Count distinct filers (cluster = multiple insiders, not one person buying twice)
+        distinct_buyers = len(set(t.filer_cik for t in buys))
+
+        if distinct_buyers >= 3:
+            adjustment += 15
+            opportunity.thesis.append(
+                f"Insider cluster buying: {distinct_buyers} distinct insiders purchasing"
+            )
+            logger.info(
+                f"{opportunity.symbol}: Insider cluster buying detected "
+                f"({distinct_buyers} buyers), +15"
+            )
+        elif distinct_buyers >= 1:
+            adjustment += 10
+            opportunity.thesis.append(
+                f"Insider buying: {distinct_buyers} insider(s) purchasing"
+            )
+            logger.info(
+                f"{opportunity.symbol}: Insider buying detected "
+                f"({distinct_buyers} buyers), +10"
+            )
+
+        # Sells reduce conviction
+        if sells:
+            adjustment -= 5
+            opportunity.risks.append(
+                f"Insider selling present: {len(sells)} sell transaction(s)"
+            )
+            logger.info(
+                f"{opportunity.symbol}: Insider sells detected ({len(sells)}), -5"
+            )
+
+        if adjustment != 0:
+            opportunity.value_score = opportunity.value_score + adjustment
+            # Update conviction based on new score
+            if opportunity.value_score >= 80:
+                opportunity.conviction = "HIGH"
+            elif opportunity.value_score >= 60:
+                opportunity.conviction = "MEDIUM"
+            else:
+                opportunity.conviction = "LOW"
+
+        return opportunity
 
     async def screen_market(self, symbols: List[str]) -> List[ValueOpportunity]:
         """

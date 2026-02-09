@@ -12,10 +12,10 @@ import { NextRequest, NextResponse } from 'next/server';
  * - type: Filter by transaction type (purchase, sale)
  * - limit: Max results (default 50)
  *
- * Note: In production, this would connect to a data provider like
- * Capitol Trades, Quiver Quantitative, or scrape congressional disclosures.
- * Currently returns mock data for development.
+ * Proxies to the Python backend at /api/signals/congress.
  */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 interface PoliticianTrade {
   id: string;
@@ -34,91 +34,27 @@ interface PoliticianTrade {
   sourceUrl?: string;
 }
 
-// Stock data for mock generation
-const STOCKS = [
-  { symbol: 'NVDA', name: 'NVIDIA Corporation' },
-  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
-  { symbol: 'AAPL', name: 'Apple Inc.' },
-  { symbol: 'MSFT', name: 'Microsoft Corporation' },
-  { symbol: 'AMZN', name: 'Amazon.com Inc.' },
-  { symbol: 'META', name: 'Meta Platforms Inc.' },
-  { symbol: 'TSLA', name: 'Tesla Inc.' },
-  { symbol: 'AMD', name: 'Advanced Micro Devices' },
-  { symbol: 'CRM', name: 'Salesforce Inc.' },
-  { symbol: 'NFLX', name: 'Netflix Inc.' },
-];
+function mapBackendTrade(raw: Record<string, any>, index: number): PoliticianTrade {
+  // Map Python backend fields (snake_case from CongressTrade dataclass)
+  // to the PoliticianTrade interface the frontend expects (camelCase)
+  const txType = (raw.transaction_type || raw.transactionType || '').toLowerCase();
 
-// Politicians for mock data
-const POLITICIANS = [
-  { name: 'Nancy Pelosi', party: 'D' as const, chamber: 'House' as const, state: 'CA' },
-  { name: 'Dan Crenshaw', party: 'R' as const, chamber: 'House' as const, state: 'TX' },
-  { name: 'Tommy Tuberville', party: 'R' as const, chamber: 'Senate' as const, state: 'AL' },
-  { name: 'Mark Warner', party: 'D' as const, chamber: 'Senate' as const, state: 'VA' },
-  { name: 'Marjorie Taylor Greene', party: 'R' as const, chamber: 'House' as const, state: 'GA' },
-  { name: 'Josh Gottheimer', party: 'D' as const, chamber: 'House' as const, state: 'NJ' },
-  { name: 'Pat Fallon', party: 'R' as const, chamber: 'House' as const, state: 'TX' },
-  { name: 'Michael McCaul', party: 'R' as const, chamber: 'House' as const, state: 'TX' },
-  { name: 'Ro Khanna', party: 'D' as const, chamber: 'House' as const, state: 'CA' },
-  { name: 'John Hoeven', party: 'R' as const, chamber: 'Senate' as const, state: 'ND' },
-];
-
-// Amount ranges per disclosure rules
-const AMOUNT_RANGES = [
-  [1001, 15000],
-  [15001, 50000],
-  [50001, 100000],
-  [100001, 250000],
-  [250001, 500000],
-  [500001, 1000000],
-];
-
-// Generate deterministic mock trades
-function generateMockTrades(seed: number = Date.now()): PoliticianTrade[] {
-  const trades: PoliticianTrade[] = [];
-  const now = new Date();
-
-  // Use seed for pseudo-random but consistent results
-  const seededRandom = (i: number) => {
-    const x = Math.sin(seed + i) * 10000;
-    return x - Math.floor(x);
+  return {
+    id: raw.id || `congress-${index}`,
+    politician: raw.politician || '',
+    party: raw.party || 'I',
+    chamber: raw.chamber || 'House',
+    state: raw.state || '',
+    symbol: (raw.ticker || raw.symbol || '').toUpperCase(),
+    companyName: raw.company_name || raw.companyName || '',
+    transactionType: txType.includes('sale') ? 'sale' : 'purchase',
+    transactionDate: raw.transaction_date || raw.transactionDate || '',
+    disclosureDate: raw.disclosure_date || raw.disclosureDate || '',
+    amountMin: raw.amount_min || raw.amountMin || 0,
+    amountMax: raw.amount_max || raw.amountMax || 0,
+    assetType: raw.asset_type || raw.assetType || 'Stock',
+    sourceUrl: raw.source_url || raw.sourceUrl,
   };
-
-  for (let i = 0; i < 50; i++) {
-    const politician = POLITICIANS[Math.floor(seededRandom(i * 3) * POLITICIANS.length)];
-    const stock = STOCKS[Math.floor(seededRandom(i * 5) * STOCKS.length)];
-    const amount = AMOUNT_RANGES[Math.floor(seededRandom(i * 7) * AMOUNT_RANGES.length)];
-    const daysAgo = Math.floor(seededRandom(i * 11) * 120);
-
-    const transactionDate = new Date(now);
-    transactionDate.setDate(transactionDate.getDate() - daysAgo);
-
-    const disclosureDate = new Date(transactionDate);
-    disclosureDate.setDate(disclosureDate.getDate() + Math.floor(seededRandom(i * 13) * 45) + 1);
-
-    trades.push({
-      id: `trade-${i}-${seed}`,
-      politician: politician.name,
-      party: politician.party,
-      chamber: politician.chamber,
-      state: politician.state,
-      symbol: stock.symbol,
-      companyName: stock.name,
-      transactionType: seededRandom(i * 17) > 0.5 ? 'purchase' : 'sale',
-      transactionDate: transactionDate.toISOString(),
-      disclosureDate: disclosureDate.toISOString(),
-      amountMin: amount[0],
-      amountMax: amount[1],
-      assetType: 'Stock',
-      sourceUrl: politician.chamber === 'House'
-        ? 'https://disclosures.house.gov/'
-        : 'https://efdsearch.senate.gov/',
-    });
-  }
-
-  // Sort by transaction date (newest first)
-  return trades.sort(
-    (a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()
-  );
 }
 
 export async function GET(request: NextRequest) {
@@ -132,36 +68,63 @@ export async function GET(request: NextRequest) {
     const typeFilter = searchParams.get('type');
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
 
-    // Generate mock trades (in production, fetch from data provider)
-    let trades = generateMockTrades();
+    // Build params for the Python backend
+    const params = new URLSearchParams();
+    if (symbolFilter) params.append('ticker', symbolFilter);
+    if (partyFilter && partyFilter !== 'all') params.append('party', partyFilter);
+    if (chamberFilter && chamberFilter !== 'all') params.append('chamber', chamberFilter);
+    if (typeFilter && typeFilter !== 'all') params.append('type', typeFilter);
+    params.append('limit', String(limit));
 
-    // Apply filters
-    if (symbolFilter) {
-      trades = trades.filter(t => t.symbol === symbolFilter);
-    }
-    if (partyFilter && partyFilter !== 'all') {
-      trades = trades.filter(t => t.party === partyFilter);
-    }
-    if (chamberFilter && chamberFilter !== 'all') {
-      trades = trades.filter(t => t.chamber === chamberFilter);
-    }
-    if (typeFilter && typeFilter !== 'all') {
-      trades = trades.filter(t => t.transactionType === typeFilter);
-    }
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/signals/congress?${params.toString()}`,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+        },
+      );
 
-    // Limit results
-    trades = trades.slice(0, limit);
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
 
-    return NextResponse.json({
-      trades,
-      total: trades.length,
-      mock: true, // Flag that this is mock data
-    });
+      const data = await response.json();
+
+      // Backend may return { trades: [...] } or a bare array
+      const rawTrades: Record<string, any>[] = Array.isArray(data)
+        ? data
+        : (data.trades || []);
+
+      const trades: PoliticianTrade[] = rawTrades
+        .slice(0, limit)
+        .map(mapBackendTrade);
+
+      // Sort by transaction date (newest first)
+      trades.sort(
+        (a, b) =>
+          new Date(b.transactionDate).getTime() -
+          new Date(a.transactionDate).getTime(),
+      );
+
+      return NextResponse.json({
+        trades,
+        total: trades.length,
+      });
+    } catch (backendError) {
+      console.warn('Backend unavailable for congress trades:', backendError);
+
+      // Graceful degradation: return empty array so the UI doesn't break
+      return NextResponse.json({
+        trades: [],
+        total: 0,
+      });
+    }
   } catch (error) {
     console.error('Politicians trades API error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch political trades' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

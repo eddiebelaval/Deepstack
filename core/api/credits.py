@@ -56,6 +56,15 @@ class ActionCost(Enum):
     PREDICTION_MARKETS_LIST = 0
     PREDICTION_MARKETS_DETAIL = 0
 
+    # DeepSignals (free - market intelligence data)
+    SIGNALS_FLOW = 0
+    SIGNALS_GEX = 0
+    SIGNALS_DARKPOOL = 0
+    SIGNALS_INSIDER = 0
+    SIGNALS_CONGRESS = 0
+    SIGNALS_SENTIMENT = 0
+    SIGNALS_IV = 0
+
     # === PAID TIER - AI Analysis (the premium value) ===
 
     # AI Chat & Analysis (15-30 credits)
@@ -116,6 +125,14 @@ ACTION_CATEGORIES: Dict[ActionCost, ActionCategory] = {
     ActionCost.PREDICTION_MARKETS_LIST: ActionCategory.DATA_API,
     ActionCost.PREDICTION_MARKETS_DETAIL: ActionCategory.DATA_API,
     ActionCost.PREDICTION_MARKETS_ANALYZE: ActionCategory.ANALYSIS,
+    # DeepSignals
+    ActionCost.SIGNALS_FLOW: ActionCategory.DATA_API,
+    ActionCost.SIGNALS_GEX: ActionCategory.DATA_API,
+    ActionCost.SIGNALS_DARKPOOL: ActionCategory.DATA_API,
+    ActionCost.SIGNALS_INSIDER: ActionCategory.DATA_API,
+    ActionCost.SIGNALS_CONGRESS: ActionCategory.DATA_API,
+    ActionCost.SIGNALS_SENTIMENT: ActionCategory.DATA_API,
+    ActionCost.SIGNALS_IV: ActionCategory.DATA_API,
     ActionCost.CHAT: ActionCategory.AI_CHAT,
     ActionCost.ANALYZE: ActionCategory.ANALYSIS,
     ActionCost.DEEP_VALUE_SCREEN: ActionCategory.ANALYSIS,

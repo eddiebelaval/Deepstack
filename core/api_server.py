@@ -29,6 +29,7 @@ from pydantic import BaseModel
 
 from .api.auth import AuthenticatedUser, get_current_user
 from .api.credits import ActionCost, free_action, require_action
+from .api.deepsignals_router import router as deepsignals_router
 from .api.options_router import router as options_router
 from .api.perplexity_finance_router import router as perplexity_finance_router
 from .api.prediction_markets_router import router as prediction_markets_router
@@ -1470,6 +1471,9 @@ class DeepStackAPIServer:
 
         # Include Perplexity Finance router
         self.app.include_router(perplexity_finance_router)
+
+        # Include DeepSignals router
+        self.app.include_router(deepsignals_router)
 
     async def _handle_checkout_completed(self, session: Dict[str, Any]):
         """

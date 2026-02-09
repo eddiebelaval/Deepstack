@@ -19,6 +19,9 @@ import {
   BookOpen,
   TrendingUp,
   Brain,
+  Flame,
+  EyeOff,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -44,13 +47,17 @@ export type WidgetType =
   | 'options-opportunities'
   // Prediction Markets
   | 'prediction-markets'
+  // Signals (DeepSignals)
+  | 'gamma-exposure'
+  | 'dark-pool'
+  | 'insider-trades'
   // Thesis & Journal
   | 'thesis-active'
   | 'journal-recent'
   | 'insights-latest';
 
 // Widget category for organization
-export type WidgetCategory = 'market' | 'portfolio' | 'research' | 'analysis' | 'options' | 'predictions' | 'journal';
+export type WidgetCategory = 'market' | 'portfolio' | 'research' | 'analysis' | 'options' | 'signals' | 'predictions' | 'journal';
 
 // Widget definition with metadata
 export interface WidgetDefinition {
@@ -171,6 +178,31 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
     description: 'Notable options activity',
     icon: Calculator,
     category: 'options',
+    defaultHeight: 'medium',
+  },
+  // Signals Widgets (DeepSignals)
+  'gamma-exposure': {
+    type: 'gamma-exposure',
+    title: 'Gamma Exposure',
+    description: 'GEX by strike price with regime detection',
+    icon: Flame,
+    category: 'signals',
+    defaultHeight: 'tall',
+  },
+  'dark-pool': {
+    type: 'dark-pool',
+    title: 'Dark Pool Activity',
+    description: 'FINRA short volume and dark pool ratios',
+    icon: EyeOff,
+    category: 'signals',
+    defaultHeight: 'medium',
+  },
+  'insider-trades': {
+    type: 'insider-trades',
+    title: 'Insider Trades',
+    description: 'SEC Form 4 insider buying and selling',
+    icon: Users,
+    category: 'signals',
     defaultHeight: 'medium',
   },
   // Prediction Markets Widgets
@@ -317,6 +349,7 @@ export const WIDGET_CATEGORIES: { key: WidgetCategory; label: string }[] = [
   { key: 'research', label: 'Research' },
   { key: 'analysis', label: 'Analysis' },
   { key: 'options', label: 'Options' },
+  { key: 'signals', label: 'Signals' },
   { key: 'predictions', label: 'Predictions' },
   { key: 'journal', label: 'Journal & Insights' },
 ];

@@ -26,7 +26,6 @@ import {
   AlertCircle,
   DollarSign,
   Calendar,
-  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -64,7 +63,6 @@ interface PoliticianTrade {
 interface TradesResponse {
   trades: PoliticianTrade[];
   total: number;
-  mock: boolean;
 }
 
 // Party colors
@@ -72,12 +70,6 @@ const PARTY_COLORS = {
   D: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
   R: 'bg-red-500/20 text-red-600 dark:text-red-400',
   I: 'bg-gray-500/20 text-gray-600 dark:text-gray-400',
-};
-
-const PARTY_NAMES = {
-  D: 'Democrat',
-  R: 'Republican',
-  I: 'Independent',
 };
 
 interface PoliticiansTradePanelProps {
@@ -92,7 +84,6 @@ export function PoliticiansTradePanel({
   const [trades, setTrades] = useState<PoliticianTrade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMock, setIsMock] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,32 +91,63 @@ export function PoliticiansTradePanel({
   const [chamberFilter, setChamberFilter] = useState<string>('all');
   const [transactionFilter, setTransactionFilter] = useState<string>('all');
 
-  // Fetch trades
+  // Fetch trades from DeepSignals congress endpoint
   const fetchTrades = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       const params = new URLSearchParams();
-      if (symbolFilter) params.append('symbol', symbolFilter);
+      if (symbolFilter) params.append('ticker', symbolFilter);
       if (partyFilter !== 'all') params.append('party', partyFilter);
       if (chamberFilter !== 'all') params.append('chamber', chamberFilter);
       if (transactionFilter !== 'all') params.append('type', transactionFilter);
+      params.append('limit', '50');
 
-      const response = await fetch(`/api/politicians/trades?${params.toString()}`);
+      const response = await fetch(`/api/signals/congress?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch political trades');
       }
 
-      const data: TradesResponse = await response.json();
-      setTrades(data.trades || []);
-      setIsMock(data.mock ?? false);
+      const data = await response.json();
+
+      // Backend returns snake_case CongressTrade fields — map to PoliticianTrade
+      const rawTrades: Record<string, any>[] = Array.isArray(data)
+        ? data
+        : (data.trades || []);
+
+      const mapped: PoliticianTrade[] = rawTrades.map((raw, i) => {
+        const txType = (raw.transaction_type || raw.transactionType || '').toLowerCase();
+        return {
+          id: raw.id || `congress-${i}`,
+          politician: raw.politician || '',
+          party: raw.party || 'I',
+          chamber: raw.chamber || 'House',
+          state: raw.state || '',
+          symbol: (raw.ticker || raw.symbol || '').toUpperCase(),
+          companyName: raw.company_name || raw.companyName || '',
+          transactionType: txType.includes('sale') ? 'sale' : 'purchase',
+          transactionDate: raw.transaction_date || raw.transactionDate || '',
+          disclosureDate: raw.disclosure_date || raw.disclosureDate || '',
+          amountMin: raw.amount_min || raw.amountMin || 0,
+          amountMax: raw.amount_max || raw.amountMax || 0,
+          assetType: raw.asset_type || raw.assetType || 'Stock',
+          sourceUrl: raw.source_url || raw.sourceUrl,
+        };
+      });
+
+      // Sort by transaction date (newest first)
+      mapped.sort(
+        (a, b) =>
+          new Date(b.transactionDate).getTime() -
+          new Date(a.transactionDate).getTime(),
+      );
+
+      setTrades(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load trades');
-      // Load mock data on error
-      setTrades(generateMockTrades());
-      setIsMock(true);
+      setTrades([]);
     } finally {
       setIsLoading(false);
     }
@@ -176,11 +198,6 @@ export function PoliticiansTradePanel({
         <div className="flex items-center gap-2">
           <Landmark className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">Congressional Trading</h2>
-          {isMock && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded">
-              Mock Data
-            </span>
-          )}
         </div>
         <Button
           variant="ghost"
@@ -255,7 +272,7 @@ export function PoliticiansTradePanel({
 
       {/* Results */}
       <div className="flex-1 min-h-0">
-        {error && !isMock ? (
+        {error ? (
           <Card className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-2 text-destructive">
               <AlertCircle className="h-8 w-8" />
@@ -381,71 +398,6 @@ export function PoliticiansTradePanel({
         )}
       </div>
     </div>
-  );
-}
-
-// Generate mock data for demo/development
-function generateMockTrades(): PoliticianTrade[] {
-  const politicians = [
-    { name: 'Nancy Pelosi', party: 'D' as const, chamber: 'House' as const, state: 'CA' },
-    { name: 'Dan Crenshaw', party: 'R' as const, chamber: 'House' as const, state: 'TX' },
-    { name: 'Tommy Tuberville', party: 'R' as const, chamber: 'Senate' as const, state: 'AL' },
-    { name: 'Mark Warner', party: 'D' as const, chamber: 'Senate' as const, state: 'VA' },
-    { name: 'Marjorie Taylor Greene', party: 'R' as const, chamber: 'House' as const, state: 'GA' },
-  ];
-
-  const stocks = [
-    { symbol: 'NVDA', name: 'NVIDIA Corporation' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.' },
-    { symbol: 'AAPL', name: 'Apple Inc.' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation' },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.' },
-    { symbol: 'META', name: 'Meta Platforms Inc.' },
-    { symbol: 'TSLA', name: 'Tesla Inc.' },
-  ];
-
-  const amounts = [
-    [1001, 15000],
-    [15001, 50000],
-    [50001, 100000],
-    [100001, 250000],
-    [250001, 500000],
-  ];
-
-  const trades: PoliticianTrade[] = [];
-  const now = new Date();
-
-  for (let i = 0; i < 20; i++) {
-    const politician = politicians[Math.floor(Math.random() * politicians.length)];
-    const stock = stocks[Math.floor(Math.random() * stocks.length)];
-    const amount = amounts[Math.floor(Math.random() * amounts.length)];
-    const daysAgo = Math.floor(Math.random() * 90);
-    const transactionDate = new Date(now);
-    transactionDate.setDate(transactionDate.getDate() - daysAgo);
-    const disclosureDate = new Date(transactionDate);
-    disclosureDate.setDate(disclosureDate.getDate() + Math.floor(Math.random() * 45));
-
-    trades.push({
-      id: `mock-${i}`,
-      politician: politician.name,
-      party: politician.party,
-      chamber: politician.chamber,
-      state: politician.state,
-      symbol: stock.symbol,
-      companyName: stock.name,
-      transactionType: Math.random() > 0.5 ? 'purchase' : 'sale',
-      transactionDate: transactionDate.toISOString(),
-      disclosureDate: disclosureDate.toISOString(),
-      amountMin: amount[0],
-      amountMax: amount[1],
-      assetType: 'Stock',
-      sourceUrl: 'https://disclosures.house.gov/',
-    });
-  }
-
-  // Sort by transaction date (newest first)
-  return trades.sort(
-    (a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()
   );
 }
 

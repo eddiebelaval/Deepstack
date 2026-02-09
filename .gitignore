@@ -143,3 +143,6 @@ web/test_output.txt
 # Service worker (generated)
 web/public/sw.js
 web/public/sw.js.map
+
+# Workspace scratch (experiments, not tracked)
+workspace/scratch/

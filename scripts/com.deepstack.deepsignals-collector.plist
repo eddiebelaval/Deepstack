@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  DeepSignals Daily Collector - launchd plist
+
+  Install:
+    cp scripts/com.deepstack.deepsignals-collector.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.deepstack.deepsignals-collector.plist
+
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.deepstack.deepsignals-collector.plist
+    rm ~/Library/LaunchAgents/com.deepstack.deepsignals-collector.plist
+
+  Manual run:
+    launchctl start com.deepstack.deepsignals-collector
+
+  Check status:
+    launchctl list | grep deepsignals
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.deepstack.deepsignals-collector</string>
+
+    <key>Comment</key>
+    <string>DeepSignals daily data collection at market close + 30 min, then alert check</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/eddiebelaval/Development/id8/products/deepstack &amp;&amp; venv/bin/python scripts/deepsignals_collector.py --all &amp;&amp; venv/bin/python scripts/deepsignals_alerts.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/eddiebelaval/Development/id8/products/deepstack</string>
+
+    <!-- Run daily at 4:30 PM ET (market close + 30 min) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>16</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Users/eddiebelaval/.local/bin</string>
+        <key>HOME</key>
+        <string>/Users/eddiebelaval</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/deepsignals-collector.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/deepsignals-collector.log</string>
+
+    <key>TimeOut</key>
+    <integer>300</integer>
+
+    <key>RunAtLoad</key>
+    <false/>
+    <key>Nice</key>
+    <integer>10</integer>
+</dict>
+</plist>

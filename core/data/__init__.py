@@ -9,6 +9,7 @@ from .finnhub_client import FinnhubClient
 from .market_data import MarketDataManager
 from .newsapi_client import NewsAPIClient
 from .price_feed import PriceFeed
+from .quiver_client import QuiverClient
 from .rss_aggregator import RSSAggregator
 from .stocktwits_client import StockTwitsClient
 
@@ -18,6 +19,7 @@ __all__ = [
     "MarketDataManager",
     "NewsAPIClient",
     "PriceFeed",
+    "QuiverClient",
     "RSSAggregator",
     "StockTwitsClient",
 ]
