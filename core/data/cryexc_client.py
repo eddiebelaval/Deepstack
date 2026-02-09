@@ -195,7 +195,12 @@ class CryExcClient:
 
     @property
     def is_connected(self) -> bool:
-        return self._connected and self._ws is not None and self._ws.open
+        if not self._connected or self._ws is None:
+            return False
+        # websockets 16+ uses .state enum; legacy used .open bool
+        if hasattr(self._ws, "state"):
+            return self._ws.state.name == "OPEN"
+        return getattr(self._ws, "open", False)
 
     # -- Subscriptions -------------------------------------------------------
 
