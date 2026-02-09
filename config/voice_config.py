@@ -20,6 +20,13 @@ TRADE_JOURNAL_DB = os.path.join(
     "trade_journal.db",
 )
 DEEPSTACK_CONFIG_PATH = os.path.join(PROJECT_ROOT, "config", "config.yaml")
+KALSHI_BOT_CONFIG_PATH = os.path.join(
+    os.path.expanduser("~"),
+    "clawd",
+    "projects",
+    "kalshi-trading",
+    "config.yaml",
+)
 RISK_LIMITS_PATH = os.path.join(PROJECT_ROOT, "config", "risk_limits.yaml")
 
 # State directory

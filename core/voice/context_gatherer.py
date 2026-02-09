@@ -30,6 +30,7 @@ if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
 from config.voice_config import DEEPSTACK_CONFIG_PATH as DEEPSTACK_CONFIG
+from config.voice_config import KALSHI_BOT_CONFIG_PATH as KALSHI_BOT_CONFIG
 from config.voice_config import RISK_LIMITS_PATH as RISK_LIMITS
 from config.voice_config import (
     TRADE_JOURNAL_DB,
@@ -166,20 +167,28 @@ def get_trade_journal_context() -> Dict[str, Any]:
 
 
 def get_strategy_config() -> Dict[str, Any]:
-    """Load strategy configuration and risk limits."""
+    """Load strategy configuration and risk limits.
+
+    Reads from the Kalshi trading bot config (the live system) for
+    strategy details, and infers trading mode from actual trade data.
+    Falls back to the DeepStack dashboard config if the bot config
+    is unavailable.
+    """
     context: Dict[str, Any] = {
         "trading_mode": "unknown",
         "strategies": {},
         "risk_limits": {},
     }
 
-    # Main config
-    if os.path.exists(DEEPSTACK_CONFIG):
-        try:
-            with open(DEEPSTACK_CONFIG) as f:
-                config = yaml.safe_load(f) or {}
+    # Prefer Kalshi bot config (the actual live trading system)
+    config_path = KALSHI_BOT_CONFIG
+    if not os.path.exists(config_path):
+        config_path = DEEPSTACK_CONFIG
 
-            context["trading_mode"] = config.get("trading", {}).get("mode", "paper")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path) as f:
+                config = yaml.safe_load(f) or {}
 
             # Strategy states
             strategies = config.get("strategies", {})
@@ -196,20 +205,32 @@ def get_strategy_config() -> Dict[str, Any]:
                         "enabled": item.get("enabled", False),
                         "markets": item.get("markets", []),
                     }
-            else:
-                logger.warning(
-                    "Unexpected strategies config type: %s", type(strategies).__name__
-                )
 
-            # Risk settings from main config
+            # Risk settings
             risk = config.get("risk", {})
             context["risk_limits"]["kelly_fraction"] = risk.get("kelly_fraction", 0.25)
-            context["risk_limits"]["max_leverage"] = risk.get("max_leverage", 1.5)
+            context["risk_limits"]["max_position_size"] = risk.get(
+                "max_position_size", "N/A"
+            )
+            context["risk_limits"]["daily_loss_limit"] = risk.get(
+                "daily_loss_limit", "N/A"
+            )
 
         except Exception as e:
-            logger.error("Failed to load config.yaml: %s", e)
+            logger.error("Failed to load config: %s", e)
 
-    # Detailed risk limits
+    # Infer trading mode from actual data: open positions = live
+    if os.path.exists(TRADE_JOURNAL_DB):
+        open_count = _safe_query(
+            TRADE_JOURNAL_DB,
+            "SELECT COUNT(*) as c FROM trades WHERE status = 'open'",
+        )
+        has_open = open_count and open_count[0].get("c", 0) > 0
+        context["trading_mode"] = "live" if has_open else "idle"
+    else:
+        context["trading_mode"] = "no_journal"
+
+    # Detailed risk limits (supplemental)
     if os.path.exists(RISK_LIMITS):
         try:
             with open(RISK_LIMITS) as f:
@@ -227,7 +248,6 @@ def get_strategy_config() -> Dict[str, Any]:
                     "max_position_pct": limits.get("position_limits", {}).get(
                         "max_position_pct", 0.05
                     ),
-                    "emotional_override": limits.get("emotional_override", {}),
                 }
             )
         except Exception as e:
