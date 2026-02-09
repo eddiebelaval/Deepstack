@@ -169,11 +169,17 @@ class CBOEClient:
 
         reader = csv.reader(io.StringIO(text))
 
-        # Read header to find column indices
-        try:
-            header = next(reader)
-        except StopIteration:
-            logger.warning(f"Empty CSV for CBOE {ratio_type}")
+        # CBOE CSVs start with disclaimer/metadata rows before the actual
+        # column headers. Skip lines until we find one containing "DATE".
+        header = None
+        for row in reader:
+            normalized_row = [h.strip().upper() for h in row]
+            if any("DATE" in col for col in normalized_row):
+                header = row
+                break
+
+        if header is None:
+            logger.warning(f"No header row found in CBOE {ratio_type} CSV")
             return []
 
         # Normalize headers for matching

@@ -110,7 +110,7 @@ class QuiverClient:
         """Ensure httpx client exists with timeout configuration."""
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(10.0, connect=5.0),
+                timeout=httpx.Timeout(30.0, connect=10.0),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Accept": "application/json",
@@ -246,13 +246,36 @@ class QuiverClient:
     # ── Data Normalization ─────────────────────────────────────────
 
     @staticmethod
+    def _parse_range(range_str: str) -> tuple[Optional[float], Optional[float]]:
+        """Parse Quiver range string like '$50,001 - $100,000' into (min, max)."""
+        if not range_str:
+            return None, None
+        try:
+            import re
+            numbers = re.findall(r'[\d,]+', range_str.replace('$', ''))
+            cleaned = [float(n.replace(',', '')) for n in numbers]
+            if len(cleaned) >= 2:
+                return cleaned[0], cleaned[1]
+            elif len(cleaned) == 1:
+                return cleaned[0], cleaned[0]
+        except (ValueError, IndexError):
+            pass
+        return None, None
+
+    @staticmethod
     def _normalize_trade(raw: Dict[str, Any]) -> CongressTrade:
         """Convert raw Quiver JSON into a CongressTrade dataclass."""
-        # Quiver uses varying field names; map the common ones
+        # Parse amount range from Quiver's "$X - $Y" format
+        range_str = raw.get("Range", "")
+        amount_min, amount_max = QuiverClient._parse_range(range_str)
+
+        # Quiver live API field names:
+        # Representative, Party, House, TransactionDate, ReportDate,
+        # Ticker, Transaction, Range, Amount, TickerType
         return CongressTrade(
             politician=raw.get("Representative", raw.get("politician", "")),
             party=raw.get("Party", raw.get("party", "")),
-            chamber=raw.get("Chamber", raw.get("chamber", "")),
+            chamber=raw.get("House", raw.get("Chamber", raw.get("chamber", ""))),
             state=raw.get("State", raw.get("state", "")),
             ticker=raw.get("Ticker", raw.get("ticker", "")),
             company_name=raw.get("Company", raw.get("company_name", "")),
@@ -263,11 +286,11 @@ class QuiverClient:
                 "TransactionDate", raw.get("transaction_date", "")
             ),
             disclosure_date=raw.get(
-                "DisclosureDate", raw.get("disclosure_date", "")
+                "ReportDate", raw.get("DisclosureDate", raw.get("disclosure_date", ""))
             ),
-            amount_min=raw.get("Range_Low", raw.get("amount_min")),
-            amount_max=raw.get("Range_High", raw.get("amount_max")),
-            asset_type=raw.get("AssetType", raw.get("asset_type", "Stock")),
+            amount_min=amount_min or raw.get("Range_Low", raw.get("amount_min")),
+            amount_max=amount_max or raw.get("Range_High", raw.get("amount_max")),
+            asset_type=raw.get("TickerType", raw.get("AssetType", raw.get("asset_type", "Stock"))),
         )
 
     # ── Public Methods ─────────────────────────────────────────────
@@ -290,7 +313,7 @@ class QuiverClient:
             if cached is not None:
                 return cached[:limit]
 
-            data = await self._make_request("/bulk/congresstrading")
+            data = await self._make_request("/live/congresstrading")
             if data is None:
                 return []
 
@@ -373,9 +396,9 @@ class QuiverClient:
             if cached is not None:
                 return cached
 
-            # Quiver doesn't have a per-politician endpoint on free tier,
-            # so we fetch bulk and filter client-side.
-            data = await self._make_request("/bulk/congresstrading")
+            # Quiver doesn't have a per-politician endpoint on Hobbyist tier,
+            # so we fetch live trades and filter client-side.
+            data = await self._make_request("/live/congresstrading")
             if data is None:
                 return []
 
