@@ -70,7 +70,7 @@ class CBOEClient:
         """Ensure httpx async client exists."""
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(total=15, connect=5),
+                timeout=httpx.Timeout(15, connect=5),
                 follow_redirects=True,
             )
         return self._client
